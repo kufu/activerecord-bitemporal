@@ -220,7 +220,16 @@ module ActiveRecord
       def build_arel(args = nil)
         return ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
           super.tap { |arel|
-            bitemporal_clause.ast&.tap { |result| arel.where(result) }
+            bitemporal_clause.ast&.tap { |clause|
+              arel.ast.cores.each do |node|
+                next unless node.kind_of?(Arel::Nodes::SelectCore)
+                if node.wheres.empty?
+                  node.wheres = [clause]
+                else
+                  node.wheres[0] = clause.and(node.wheres[0])
+                end
+              end
+            }
           }
         }
 
