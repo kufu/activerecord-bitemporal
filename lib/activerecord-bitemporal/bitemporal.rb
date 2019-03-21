@@ -61,6 +61,10 @@ module ActiveRecord
 #           @relation = relation
         end
 
+        def empty?
+          @predicates.empty?
+        end
+
         def [](klass)
           @predicates[klass] ||= {}
         end
@@ -69,13 +73,9 @@ module ActiveRecord
           @predicates[klass] = value
         end
 
-        def ast(klass)
-#           pp __method__ if $debug
-#           pp klass if $debug
-#           pp @predicates if $debug
-#           option = self[klass]
+        def ast(klass = nil)
+          return predicates.keys.map(&method(:ast)).compact.inject(&:and) unless klass
           option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
-#           pp option if $debug
           return if option[:ignore_valid_datetime]
 
           target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
@@ -138,11 +138,13 @@ module ActiveRecord
         include RelationOptionable
 
         def with_bitemporal_option(**opt, &block)
-          all.tap { |relation|
-            relation.bitemporal_option_merge!(**opt)
-          }.yield_self { |relation|
-            block ? block.call(relation) : relation
-          }
+          block = :all.to_proc unless block
+          block.call all.tap { |relation| relation.bitemporal_option_merge!(**opt) }
+#           all.tap { |relation|
+#             relation.bitemporal_option_merge!(**opt)
+#           }.yield_self { |relation|
+#             block ? block.call(relation) : relation
+#           }
 #           block = :all.to_proc unless block
 #           RelationOptionable.instance_method(:with_bitemporal_option).bind(all).call(**opt, &block)
         end
@@ -191,35 +193,39 @@ module ActiveRecord
         end
       end
 
-      def merge(*)
-        if valid_datetime
-          ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-        else
-          super
-        end
-#         pp __method__ if $debug
-#         super.tap { |it|
-#           pp it.class
-#         }
-#         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
+#       def merge(*)
 #         if valid_datetime
-#           relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+#           ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
 #         else
-#           relations = super
+#           super
 #         end
-#         relations
-#         relations.each do |record|
-# #           record.bitemporal_option_merge!(valid_datetime: valid_datetime)
-# #           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
-#         end
-#         relations
-      end
+# #         pp __method__ if $debug
+# #         super.tap { |it|
+# #           pp it.class
+# #         }
+# #         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
+# #         if valid_datetime
+# #           relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+# #         else
+# #           relations = super
+# #         end
+# #         relations
+# #         relations.each do |record|
+# # #           record.bitemporal_option_merge!(valid_datetime: valid_datetime)
+# # #           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
+# #         end
+# #         relations
+#       end
 
       def build_arel(args = nil)
-        pp __method__ if $debug
-        pp self.class if $debug
-        return super.tap { |it|
-          bitemporal_clause.ast(klass).tap { |query|
+        return ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
+          super.tap { |arel|
+            bitemporal_clause.ast&.tap { |result| arel.where(result) }
+          }
+        }
+
+        return result.tap { |it|
+          bitemporal_clause.ast.tap { |query|
             next it.where(query) if query
           }
         }

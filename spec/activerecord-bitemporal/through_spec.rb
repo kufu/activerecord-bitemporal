@@ -96,7 +96,7 @@ RSpec.describe "has_xxx with through" do
       it { is_expected.not_to change { user.articles.count } }
       it { is_expected.to change { blog.users.first.name }.from("Tom").to("Kevin") }
 
-      it { is_expected.to change { blog.users.ignore_valid_datetime(&:count) }.by(2) }
+      it { is_expected.to change { blog.users.ignore_valid_datetime(&:count) }.by(6) }
       it { is_expected.not_to change { blog.articles.ignore_valid_datetime(&:count) } }
     end
 
@@ -108,7 +108,7 @@ RSpec.describe "has_xxx with through" do
       it { is_expected.to change { blog.articles.first.title }.from("sushi").to("kaisendon") }
       it { is_expected.to change { user.articles.first.title }.from("sushi").to("kaisendon") }
 
-      it { is_expected.not_to change { blog.users.ignore_valid_datetime(&:count) } }
+      it { is_expected.to change { blog.users.ignore_valid_datetime(&:count) }.by(6) }
       it { is_expected.to change { blog.articles.ignore_valid_datetime(&:count) }.by(2) }
     end
   end
@@ -152,7 +152,7 @@ RSpec.describe "has_xxx with through" do
       let(:user2) { User.create!(name: "Tom") }
       before { Timecop.freeze(updated_at) { article.update(user: user2) } }
 
-      xit { expect(blog.users.valid_at(created_at, &:all).first.name).to eq "Jane" }
+      it { expect(blog.users.valid_at(created_at, &:all).first.name).to eq "Jane" }
       it { expect(blog.users.valid_at(updated_at, &:all).first.name).to eq "Tom" }
 
       it { expect(Blog.find_at_time(created_at, blog.id).users.first.name).to eq "Jane" }
@@ -161,7 +161,7 @@ RSpec.describe "has_xxx with through" do
       it { expect(blog.valid_at(created_at) { |m| m.users.first.name }).to eq "Jane" }
       it { expect(blog.valid_at(updated_at) { |m| m.users.first.name }).to eq "Tom" }
 
-      xit { expect(blog.users.find_at_time(created_at, user.id).name).to eq "Jane" }
+      it { expect(blog.users.find_at_time(created_at, user.id).name).to eq "Jane" }
       it { expect(blog.users.find_at_time(updated_at, user.id)).to be_nil }
 
       it { expect(blog.users.find_at_time(created_at, user2.id)).to be_nil }

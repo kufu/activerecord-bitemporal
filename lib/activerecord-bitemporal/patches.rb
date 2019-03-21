@@ -79,13 +79,14 @@ module ActiveRecord::Bitemporal
     module ThroughAssociation
       def target_scope
         scope = super
-        target_datetime = bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime || owner.try(:valid_datetime) || Time.current
+#         target_datetime = bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime || owner.try(:valid_datetime) || Time.current
+        target_datetime = klass.try(:valid_datetime) || owner.try(:valid_datetime)
         reflection.chain.drop(1).each do |reflection|
           klass = reflection.klass&.scope_for_association&.klass
           next unless klass&.bi_temporal_model?
-#           scope.merge!(klass&.valid_at(target_datetime))
-#           scope.merge!(scope.klass.with_bitemporal_option(through: klass))
-          scope.merge!(klass&.scope_valid_at(target_datetime))
+#           scope.merge!(klass&.valid_at(nil))
+          scope.merge!(klass&.with_bitemporal_option(through: klass))
+#           scope.merge!(klass&.scope_valid_at(target_datetime))
         end
         scope
       end
@@ -111,7 +112,6 @@ module ActiveRecord::Bitemporal
 
     module Merger
       def merge
-        pp "homu" if $debug
         if relation.klass.bi_temporal_model? && other.klass.bi_temporal_model?
 #           relation.bitemporal_option_merge! other.bitemporal_option
           relation.bitemporal_clause.predicates.merge!(other.bitemporal_clause.predicates)
