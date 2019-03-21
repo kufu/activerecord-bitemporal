@@ -18,12 +18,6 @@ module ActiveRecord
     module Optionable
       def bitemporal_option
         ::ActiveRecord::Bitemporal.merge_by(bitemporal_option_strage)
-#         global_option = ::ActiveRecord::Bitemporal.send(:bitemporal_option_strage)
-#         if global_option[:force]
-#           bitemporal_option_strage.merge(global_option)
-#         else
-#           global_option.merge(bitemporal_option_strage)
-#         end
       end
 
       def bitemporal_option_merge!(other)
@@ -56,9 +50,8 @@ module ActiveRecord
 
         delegate :each, to: :predicates
 
-        def initialize(relation, predicates = {})
+        def initialize(predicates = {})
           @predicates = predicates
-#           @relation = relation
         end
 
         def empty?
@@ -76,7 +69,6 @@ module ActiveRecord
         def ast(klass = nil)
           return predicates.keys.map(&method(:ast)).select(&:present?).inject(&:and) unless klass
           option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
-#           return if option[:ignore_valid_datetime]
 
           target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
           arel = klass.arel_table
@@ -84,14 +76,6 @@ module ActiveRecord
           arels << arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime)) unless option[:ignore_valid_datetime]
           arels << arel[:deleted_at].eq(nil) unless option[:within_deleted]
           arels.inject(&:and)
-#           result = nil
-#           if !option[:ignore_valid_datetime]
-#             result = arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime))
-#           end
-#           if !option[:within_deleted]
-#             result = result.and(arel[:deleted_at].eq(nil))
-#           end
-#           result
         end
       end
 
@@ -144,13 +128,6 @@ module ActiveRecord
         def with_bitemporal_option(**opt, &block)
           block = :all.to_proc unless block
           block.call all.tap { |relation| relation.bitemporal_option_merge!(**opt) }
-#           all.tap { |relation|
-#             relation.bitemporal_option_merge!(**opt)
-#           }.yield_self { |relation|
-#             block ? block.call(relation) : relation
-#           }
-#           block = :all.to_proc unless block
-#           RelationOptionable.instance_method(:with_bitemporal_option).bind(all).call(**opt, &block)
         end
 
         def find(*ids)
@@ -183,7 +160,6 @@ module ActiveRecord
         end
         return records if records.empty?
         records.each do |record|
-#           record.bitemporal_option_merge!(valid_datetime: valid_datetime)
           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
         end
       end
@@ -203,7 +179,7 @@ module ActiveRecord
       end
 
       def build_arel(args = nil)
-        return ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
+        ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
           super.tap { |arel|
             bitemporal_clause.ast&.tap { |clause|
               arel.ast.cores.each do |node|
@@ -217,35 +193,12 @@ module ActiveRecord
             }
           }
         }
-
-        return result.tap { |it|
-          bitemporal_clause.ast.tap { |query|
-            next it.where(query) if query
-          }
-        }
-        return super if ignore_valid_datetime?
-
-        super.tap do |arel|
-          target_datetime = valid_datetime || Time.current
-          bitemporal_clause = klass.arel_table[:deleted_at].eq(nil).and(
-            klass.arel_table[:valid_from].lteq(target_datetime).and(
-              klass.arel_table[:valid_to].gt(target_datetime)))
-
-          arel.ast.cores.each do |node|
-            next unless node.kind_of?(Arel::Nodes::SelectCore)
-            if node.wheres.empty?
-              node.wheres = [bitemporal_clause]
-            else
-              node.wheres[0] = bitemporal_clause.and(node.wheres[0])
-            end
-          end
-        end
       end
 
       def bitemporal_clause
         get_value(:bitemporal_clause).yield_self { |result|
           next result if result
-          self.bitemporal_clause = Relation::BitemporalClause.new(self)
+          self.bitemporal_clause = Relation::BitemporalClause.new
         }
       end
 
@@ -261,44 +214,11 @@ module ActiveRecord
 
       def bitemporal_option_strage(klass_ = self.klass)
         bitemporal_clause[klass_]
-#         ::ActiveRecord::QueryMethods::DEFAULT_VALUES[:bitemporal_option_strage] ||= {}
-#         get_value(:bitemporal_option_strage)
       end
 
       def bitemporal_option_strage=(value)
         bitemporal_clause[klass] = value
-#         set_value(:bitemporal_option_strage, value)
       end
-
-#       def bitemporal_option(klass_ = self.klass)
-#         global_option = ::ActiveRecord::Bitemporal.send(:bitemporal_option_strage)
-#         if global_option[:force]
-#           bitemporal_option_strage(klass_).merge(global_option)
-#         else
-#           global_option.merge(bitemporal_option_strage(klass_))
-#         end
-#       end
-
-#       prepend Module.new {
-#         def bitemporal_option
-#           # NOTE: super を呼び出すと
-#           # ActiveRecord::Bitemporal.bitemporal_option_strage.merge(bitemporal_option_strage)
-#           # が返ってきてしまい
-#           # 自身のオプション > ActiveRecord::Bitemporal のオプション > クラスが保持しているオプション
-#           # のようになり、整合性が取れなくなるので注意
-#           return super unless klass.bi_temporal_model?
-#           global_option = ::ActiveRecord::Bitemporal.bitemporal_option
-#           if global_option[:force]
-#             # ActiveRecord::Bitemporal のオプション > 自身のオプション > クラスが保持しているオプション
-#             # の優先順位になるようにする
-#             klass.bitemporal_option.merge(bitemporal_option_strage).merge(global_option)
-#           else
-#             # 自身のオプション > クラスが保持しているオプション > ActiveRecord::Bitemporal のオプション
-#             # の優先順位になるようにする
-#             global_option.merge(klass.bitemporal_option).merge(bitemporal_option_strage)
-#           end
-#         end
-#       }
     end
 
     # リレーションのスコープ
@@ -452,7 +372,7 @@ module ActiveRecord
           # 有効なレコードがない場合
           else
             # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
-            nearest_instance = self.class.where(deleted_at: nil, bitemporal_id: bitemporal_id).where('valid_from > ?', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
+            nearest_instance = self.class.where(bitemporal_id: bitemporal_id).where('valid_from > ?', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
 
             # valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
@@ -523,16 +443,14 @@ module ActiveRecord
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record.valid_datetime && (record.valid_from..record.valid_to).include?(record.valid_datetime)) == false
-            finder_class.where(deleted_at: nil, bitemporal_id: record.bitemporal_id).where('valid_from > ?', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
+            finder_class.where(bitemporal_id: record.bitemporal_id).where('valid_from > ?', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
           else
             valid_to
           end
         }
 
         arel_bitemporal_scope = finder_class.ignore_valid_datetime
-          .arel_table[:deleted_at].eq(nil)
-            .and(finder_class.arel_table[:valid_from].lt(valid_to))
-            .and(finder_class.arel_table[:valid_to].gt(valid_from))
+            .arel_table[:valid_from].lt(valid_to).and(finder_class.arel_table[:valid_to].gt(valid_from))
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
