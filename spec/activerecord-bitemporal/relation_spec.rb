@@ -146,6 +146,11 @@ RSpec.describe "Relation" do
     it { is_expected.to include(valid_datetime: "2019/2/2") }
   end
 
+  describe ".ignore_valid_datetime" do
+    subject { Company.ignore_valid_datetime.to_sql }
+    it { is_expected.to match /"companies"."deleted_at" IS NULL/ }
+  end
+
   describe "preload" do
     let(:company_relation) { Company.valid_at("2019/1/5").where(bitemporal_id: @company.id) }
     let(:employee) { company.employees.first }
