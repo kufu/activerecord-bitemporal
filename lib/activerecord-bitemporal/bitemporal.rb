@@ -193,29 +193,19 @@ module ActiveRecord
         end
       end
 
-#       def merge(*)
-#         if valid_datetime
-#           ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-#         else
-#           super
-#         end
-# #         pp __method__ if $debug
-# #         super.tap { |it|
-# #           pp it.class
-# #         }
-# #         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-# #         if valid_datetime
-# #           relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-# #         else
-# #           relations = super
-# #         end
-# #         relations
-# #         relations.each do |record|
-# # #           record.bitemporal_option_merge!(valid_datetime: valid_datetime)
-# # #           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
-# #         end
-# #         relations
-#       end
+      def merge(*)
+        # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
+        if valid_datetime
+          relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+        else
+          relations = super
+        end
+        relations
+        relations.each do |record|
+          record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
+        end
+        relations
+      end
 
       def build_arel(args = nil)
         return ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
