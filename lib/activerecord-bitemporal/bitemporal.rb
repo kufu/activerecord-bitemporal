@@ -74,20 +74,24 @@ module ActiveRecord
         end
 
         def ast(klass = nil)
-          return predicates.keys.map(&method(:ast)).compact.inject(&:and) unless klass
+          return predicates.keys.map(&method(:ast)).select(&:present?).inject(&:and) unless klass
           option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
-          return if option[:ignore_valid_datetime]
+#           return if option[:ignore_valid_datetime]
 
           target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
           arel = klass.arel_table
-          result = nil
-          if !option[:ignore_valid_datetime]
-            result = arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime))
-          end
-          if !option[:within_deleted]
-            result = result.and(arel[:deleted_at].eq(nil))
-          end
-          result
+          arels = []
+          arels << arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime)) unless option[:ignore_valid_datetime]
+          arels << arel[:deleted_at].eq(nil) unless option[:within_deleted]
+          arels.inject(&:and)
+#           result = nil
+#           if !option[:ignore_valid_datetime]
+#             result = arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime))
+#           end
+#           if !option[:within_deleted]
+#             result = result.and(arel[:deleted_at].eq(nil))
+#           end
+#           result
         end
       end
 
@@ -302,13 +306,11 @@ module ActiveRecord
       extend ActiveSupport::Concern
 
       included do
-        # NOTE: experimental scope
-        scope :scope_valid_at, -> (target_datetime = Time.current) {
-          where(
-            klass.arel_table[:deleted_at].eq(nil).and(
-            klass.arel_table[:valid_from].lteq(target_datetime).and(
-            klass.arel_table[:valid_to].gt(target_datetime)))
-          )
+        scope :within_deleted, -> {
+          with_bitemporal_option(within_deleted: true)
+        }
+        scope :without_deleted, -> {
+          with_bitemporal_option(within_deleted: false)
         }
       end
 
@@ -316,12 +318,6 @@ module ActiveRecord
         extend ActiveSupport::Concern
 
         included do
-          scope :within_deleted, -> {
-            unscope(where: :deleted_at)
-          }
-          scope :without_deleted, -> {
-            where(klass.arel_table[:deleted_at].eq(nil))
-          }
           scope :valid_in, -> (from:, to:) {
             ignore_valid_datetime.without_deleted.where(
               arel_table[:valid_from].lteq(to).and(

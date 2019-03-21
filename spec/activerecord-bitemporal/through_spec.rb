@@ -96,8 +96,8 @@ RSpec.describe "has_xxx with through" do
       it { is_expected.not_to change { user.articles.count } }
       it { is_expected.to change { blog.users.first.name }.from("Tom").to("Kevin") }
 
-      it { is_expected.to change { blog.users.ignore_valid_datetime(&:count) }.by(6) }
-      it { is_expected.not_to change { blog.articles.ignore_valid_datetime(&:count) } }
+      it { is_expected.to change { blog.users.ignore_valid_datetime.count }.by(2) }
+      it { is_expected.not_to change { blog.articles.ignore_valid_datetime.count } }
     end
 
     context "article.update" do
@@ -108,8 +108,8 @@ RSpec.describe "has_xxx with through" do
       it { is_expected.to change { blog.articles.first.title }.from("sushi").to("kaisendon") }
       it { is_expected.to change { user.articles.first.title }.from("sushi").to("kaisendon") }
 
-      it { is_expected.to change { blog.users.ignore_valid_datetime(&:count) }.by(6) }
-      it { is_expected.to change { blog.articles.ignore_valid_datetime(&:count) }.by(2) }
+      it { is_expected.to change { blog.users.ignore_valid_datetime.count }.by(2) }
+      it { is_expected.to change { blog.articles.ignore_valid_datetime.count }.by(1) }
     end
   end
 

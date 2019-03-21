@@ -113,7 +113,7 @@ RSpec.describe "Association" do
 
       it { is_expected.to change(employees, :count).by(1) }
       it { is_expected.to change(employees, :first).from(nil).to(have_attributes name: "Employee1") }
-      it { is_expected.to change { employees.ignore_valid_datetime(&:count) }.by(1) }
+      it { is_expected.to change { employees.ignore_valid_datetime.count }.by(1) }
       it { is_expected.to change { employees.find_by(name: "Employee1") }.from(nil).to(have_attributes name: "Employee1") }
     end
 
@@ -123,7 +123,7 @@ RSpec.describe "Association" do
 
       it { is_expected.not_to change(employees, :count) }
       it { is_expected.to change { employees.first.reload.name }.to("New") }
-      it { is_expected.to change { employees.ignore_valid_datetime(&:count) }.by(2) }
+      it { is_expected.to change { employees.ignore_valid_datetime.count }.by(1) }
     end
 
     describe "#force_update" do
@@ -132,7 +132,7 @@ RSpec.describe "Association" do
 
       it { is_expected.not_to change(employees, :count) }
       it { is_expected.to change { employees.first.reload.name }.to("New") }
-      it { is_expected.to change { employees.ignore_valid_datetime(&:count) }.by(1) }
+      it { is_expected.to change { employees.ignore_valid_datetime.within_deleted.count }.by(1) }
     end
 
     describe "#destroy" do
@@ -141,7 +141,7 @@ RSpec.describe "Association" do
 
       it { is_expected.to change(employees, :count).by(-1) }
       it { is_expected.to change(employee1, :destroyed?).from(false).to(true) }
-      it { is_expected.to change { employees.ignore_valid_datetime(&:count) }.by(1) }
+      it { is_expected.to change { employees.ignore_valid_datetime.within_deleted.count }.by(1) }
     end
 
     describe "relations" do
@@ -230,7 +230,7 @@ RSpec.describe "Association" do
         }
 
         it { is_expected.not_to change { Employee.count } }
-        it { is_expected.to change { Employee.ignore_valid_datetime(&:count) }.by(4) }
+        it { is_expected.to change { Employee.ignore_valid_datetime.count }.by(2) }
         it { is_expected.to change { employee1.reload.name }.from("Tom").to("Kevin") }
         it { is_expected.to change { employee2.reload.name }.from("Mami").to("Mado") }
       end
@@ -277,7 +277,7 @@ RSpec.describe "Association" do
         }
 
         it { is_expected.not_to change { Employee.count } }
-        it { is_expected.to change { Employee.ignore_valid_datetime(&:count) }.by(4) }
+        it { is_expected.to change { Employee.ignore_valid_datetime.count }.by(2) }
         it { is_expected.to change { employee1.reload.name }.from("Tom").to("Kevin") }
         it { is_expected.to change { employee2.reload.name }.from("Mami").to("Mado") }
       end
