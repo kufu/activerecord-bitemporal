@@ -45,7 +45,7 @@ RSpec.describe "Relation" do
     it { is_expected.to have_attributes count: 5 }
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
-        expect(subject.to_sql).to match /AND "employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
+        expect(subject.to_sql).to match /"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
       }
     end
 
@@ -98,7 +98,7 @@ RSpec.describe "Relation" do
     it { is_expected.to have_attributes count: 2 }
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
-        expect(subject.to_sql).to match /AND "employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
+        expect(subject.to_sql).to match /"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
       }
     end
 

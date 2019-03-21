@@ -17,12 +17,13 @@ module ActiveRecord
 
     module Optionable
       def bitemporal_option
-        global_option = ::ActiveRecord::Bitemporal.send(:bitemporal_option_strage)
-        if global_option[:force]
-          bitemporal_option_strage.merge(global_option)
-        else
-          global_option.merge(bitemporal_option_strage)
-        end
+        ::ActiveRecord::Bitemporal.merge_by(bitemporal_option_strage)
+#         global_option = ::ActiveRecord::Bitemporal.send(:bitemporal_option_strage)
+#         if global_option[:force]
+#           bitemporal_option_strage.merge(global_option)
+#         else
+#           global_option.merge(bitemporal_option_strage)
+#         end
       end
 
       def bitemporal_option_merge!(other)
@@ -49,6 +50,47 @@ module ActiveRecord
 
     # Relation 拡張用
     module Relation
+      class BitemporalClause
+        include ::Enumerable
+        attr_reader :predicates, :relation
+
+        delegate :each, to: :predicates
+
+        def initialize(relation, predicates = {})
+          @predicates = predicates
+#           @relation = relation
+        end
+
+        def [](klass)
+          @predicates[klass] ||= {}
+        end
+
+        def []=(klass, value)
+          @predicates[klass] = value
+        end
+
+        def ast(klass)
+#           pp __method__ if $debug
+#           pp klass if $debug
+#           pp @predicates if $debug
+#           option = self[klass]
+          option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
+#           pp option if $debug
+          return if option[:ignore_valid_datetime]
+
+          target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
+          arel = klass.arel_table
+          result = nil
+          if !option[:ignore_valid_datetime]
+            result = arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime))
+          end
+          if !option[:within_deleted]
+            result = result.and(arel[:deleted_at].eq(nil))
+          end
+          result
+        end
+      end
+
       module RelationOptionable
         include Optionable
 
@@ -80,6 +122,14 @@ module ActiveRecord
             def valid_at!(datetime, &block)
               with_bitemporal_option(valid_datetime: datetime, force: true, &block)
             end
+
+            def merge_by(option)
+              if bitemporal_option_strage[:force]
+                option.merge(bitemporal_option_strage)
+              else
+                bitemporal_option_strage.merge(option)
+              end
+            end
           end
         end
       end
@@ -88,8 +138,13 @@ module ActiveRecord
         include RelationOptionable
 
         def with_bitemporal_option(**opt, &block)
-          block = :all.to_proc unless block
-          RelationOptionable.instance_method(:with_bitemporal_option).bind(all).call(**opt, &block)
+          all.tap { |relation|
+            relation.bitemporal_option_merge!(**opt)
+          }.yield_self { |relation|
+            block ? block.call(relation) : relation
+          }
+#           block = :all.to_proc unless block
+#           RelationOptionable.instance_method(:with_bitemporal_option).bind(all).call(**opt, &block)
         end
 
         def find(*ids)
@@ -113,34 +168,61 @@ module ActiveRecord
       include Finder
 
       module CollectionProxy
-        include Finder
-
-        def with_bitemporal_option(**opt, &block)
-          block = :all.to_proc unless block
-          proxy_association.with_bitemporal_option(**opt) { |m| block.call m.scope }
-        end
+#         include Finder
+#
+#         def with_bitemporal_option(**opt, &block)
+#           block = :all.to_proc unless block
+#           proxy_association.with_bitemporal_option(**opt) { |m| block.call m.scope }
+#         end
       end
 
       def load
         return super if loaded?
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+        if valid_datetime
+          records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+        else
+          records = super
+        end
         return records if records.empty?
         records.each do |record|
+#           record.bitemporal_option_merge!(valid_datetime: valid_datetime)
           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
         end
       end
 
       def merge(*)
-        # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-        relations.each do |record|
-          record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
+        if valid_datetime
+          ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+        else
+          super
         end
-        relations
+#         pp __method__ if $debug
+#         super.tap { |it|
+#           pp it.class
+#         }
+#         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
+#         if valid_datetime
+#           relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+#         else
+#           relations = super
+#         end
+#         relations
+#         relations.each do |record|
+# #           record.bitemporal_option_merge!(valid_datetime: valid_datetime)
+# #           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
+#         end
+#         relations
       end
 
       def build_arel(args = nil)
+        pp __method__ if $debug
+        pp self.class if $debug
+        return super.tap { |it|
+          bitemporal_clause.ast(klass).tap { |query|
+            next it.where(query) if query
+          }
+        }
         return super if ignore_valid_datetime?
 
         super.tap do |arel|
@@ -160,41 +242,63 @@ module ActiveRecord
         end
       end
 
+      def bitemporal_clause
+        get_value(:bitemporal_clause).yield_self { |result|
+          next result if result
+          self.bitemporal_clause = Relation::BitemporalClause.new(self)
+        }
+      end
+
+      def bitemporal_clause=(value)
+        set_value(:bitemporal_clause, value)
+      end
+
       def primary_key
         bitemporal_id_key
       end
 
       private
 
-      def bitemporal_option_strage
-        ::ActiveRecord::QueryMethods::DEFAULT_VALUES[:bitemporal_option_strage] ||= {}
-        get_value(:bitemporal_option_strage)
+      def bitemporal_option_strage(klass_ = self.klass)
+        bitemporal_clause[klass_]
+#         ::ActiveRecord::QueryMethods::DEFAULT_VALUES[:bitemporal_option_strage] ||= {}
+#         get_value(:bitemporal_option_strage)
       end
 
       def bitemporal_option_strage=(value)
-        set_value(:bitemporal_option_strage, value)
+        bitemporal_clause[klass] = value
+#         set_value(:bitemporal_option_strage, value)
       end
 
-      prepend Module.new {
-        def bitemporal_option
-          # NOTE: super を呼び出すと
-          # ActiveRecord::Bitemporal.bitemporal_option_strage.merge(bitemporal_option_strage)
-          # が返ってきてしまい
-          # 自身のオプション > ActiveRecord::Bitemporal のオプション > クラスが保持しているオプション
-          # のようになり、整合性が取れなくなるので注意
-          return super unless klass.bi_temporal_model?
-          global_option = ::ActiveRecord::Bitemporal.bitemporal_option
-          if global_option[:force]
-            # ActiveRecord::Bitemporal のオプション > 自身のオプション > クラスが保持しているオプション
-            # の優先順位になるようにする
-            klass.bitemporal_option.merge(bitemporal_option_strage).merge(global_option)
-          else
-            # 自身のオプション > クラスが保持しているオプション > ActiveRecord::Bitemporal のオプション
-            # の優先順位になるようにする
-            global_option.merge(klass.bitemporal_option).merge(bitemporal_option_strage)
-          end
-        end
-      }
+#       def bitemporal_option(klass_ = self.klass)
+#         global_option = ::ActiveRecord::Bitemporal.send(:bitemporal_option_strage)
+#         if global_option[:force]
+#           bitemporal_option_strage(klass_).merge(global_option)
+#         else
+#           global_option.merge(bitemporal_option_strage(klass_))
+#         end
+#       end
+
+#       prepend Module.new {
+#         def bitemporal_option
+#           # NOTE: super を呼び出すと
+#           # ActiveRecord::Bitemporal.bitemporal_option_strage.merge(bitemporal_option_strage)
+#           # が返ってきてしまい
+#           # 自身のオプション > ActiveRecord::Bitemporal のオプション > クラスが保持しているオプション
+#           # のようになり、整合性が取れなくなるので注意
+#           return super unless klass.bi_temporal_model?
+#           global_option = ::ActiveRecord::Bitemporal.bitemporal_option
+#           if global_option[:force]
+#             # ActiveRecord::Bitemporal のオプション > 自身のオプション > クラスが保持しているオプション
+#             # の優先順位になるようにする
+#             klass.bitemporal_option.merge(bitemporal_option_strage).merge(global_option)
+#           else
+#             # 自身のオプション > クラスが保持しているオプション > ActiveRecord::Bitemporal のオプション
+#             # の優先順位になるようにする
+#             global_option.merge(klass.bitemporal_option).merge(bitemporal_option_strage)
+#           end
+#         end
+#       }
     end
 
     # リレーションのスコープ
