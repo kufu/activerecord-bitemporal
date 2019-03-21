@@ -1,0 +1,8 @@
+version: '2.1'
+services:
+  db:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data

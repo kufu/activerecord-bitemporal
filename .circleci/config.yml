@@ -1,0 +1,40 @@
+version: 2
+
+jobs:
+  rails-5.2:
+    docker:
+      - image: ruby:2.5.3
+      - image: circleci/postgres:11-alpine
+    steps:
+      - checkout
+      - run: bundle install
+      - run: bundle exec appraisal rails-5.2 bundle install
+      - run: bundle exec appraisal rails-5.2 rake
+
+  rails-master:
+    docker:
+      - image: ruby:2.5.3
+      - image: circleci/postgres:11-alpine
+    steps:
+      - checkout
+      - run: bundle install
+      - run: bundle exec appraisal rails-master bundle install
+      - run: bundle exec appraisal rails-master rake
+
+  rails-6.0beta2:
+    docker:
+      - image: ruby:2.5.3
+      - image: circleci/postgres:11-alpine
+    steps:
+      - checkout
+      - run: bundle install
+      - run: bundle exec appraisal rails-6.0beta2 bundle install
+      - run: bundle exec appraisal rails-6.0beta2 rake
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - rails-5.2
+      - rails-6.0beta2
+      - rails-master

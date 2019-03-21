@@ -1,0 +1,6 @@
+test:
+  adapter: postgresql
+  username: postgres
+  password: postgres
+  database: activerecord_bitemporal_test
+  host: localhost
