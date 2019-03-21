@@ -54,10 +54,6 @@ module ActiveRecord
           @predicates = predicates
         end
 
-        def empty?
-          @predicates.empty?
-        end
-
         def [](klass)
           @predicates[klass] ||= {}
         end
@@ -70,11 +66,13 @@ module ActiveRecord
           return predicates.keys.map(&method(:ast)).select(&:present?).inject(&:and) unless klass
           option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
 
-          target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
-          arel = klass.arel_table
+          arel_table = klass.arel_table
           arels = []
-          arels << arel[:valid_from].lteq(target_datetime).and(arel[:valid_to].gt(target_datetime)) unless option[:ignore_valid_datetime]
-          arels << arel[:deleted_at].eq(nil) unless option[:within_deleted]
+          if !option[:ignore_valid_datetime]
+            target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
+            arels << arel_table[:valid_from].lteq(target_datetime).and(arel_table[:valid_to].gt(target_datetime))
+          end
+          arels << arel_table[:deleted_at].eq(nil) unless option[:within_deleted]
           arels.inject(&:and)
         end
       end
@@ -92,10 +90,6 @@ module ActiveRecord
 
         def ignore_valid_datetime(&block)
           with_bitemporal_option(ignore_valid_datetime: true, &block)
-        end
-
-        def ignore_valid_datetime?
-          bitemporal_option[:ignore_valid_datetime].present?
         end
 
         # Add Optionable to Bitemporal
