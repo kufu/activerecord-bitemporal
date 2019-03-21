@@ -71,10 +71,10 @@ module ActiveRecord::Bitemporal
     module ThroughAssociation
       def target_scope
         scope = super
-        target_datetime = klass.try(:valid_datetime) || owner.try(:valid_datetime)
         reflection.chain.drop(1).each do |reflection|
           klass = reflection.klass&.scope_for_association&.klass
           next unless klass&.bi_temporal_model?
+          # MEMO: Add dummy option.
           scope.merge!(klass&.with_bitemporal_option(through: klass))
         end
         scope
