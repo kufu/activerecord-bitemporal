@@ -1,27 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe "Relation" do
-  describe "hook CollectionProxy" do
-    subject { klass.ancestors }
-
-    context "included ActiveRecord::Bitemporal model" do
-      context "`ActiveRecord_Associations_CollectionProxy`" do
-        let(:klass) { Employee.const_get(:ActiveRecord_Associations_CollectionProxy) }
-        it { is_expected.to include ActiveRecord::Bitemporal::Relation::CollectionProxy }
-      end
-
-      context "`Employee::CollectionProxy`" do
-        let(:klass) { Employee::CollectionProxy }
-        it { is_expected.not_to include ActiveRecord::Bitemporal::Relation::CollectionProxy }
-      end
-    end
-
-    context "non included ActiveRecord::Bitemporal model" do
-      let(:klass) { EmployeeWithoutBitemporal::CollectionProxy }
-      it { is_expected.not_to include ActiveRecord::Bitemporal::Relation::CollectionProxy }
-    end
-  end
-
   describe "hook Relation" do
     subject { klass.ancestors }
 

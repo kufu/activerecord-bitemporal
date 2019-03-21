@@ -169,15 +169,6 @@ module ActiveRecord
       end
       include Finder
 
-      module CollectionProxy
-#         include Finder
-#
-#         def with_bitemporal_option(**opt, &block)
-#           block = :all.to_proc unless block
-#           proxy_association.with_bitemporal_option(**opt) { |m| block.call m.scope }
-#         end
-      end
-
       def load
         return super if loaded?
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定

@@ -82,13 +82,13 @@ module ActiveRecord
       # リレーションメソッドの追加
       const_get(:ActiveRecord_Relation).prepend ActiveRecord::Bitemporal::Relation
       const_get(:ActiveRecord_AssociationRelation).prepend ActiveRecord::Bitemporal::Relation
-      const_get(:ActiveRecord_Associations_CollectionProxy).prepend ActiveRecord::Bitemporal::Relation::CollectionProxy
+      const_get(:ActiveRecord_Associations_CollectionProxy).prepend ActiveRecord::Bitemporal::Relation
       # 継承先の Relation にも追加する
       def self.inherited(subclass)
         super
         subclass.const_get(:ActiveRecord_Relation).prepend ActiveRecord::Bitemporal::Relation
         subclass.const_get(:ActiveRecord_AssociationRelation).prepend ActiveRecord::Bitemporal::Relation
-        subclass.const_get(:ActiveRecord_Associations_CollectionProxy).prepend ActiveRecord::Bitemporal::Relation::CollectionProxy
+        subclass.const_get(:ActiveRecord_Associations_CollectionProxy).prepend ActiveRecord::Bitemporal::Relation
       end
 
       include ActiveRecord::Bitemporal::Scope
