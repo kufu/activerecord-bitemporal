@@ -168,4 +168,38 @@ RSpec.describe "has_xxx with through" do
       it { expect(blog.users.find_at_time(updated_at, user2.id).name).to eq "Tom" }
     end
   end
+
+  describe ".to_sql" do
+    let(:blog) { Blog.create!(name: "tabelog") }
+    let(:user) { User.create!(name: "Jane") }
+    let(:article) { user.articles.create!(title: "yakiniku", blog: blog) }
+    let(:relation) { nil }
+    let(:relation_time) { "2019/1/1" }
+    subject { Timecop.freeze(relation_time) { relation.to_sql } }
+    before do
+      @old_time_zone = Time.zone
+      Time.zone = "Tokyo"
+    end
+    after { Time.zone = @old_time_zone }
+
+    describe "default scope" do
+      let(:relation) { blog.users }
+      it { is_expected.to match /articles"."valid_from" <= '2018-12-31 15:00:00' AND "articles"."valid_to" > '2018-12-31 15:00:00'/ }
+      it { is_expected.to match /"users"."valid_from" <= '2018-12-31 15:00:00' AND "users"."valid_to" > '2018-12-31 15:00:00'/ }
+    end
+
+    context "with valid_at" do
+      let(:relation) { blog.users.valid_at("2019/2/2") }
+      it { is_expected.to match /articles"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
+      it { is_expected.to match /"users"."valid_from" <= '2019-02-01 15:00:00' AND "users"."valid_to" > '2019-02-01 15:00:00'/ }
+    end
+
+    context "with ignore_valid_datetime" do
+      let(:relation) { blog.users.ignore_valid_datetime }
+      it do
+        is_expected.not_to match(/articles"."valid_from" <= '2018-12-31 15:00:00' AND "articles"."valid_to" > '2018-12-31 15:00:00'/)
+        is_expected.not_to match(/"users"."valid_from" <= '2018-12-31 15:00:00' AND "users"."valid_to" > '2018-12-31 15:00:00'/)
+      end
+    end
+  end
 end
