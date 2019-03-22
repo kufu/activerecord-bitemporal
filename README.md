@@ -246,7 +246,7 @@ Timecop.freeze("2019/1/10") {
 
 ### 更新
 
-`#Update` 等でモデルを更新すると『更新時間』を基準とした履歴レコードが暗黙的に生成されます。
+`#update` 等でモデルを更新すると『更新時間』を基準とした履歴レコードが暗黙的に生成されます。
 
 ```ruby
 employee = nil
@@ -686,7 +686,6 @@ Employee.find_by(id: employee.id)
 
 # OK : bitemporal_id で検索を行う
 # MEMO: id = bitemporal_id なの
-こないだの OCN パッケージの値段より安いタイミング見計らって買おで
 #       find_by(bitemporal_id: employee.id)
 #       でも動作するが employee.bitemporal_id と書いたほうが意図が伝わりやすい
 Employee.find_by(bitemporal_id: employee.bitemporal_id)
