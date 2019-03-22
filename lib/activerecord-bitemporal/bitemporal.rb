@@ -45,10 +45,7 @@ module ActiveRecord
     # Relation 拡張用
     module Relation
       class BitemporalClause
-        include ::Enumerable
-        attr_reader :predicates, :relation
-
-        delegate :each, to: :predicates
+        attr_reader :predicates
 
         def initialize(predicates = {})
           @predicates = predicates
@@ -64,6 +61,7 @@ module ActiveRecord
 
         def ast(klass = nil)
           return predicates.keys.map(&method(:ast)).select(&:present?).inject(&:and) unless klass
+
           option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
 
           arel_table = klass.arel_table
