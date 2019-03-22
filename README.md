@@ -18,34 +18,131 @@ Or install it yourself as:
 
 ## 概要
 
-bitemporal は履歴データを生成・参照するためのライブラリになります。
+bitemporal は履歴レコードを管理するためのライブラリになります。
+まず、モデルを生成すると
 
 ```ruby
-# MEMO: データをわかりやすくする為に使用しているだけで bitemporal には Timecop は必要ありません
-#       2019/1/10 にレコードを生成
-employee = Timecop.freeze("2019/1/10") {
-  Employee.create(emp_code: "001", name: "Jane")
+employee = nil
+# MEMO: データをわかりやすくする為に時間を固定
+#       2019/1/10 にレコードを生成する
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(emp_code: "001", name: "Jane")
+}
+```
+
+以下のようなレコードが生成されます。
+
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+
+そのモデルに対して更新を行うと
+
+```ruby
+employee = nil
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(emp_code: "001", name: "Jane")
 }
 
-# 2019/1/15 にレコードを更新
 Timecop.freeze("2019/1/15") {
-  # 更新時に暗黙的に履歴レコードが生成される
+  # 更新する
+  employee.update(name: "Tom")
+}
+```
+
+次のような履歴レコードが暗黙的に生成されます。
+
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-15 00:00:00 UTC |
+| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-15 00:00:00 UTC | NULL |
+| 3 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+
+更に更新すると
+
+```ruby
+employee = nil
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(emp_code: "001", name: "Jane")
+}
+
+Timecop.freeze("2019/1/15") {
   employee.update(name: "Tom")
 }
 
-# 2019/1/20 にレコードを更新
+Timecop.freeze("2019/1/20") {
+  # 更に更新
+  employee.update(name: "Kevin")
+}
+```
+
+更新する度にどんどん履歴レコードが増えていきます。
+
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-15 00:00:00 UTC |
+| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-15 00:00:00 UTC | NULL |
+| 3 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-20 00:00:00 UTC |
+| 4 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 2019-01-20 00:00:00 UTC | NULL |
+| 5 | 1 | 001 | Kevin | 2019-01-20 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+
+また、レコードを読み込む場合は暗黙的に『一番最新のレコード』を参照します。
+
+```ruby
+employee = nil
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(emp_code: "001", name: "Jane")
+}
+
+Timecop.freeze("2019/1/15") {
+  employee.update(name: "Tom")
+}
+
+Timecop.freeze("2019/1/20") {
+  employee.update(name: "Kevin")
+}
+
+Timecop.freeze("2019/1/25") {
+  # 現時点で有効なレコードのみを参照する
+  pp Employee.count
+  # => 1
+
+  # name = "Tom" は過去の履歴レコードとして扱われるので参照されない
+  pp Employee.find_by(name: "Tom")
+  # => nil
+
+  # 最新のみ参照する
+  pp Employee.all
+  # => #<Employee:0x000055ee191468a8
+  #     id: 1,
+  #     bitemporal_id: 1,
+  #     emp_code: "001",
+  #     name: "Kevin",
+  #     valid_from: 2019-01-20 00:00:00 UTC,
+  #     valid_to: 9999-12-31 00:00:00 UTC,
+  #     deleted_at: nil>
+}
+```
+
+任意の時間の履歴レコードを参照したい場合は `find_at_time(datetime, id)` で時間指定して取得する事が出来ます。
+
+```ruby
+employee = nil
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(emp_code: "001", name: "Jane")
+}
+
+Timecop.freeze("2019/1/15") {
+  employee.update(name: "Tom")
+}
+
 Timecop.freeze("2019/1/20") {
   employee.update(name: "Kevin")
 }
 
 # 2019/1/25 に固定
 Timecop.freeze("2019/1/25") {
-  # 現時点でのレコード
-  pp employee.name
-  # => "Kevin"
-
   # 任意の時間の履歴レコードを取得する
-  # 2019/1/13 時点でのレコードを取得する
   pp Employee.find_at_time("2019/1/13", employee.id).name
   # => "Jane"
   pp Employee.find_at_time("2019/1/18", employee.id).name
