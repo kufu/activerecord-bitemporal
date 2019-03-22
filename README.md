@@ -18,8 +18,9 @@ Or install it yourself as:
 
 ## 概要
 
-activerecord-bitemporal は履歴レコードを管理するためのライブラリになります。
-まず、モデルを生成すると
+activerecord-bitemporal は Rails の ActiveRecord で Bitemporal Data Model を扱うためのライブラリになります。  
+NOTE: Bitemporal Data Model については { ここに :fuse: slide へのリンクを入れる } を参照してください。  
+activerecord-bitemporal では、モデルを生成すると
 
 ```ruby
 employee = nil
