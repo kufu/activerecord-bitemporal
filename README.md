@@ -84,10 +84,12 @@ end
 
 それぞれのカラムは以下のような意味を持ちます。
 
-* bitemporal_id : 履歴データが共通で持つ `id`(`id`` と同じ型である必要がある)
-* valid_from : 履歴の有効な開始時間
-* valid_to : 履歴の有効な終了時間
-* deleted_at : 論理削除された時間
+| カラム名 | 型 | 値 |
+| --- | --- | --- | --- |
+| `bitemporal_id` | `id` と同じ型 |  履歴データが共通で持つ `id` |
+| `valid_from` | `datetime` | 履歴の有効な開始時間 |
+| `valid_to` | `datetime` | 履歴の有効な終了時間 |
+| `deleted_at` | `datetime` | 論理削除された時間 |
 
 また、モデルクラスでは `ActiveRecord::Bitemporal` を `include` をする必要があります。
 
