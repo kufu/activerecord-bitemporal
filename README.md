@@ -18,7 +18,7 @@ Or install it yourself as:
 
 ## 概要
 
-bitemporal は履歴レコードを管理するためのライブラリになります。
+activerecord-bitemporal は履歴レコードを管理するためのライブラリになります。
 まず、モデルを生成すると
 
 ```ruby
@@ -152,7 +152,7 @@ Timecop.freeze("2019/1/25") {
 }
 ```
 
-このように bitemporal は、
+このように activerecord-bitemporal は、
 
 * 保存時に履歴レコードを自動生成
 * `.find_at_time` 等で任意の時間のレコードを取得する
@@ -211,7 +211,7 @@ end
 
 ```ruby
 # MEMO: Timecop を使って擬似的に 2019/1/10 の日付でレコードを生成
-#       データをわかりやすくする為に使用しているだけで bitemporal には Timecop は必要ありません
+#       データをわかりやすくする為に使用しているだけで activerecord-bitemporal には Timecop は必要ありません
 employee = nil
 Timecop.freeze("2019/1/10") {
   employee = Employee.create(emp_code: "001", name: "Jane")
@@ -277,7 +277,7 @@ Timecop.freeze("2019/1/20") {
 2. 更新を行った時間までの履歴レコード（`id = 2`）を新しく生成する
 3. 更新を行った時間からの履歴レコード（`id = 3`）を新しく生成する
 
-bitemporal ではレコードの内容を変更する際にレコードを直接変更するのではなくて『既存のレコードは論理削除』して『変更後のレコードを新しく生成』していきます。
+activerecord-bitemporal ではレコードの内容を変更する際にレコードを直接変更するのではなくて『既存のレコードは論理削除』して『変更後のレコードを新しく生成』していきます。
 ただし、`#update_columns` で更新を行うと強制的にレコードが上書きされるので注意してください。
 
 ```ruby
@@ -299,7 +299,7 @@ Timecop.freeze("2019/1/20") {
 |  --- | --- | --- | --- | --- | --- | --- |
 | 1 | 1 | 001 | Tom | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
 
-論理削除を行いつつ上書きして更新したいのであれば bitemporal 側で用意している `#force_update` を利用する事が出来ます。
+論理削除を行いつつ上書きして更新したいのであれば activerecord-bitemporal 側で用意している `#force_update` を利用する事が出来ます。
 
 ```ruby
 employee = nil
