@@ -160,9 +160,9 @@ Timecop.freeze("2019/1/25") {
 というような事を行うライブラリになります。
 
 
-## モデルを BiTemplal Data Model 化する
+## モデルを BiTemporal Data Model 化する
 
-任意のモデルを BiTemplal Data Model(以下、BTDM)として扱う場合は、以下のカラムを DB に追加する必要があります。
+任意のモデルを BiTemporal Data Model(以下、BTDM)として扱う場合は、以下のカラムを DB に追加する必要があります。
 
 ```ruby
 ActiveRecord::Schema.define(version: 1) do
