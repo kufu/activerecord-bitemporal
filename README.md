@@ -1,12 +1,15 @@
-# ActiveRecord::Bitemporal[ ![](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [ ![](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
+ActiveRecord::Bitemporal
+========================
+
+[![gem-version](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
+[![gem-download](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
+[![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
-```ruby
-gem 'activerecord-bitemporal'
-```
+    $ gem 'activerecord-bitemporal'
 
 And then execute:
 
