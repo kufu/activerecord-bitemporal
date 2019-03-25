@@ -156,20 +156,6 @@ module ActiveRecord
         end
       end
 
-      def merge(*)
-        # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        if valid_datetime
-          relations = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-        else
-          relations = super
-        end
-        relations
-        relations.each do |record|
-          record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
-        end
-        relations
-      end
-
       def build_arel(args = nil)
         ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
           super.tap { |arel|
