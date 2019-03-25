@@ -1,4 +1,4 @@
-# ActiveRecord::Bitemporal[ ![](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [ ![](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg&circle-token=ca73ea4449cc25c9ed58b6ea62abcfa095515bdc)](https://circleci.com/gh/kufu/activerecord-bitemporal)
+# ActiveRecord::Bitemporal[ ![](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [ ![](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
 
 ## Installation
 
@@ -18,7 +18,7 @@ Or install it yourself as:
 
 ## 概要
 
-activerecord-bitemporal は Rails の ActiveRecord で Bitemporal Data Model を扱うためのライブラリになります。  
+activerecord-bitemporal は Rails の ActiveRecord で Bitemporal Data Model を扱うためのライブラリになります。
 activerecord-bitemporal では、モデルを生成すると
 
 ```ruby
