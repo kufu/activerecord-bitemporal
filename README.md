@@ -1,6 +1,7 @@
 ActiveRecord::Bitemporal
 ========================
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/kufu/activerecord-bitemporal/blob/master/LICENSE)
 [![gem-version](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
 [![gem-download](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
 [![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
