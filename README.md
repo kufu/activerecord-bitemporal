@@ -1,4 +1,10 @@
-# ActiveRecord::Bitemporal[ ![](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [ ![](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal) [![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
+ActiveRecord::Bitemporal
+========================
+
+[![License](https://img.shields.io/github/license/kufu/activerecord-bitemporal.svg?color=blue)](https://github.com/kufu/activerecord-bitemporal/blob/master/LICENSE)
+[![gem-version](https://img.shields.io/gem/v/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
+[![gem-download](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
+[![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
 
 ## Installation
 
