@@ -144,6 +144,7 @@ RSpec.describe "Relation" do
     let(:relation) { Company.valid_at("2019/1/1").merge(Company.valid_at("2019/2/2")) }
     subject { relation.bitemporal_option }
     it { is_expected.to include(valid_datetime: "2019/2/2") }
+    it { expect(relation.loaded?).to be_falsey }
   end
 
   describe ".ignore_valid_datetime" do
