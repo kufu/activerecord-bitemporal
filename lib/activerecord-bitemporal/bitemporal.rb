@@ -42,6 +42,41 @@ module ActiveRecord
       end
     end
 
+    # Add Optionable to Bitemporal
+    # Example:
+    # ActiveRecord::Bitemporal.valid_at("2018/4/1") {
+    #   # in valid_datetime is "2018/4/1".
+    # }
+    module ::ActiveRecord::Bitemporal
+      class <<self
+        include Optionable
+
+        def valid_at(datetime, &block)
+          with_bitemporal_option(valid_datetime: datetime, &block)
+        end
+
+        def valid_at!(datetime, &block)
+          with_bitemporal_option(valid_datetime: datetime, force: true, &block)
+        end
+
+        def valid_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+        end
+
+        def ignore_valid_datetime(&block)
+          with_bitemporal_option(ignore_valid_datetime: true, &block)
+        end
+
+        def merge_by(option)
+          if bitemporal_option_strage[:force]
+            option.merge(bitemporal_option_strage)
+          else
+            bitemporal_option_strage.merge(option)
+          end
+        end
+      end
+    end
+
     # Relation 拡張用
     module Relation
       class BitemporalClause
@@ -75,51 +110,9 @@ module ActiveRecord
         end
       end
 
-      module RelationOptionable
-        include Optionable
-
-        def valid_at(datetime, &block)
-          with_bitemporal_option(valid_datetime: datetime, &block)
-        end
-
-        def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
-        end
-
-        def ignore_valid_datetime(&block)
-          with_bitemporal_option(ignore_valid_datetime: true, &block)
-        end
-
-        # Add Optionable to Bitemporal
-        # Example:
-        # ActiveRecord::Bitemporal.valid_at("2018/4/1") {
-        #   # in valid_datetime is "2018/4/1".
-        # }
-        module ::ActiveRecord::Bitemporal
-          class <<self
-            include RelationOptionable
-
-            def valid_at!(datetime, &block)
-              with_bitemporal_option(valid_datetime: datetime, force: true, &block)
-            end
-
-            def merge_by(option)
-              if bitemporal_option_strage[:force]
-                option.merge(bitemporal_option_strage)
-              else
-                bitemporal_option_strage.merge(option)
-              end
-            end
-          end
-        end
-      end
-
       module Finder
-        include RelationOptionable
-
-        def with_bitemporal_option(**opt, &block)
-          block = :all.to_proc unless block
-          block.call all.tap { |relation| relation.bitemporal_option_merge!(**opt) }
+        def with_bitemporal_option(**opt)
+          all.tap { |relation| relation.bitemporal_option_merge!(**opt) }
         end
 
         def find(*ids)
@@ -140,7 +133,12 @@ module ActiveRecord
           expects_array ? [] : nil
         end
       end
+      include Optionable
       include Finder
+
+      def valid_datetime
+        bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+      end
 
       def load
         return super if loaded?
@@ -204,6 +202,12 @@ module ActiveRecord
       extend ActiveSupport::Concern
 
       included do
+        scope :valid_at, -> (datetime) {
+          with_bitemporal_option(valid_datetime: datetime)
+        }
+        scope :ignore_valid_datetime, -> {
+          with_bitemporal_option(ignore_valid_datetime: true)
+        }
         scope :within_deleted, -> {
           with_bitemporal_option(within_deleted: true)
         }

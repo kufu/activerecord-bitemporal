@@ -190,12 +190,12 @@ RSpec.describe "Association" do
       end
 
       describe ".valid_at" do
-        it { expect(Employee.valid_at(@time, &:count)).to eq 6 }
-        it { expect(company.employees.valid_at(@time, &:count)).to eq 3 }
-        it { expect(company2.employees.valid_at(@time, &:count)).to eq 0 }
-        it { expect(company.employees.valid_at(@time) { |m| m.where(name: "Jane").count }).to eq 1 }
-        it { expect(company.employees.valid_at(@time) { |m| m.where(name: "Tom").count }).to eq 1 }
-        it { expect(company.employees.valid_at(@time) { |m| m.where(name: "Homu").count }).to eq 0 }
+        it { expect(Employee.valid_at(@time).count).to eq 6 }
+        it { expect(company.employees.valid_at(@time).count).to eq 3 }
+        it { expect(company2.employees.valid_at(@time).count).to eq 0 }
+        it { expect(company.employees.valid_at(@time).where(name: "Jane").count).to eq 1 }
+        it { expect(company.employees.valid_at(@time).where(name: "Tom").count).to eq 1 }
+        it { expect(company.employees.valid_at(@time).where(name: "Homu").count).to eq 0 }
       end
 
       describe "preload" do

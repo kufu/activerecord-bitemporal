@@ -126,8 +126,8 @@ RSpec.describe "has_xxx with through" do
 
     context "user.update" do
       before { Timecop.freeze(updated_at) { user.update(name: "Tom") } }
-      it { expect(blog.users.valid_at(created_at, &:all).first.name).to eq "Jane" }
-      it { expect(blog.users.valid_at(updated_at, &:all).first.name).to eq "Tom" }
+      it { expect(blog.users.valid_at(created_at).first.name).to eq "Jane" }
+      it { expect(blog.users.valid_at(updated_at).first.name).to eq "Tom" }
 
       it { expect(Blog.find_at_time(created_at, blog.id).users.first.name).to eq "Jane" }
       it { expect(Blog.find_at_time(updated_at, blog.id).users.first.name).to eq "Tom" }
@@ -138,11 +138,11 @@ RSpec.describe "has_xxx with through" do
 
     context "article.update" do
       before { Timecop.freeze(updated_at) { article.update(title: "sushi") } }
-      it { expect(blog.users.valid_at(created_at, &:all).first.articles.first.title).to eq "yakiniku" }
-      it { expect(blog.users.valid_at(updated_at, &:all).first.articles.first.title).to eq "sushi" }
+      it { expect(blog.users.valid_at(created_at).first.articles.first.title).to eq "yakiniku" }
+      it { expect(blog.users.valid_at(updated_at).first.articles.first.title).to eq "sushi" }
 
-      it { expect(blog.users.first.articles.valid_at(created_at, &:all).first.title).to eq "yakiniku" }
-      it { expect(blog.users.first.articles.valid_at(updated_at, &:all).first.title).to eq "sushi" }
+      it { expect(blog.users.first.articles.valid_at(created_at).first.title).to eq "yakiniku" }
+      it { expect(blog.users.first.articles.valid_at(updated_at).first.title).to eq "sushi" }
 
       it { expect(Blog.find_at_time(created_at, blog.id).users.first.articles.first.title).to eq "yakiniku" }
       it { expect(Blog.find_at_time(updated_at, blog.id).users.first.articles.first.title).to eq "sushi" }
@@ -152,8 +152,8 @@ RSpec.describe "has_xxx with through" do
       let(:user2) { User.create!(name: "Tom") }
       before { Timecop.freeze(updated_at) { article.update(user: user2) } }
 
-      it { expect(blog.users.valid_at(created_at, &:all).first.name).to eq "Jane" }
-      it { expect(blog.users.valid_at(updated_at, &:all).first.name).to eq "Tom" }
+      it { expect(blog.users.valid_at(created_at).first.name).to eq "Jane" }
+      it { expect(blog.users.valid_at(updated_at).first.name).to eq "Tom" }
 
       it { expect(Blog.find_at_time(created_at, blog.id).users.first.name).to eq "Jane" }
       it { expect(Blog.find_at_time(updated_at, blog.id).users.first.name).to eq "Tom" }

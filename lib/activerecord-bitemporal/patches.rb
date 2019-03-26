@@ -57,7 +57,7 @@ module ActiveRecord::Bitemporal
         scope = super
         return scope unless scope.bi_temporal_model?
 
-        scope.merge!(klass.valid_at(klass.try(:valid_datetime) || owner.try(:valid_datetime))) if klass&.bi_temporal_model?
+        scope.merge!(klass.valid_at(owner.valid_datetime)) if owner.class&.bi_temporal_model? && owner.valid_datetime
         return scope
       end
 
