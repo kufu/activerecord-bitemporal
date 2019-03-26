@@ -10,7 +10,9 @@ ActiveRecord::Bitemporal
 
 Add this line to your application's Gemfile:
 
-    $ gem 'activerecord-bitemporal'
+```ruby
+gem 'activerecord-bitemporal'
+```
 
 And then execute:
 
