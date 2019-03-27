@@ -156,10 +156,9 @@ module ActiveRecord
 
       def build_arel(args = nil)
         ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
-          super.tap { |arel|
-            bitemporal_clause.ast&.tap(&arel.method(:where))
-          }
+          bitemporal_clause.ast&.tap(&method(:where!))
         }
+        super
       end
 
       def bitemporal_clause
