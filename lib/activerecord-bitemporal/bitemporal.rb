@@ -157,16 +157,7 @@ module ActiveRecord
       def build_arel(args = nil)
         ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
           super.tap { |arel|
-            bitemporal_clause.ast&.tap { |clause|
-              arel.ast.cores.each do |node|
-                next unless node.kind_of?(Arel::Nodes::SelectCore)
-                if node.wheres.empty?
-                  node.wheres = [clause]
-                else
-                  node.wheres[0] = clause.and(node.wheres[0])
-                end
-              end
-            }
+            bitemporal_clause.ast&.tap(&arel.method(:where))
           }
         }
       end
@@ -221,10 +212,7 @@ module ActiveRecord
 
         included do
           scope :valid_in, -> (from:, to:) {
-            ignore_valid_datetime.without_deleted.where(
-              arel_table[:valid_from].lteq(to).and(
-              arel_table[:valid_to].gt(from))
-            )
+            ignore_valid_datetime.where("valid_from <= ?", to).where("? < valid_to", from)
           }
         end
       end
@@ -431,14 +419,14 @@ module ActiveRecord
           end
         }
 
-        arel_bitemporal_scope = finder_class.ignore_valid_datetime
-            .arel_table[:valid_from].lt(valid_to).and(finder_class.arel_table[:valid_to].gt(valid_from))
+        bitemporal_scope = finder_class.unscoped.ignore_valid_datetime
+            .where("valid_from < ?", valid_to).where("valid_to > ?", valid_from)
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
-              record.id && record.swapped_id ? scope.and(finder_class.arel_table[:id].not_eq(record.swapped_id)) : scope
+              record.id && record.swapped_id ? scope.where.not(id: record.swapped_id) : scope
             }
-        relation.merge(finder_class.unscoped.ignore_valid_datetime.where(arel_bitemporal_scope))
+        relation.merge(bitemporal_scope)
       end
     end
   end
