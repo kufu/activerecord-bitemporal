@@ -48,7 +48,7 @@ module ActiveRecord
     #   # in valid_datetime is "2018/4/1".
     # }
     module ::ActiveRecord::Bitemporal
-      class <<self
+      class << self
         include Optionable
 
         def valid_at(datetime, &block)
