@@ -152,9 +152,9 @@ RSpec.describe ActiveRecord::Bitemporal do
   describe ".find_at_time" do
     let!(:employee) { Employee.create!(name: "Jone") }
     let(:id) { employee.id }
-    let(:tom) { Employee.ignore_valid_datetime { |e| e.find_by(bitemporal_id: employee.id, name: "Tom", deleted_at: nil) } }
-    let(:mami) { Employee.ignore_valid_datetime { |e| e.find_by(bitemporal_id: employee.id, name: "Mami", deleted_at: nil) } }
-    let(:homu) { Employee.ignore_valid_datetime { |e| e.find_by(bitemporal_id: employee.id, name: "Homu", deleted_at: nil) } }
+    let(:tom) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Tom", deleted_at: nil) }
+    let(:mami) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Mami", deleted_at: nil) }
+    let(:homu) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Homu", deleted_at: nil) }
 
     subject { Employee.find_at_time(time, id) }
 
@@ -408,7 +408,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     let!(:update_time1) { employee.update(name: "Tom"); Time.current }
     let!(:update_time2) { employee.update(name: "Mami"); Time.current }
     let!(:update_time3) { employee.update(name: "Homu"); Time.current }
-    subject { Employee.valid_at(time) { |m| m.find(employee.id) } }
+    subject { Employee.valid_at(time).find(employee.id) }
 
     context "time is `update_time1`" do
       let(:time) { update_time1 }
@@ -437,7 +437,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "with time zone" do
       let!(:old_time_zone) { Time.zone }
-      subject { Employee.valid_at(valid_datetime){ |m| m.find_by(bitemporal_id: @employee.bitemporal_id) } }
+      subject { Employee.valid_at(valid_datetime).find_by(bitemporal_id: @employee.bitemporal_id) }
 
       before do
         Time.zone = "Tokyo"
@@ -495,12 +495,12 @@ RSpec.describe ActiveRecord::Bitemporal do
     let(:update) { -> { Employee.find(employee).update(name: "Tom"); Time.current } }
 
     context "called by `ActiveRecord_Relation`" do
-      let(:count) { -> { Employee.where(bitemporal_id: employee).ignore_valid_datetime(&:count) } }
+      let(:count) { -> { Employee.where(bitemporal_id: employee).ignore_valid_datetime.count } }
       it { expect(&update).to change(&count).by(1) }
     end
 
     context "called by `ActiveRecord::Base Model`" do
-      let(:count) { -> { Employee.ignore_valid_datetime { |m| m.where(bitemporal_id: employee).count } } }
+      let(:count) { -> { Employee.ignore_valid_datetime.where(bitemporal_id: employee).count } }
       it { expect(&update).to change(&count).by(1) }
     end
 
@@ -516,20 +516,20 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:to) { from + 10.days }
       let(:finish) { Time.utc(9999, 12, 31).in_time_zone }
       let!(:employee) { Employee.create!(name: "Jone", valid_from: from, valid_to: to) }
-      let(:count) { -> { Employee.where(bitemporal_id: employee.id).ignore_valid_datetime(&:count) } }
-      let(:old_jone) { Employee.ignore_valid_datetime { |e| e.where.not(deleted_at: nil).find_by(bitemporal_id: employee.id, name: "Jone") } }
+      let(:count) { -> { Employee.where(bitemporal_id: employee.id).ignore_valid_datetime.count } }
+      let(:old_jone) { Employee.ignore_valid_datetime.where.not(deleted_at: nil).find_by(bitemporal_id: employee.id, name: "Jone") }
       let(:now) { time_current }
 
       subject { -> { employee.update(name: "Tom") } }
 
       shared_examples "updated Jone" do
-        let(:jone) { Employee.ignore_valid_datetime { |e| e.find_by(bitemporal_id: employee.id, name: "Jone", deleted_at: nil) } }
+        let(:jone) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Jone", deleted_at: nil) }
         before { subject.call }
         it { expect(jone).to have_attributes valid_from: valid_from, valid_to: valid_to }
       end
 
       shared_examples "updated Tom" do
-        let(:tom) { Employee.ignore_valid_datetime { |e| e.find_by(bitemporal_id: employee.id, name: "Tom", deleted_at: nil) } }
+        let(:tom) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Tom", deleted_at: nil) }
         before { subject.call }
         it { expect(tom).to have_attributes valid_from: valid_from, valid_to: valid_to }
       end
@@ -637,7 +637,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     context "defined #bitemporal_ignore_update_columns" do
       let!(:employee) { Employee.create(emp_code: "001", name: "Jane") }
       let(:ignore_columns) { [] }
-      let(:histories) { -> { Employee.ignore_valid_datetime { |m| m.where(bitemporal_id: employee.bitemporal_id, deleted_at: nil).order(valid_from: :desc) } } }
+      let(:histories) { -> { Employee.ignore_valid_datetime.where(bitemporal_id: employee.bitemporal_id, deleted_at: nil).order(valid_from: :desc) } }
       let(:now) { -> { histories.call.first } }
       let(:old) { -> { histories.call.second } }
 
@@ -800,11 +800,11 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
 
     it "create state-destroy record before _run_destroy_callbacks" do
-      before_count = Employee.ignore_valid_datetime(&:count)
+      before_count = Employee.ignore_valid_datetime.count
 
       self_ = self
       employee.define_singleton_method(:on_before_destroy) do
-        self_.instance_exec { expect(Employee.ignore_valid_datetime(&:count)).to eq before_count + 1 }
+        self_.instance_exec { expect(Employee.ignore_valid_datetime.count).to eq before_count + 1 }
       rescue => e
         self_.instance_exec { expect(e).to eq true }
       end
@@ -815,7 +815,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     context "when raise exception" do
       shared_examples "return false and #destroyed? to be false" do
         it { is_expected.not_to change(employee, :destroyed?) }
-        it { is_expected.not_to change { Employee.ignore_valid_datetime(&:count) } }
+        it { is_expected.not_to change { Employee.ignore_valid_datetime.count } }
         it { expect(subject.call).to eq false }
         it do
           subject.call
@@ -877,7 +877,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
 
     context "after changing" do
-      let(:deleted_histroy_record) { Employee.ignore_valid_datetime { |m| m.where(bitemporal_id: employee.bitemporal_id, deleted_at: nil).order(:created_at).to_a.last } }
+      let(:deleted_histroy_record) { Employee.ignore_valid_datetime.where(bitemporal_id: employee.bitemporal_id, deleted_at: nil).order(:created_at).to_a.last }
       before do
         employee.name = "Homu"
         employee.destroy
@@ -977,7 +977,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         }
       }
       it { is_expected.not_to change { employee.reload.name } }
-      it { is_expected.not_to change { Employee.ignore_valid_datetime(&:count) } }
+      it { is_expected.not_to change { Employee.ignore_valid_datetime.count } }
     end
   end
 
@@ -992,28 +992,28 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
 
         context "`valid_at` within call bitemporal_option" do
-          it { expect(Employee.valid_at("2019/1/1") { |m| m.find(employee.id).bitemporal_option }).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1") { |m| m.find_by(name: "Tom").bitemporal_option }).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1") { |m| m.where(name: "Tom").first.bitemporal_option }).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at("2019/1/1").find(employee.id).bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at("2019/1/1").find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at("2019/1/1").where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
         end
 
         context "`valid_at` without call bitemporal_option" do
-          it { expect(Employee.valid_at("2019/1/1") { |m| m.find(employee.id) }.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1") { |m| m.find_by(name: "Tom") }.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1") { |m| m.where(name: "Tom") }.first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at("2019/1/1").find(employee.id).bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at("2019/1/1").find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at("2019/1/1").where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
         end
 
         context "relation to `valid_at`" do
-          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1") { |m| m.find(employee.id).bitemporal_option }).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1") { |m| m.find_by(name: "Tom").bitemporal_option }).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1") { |m| m.where(name: "Tom").first.bitemporal_option }).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1").find(employee.id).bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1").find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1").where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
         end
       end
 
       context "call with_bitemporal_option" do
         subject { -> { ActiveRecord::Bitemporal.with_bitemporal_option(valid_datetime: "2010/4/1"){} } }
         it { is_expected.not_to change(ActiveRecord::Bitemporal, :bitemporal_option) }
-        it { is_expected.not_to change(Employee, :bitemporal_option) }
+        it { is_expected.not_to change { Employee.all.bitemporal_option } }
       end
 
       context "nested with_bitemporal_option" do
@@ -1022,12 +1022,12 @@ RSpec.describe ActiveRecord::Bitemporal do
           opt1 = { valid_datetime: "2010/4/1", ignore_valid_datetime: false }
           ActiveRecord::Bitemporal.with_bitemporal_option(opt1) {
             expect(ActiveRecord::Bitemporal.bitemporal_option).to eq(opt1)
-            expect(Employee.bitemporal_option).to eq(opt1)
+            expect(Employee.all.bitemporal_option).to eq(opt1)
 
             opt2 = { ignore_valid_datetime: true }
             ActiveRecord::Bitemporal.with_bitemporal_option(opt2) {
               expect(ActiveRecord::Bitemporal.bitemporal_option).to eq(opt1.merge(opt2))
-              expect(Employee.bitemporal_option).to eq(opt1.merge(opt2))
+              expect(Employee.all.bitemporal_option).to eq(opt1.merge(opt2))
 
               opt3 = { valid_datetime: "2019/1/5" }
               Employee.with_bitemporal_option(opt3) { |m|
@@ -1039,14 +1039,14 @@ RSpec.describe ActiveRecord::Bitemporal do
               }
               expect(Employee.find_at_time("2019/1/5", employee.id).name).to eq "Jane"
               expect(ActiveRecord::Bitemporal.bitemporal_option).to eq(opt1.merge(opt2))
-              expect(Employee.bitemporal_option).to eq(opt1.merge(opt2))
+              expect(Employee.all.bitemporal_option).to eq(opt1.merge(opt2))
             }
             employee.update(name: "Tom")
             expect(ActiveRecord::Bitemporal.bitemporal_option).to eq(opt1)
-            expect(Employee.bitemporal_option).to eq(opt1)
+            expect(Employee.all.bitemporal_option).to eq(opt1)
           }
           expect(ActiveRecord::Bitemporal.bitemporal_option).to be_empty
-          expect(Employee.bitemporal_option).to be_empty
+          expect(Employee.all.bitemporal_option).to be_empty
         end
       end
     end
