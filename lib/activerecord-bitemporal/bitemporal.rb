@@ -52,11 +52,11 @@ module ActiveRecord
         include Optionable
 
         def valid_at(datetime, &block)
-          with_bitemporal_option(valid_datetime: datetime, &block)
+          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, &block)
         end
 
         def valid_at!(datetime, &block)
-          with_bitemporal_option(valid_datetime: datetime, force: true, &block)
+          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, force: true, &block)
         end
 
         def valid_datetime
@@ -203,7 +203,7 @@ module ActiveRecord
 
       included do
         scope :valid_at, -> (datetime) {
-          with_bitemporal_option(valid_datetime: datetime)
+          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime)
         }
         scope :ignore_valid_datetime, -> {
           with_bitemporal_option(ignore_valid_datetime: true)
