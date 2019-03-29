@@ -229,6 +229,16 @@ module ActiveRecord
         }
       end
 
+      module Extention
+        extend ActiveSupport::Concern
+
+        included do
+          scope :histories_for, -> (id) {
+            ignore_valid_datetime.where(bitemporal_id: id)
+          }
+        end
+      end
+
       module Experimental
         extend ActiveSupport::Concern
 
