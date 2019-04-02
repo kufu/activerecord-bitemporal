@@ -67,6 +67,7 @@ end
 
 class Company < ActiveRecord::Base
   include ActiveRecord::Bitemporal
+  include ActiveRecord::Bitemporal::Scope::Extention
 
   has_many :employees, foreign_key: :company_id
   has_many :employee_without_bitemporals, foreign_key: :company_id
@@ -80,6 +81,7 @@ end
 
 class Employee < ActiveRecord::Base
   include ActiveRecord::Bitemporal
+  include ActiveRecord::Bitemporal::Scope::Extention
 
   belongs_to :company, foreign_key: :company_id
 
@@ -121,6 +123,7 @@ end
 
 class Address < ActiveRecord::Base
   include ActiveRecord::Bitemporal
+  include ActiveRecord::Bitemporal::Scope::Extention
 
   belongs_to :employee, foreign_key: :employee_id
 end
