@@ -30,10 +30,19 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Kevin").update(name: "Jane")
       end
-      subject { EmployeeWithScope.bitemporal_histories_by(employee.id) }
-      it { expect(subject.pluck(:name)).to contain_exactly("Jane", "Tom", "Jane") }
-      it { expect(subject.where(name: "Jane").count).to eq 2 }
-      it { expect(subject.ids).to eq [employee.id, employee.id, employee.id] }
+      subject { EmployeeWithScope.bitemporal_histories_by(id) }
+
+      context "valid `id`" do
+        let(:id) { employee.id }
+        it { expect(subject.pluck(:name)).to contain_exactly("Jane", "Tom", "Jane") }
+        it { expect(subject.where(name: "Jane").count).to eq 2 }
+        it { expect(subject.ids).to eq [employee.id, employee.id, employee.id] }
+      end
+
+      context "invalid `id`" do
+        let(:id) { -1 }
+        it { is_expected.to be_empty }
+      end
     end
 
     describe ".bitemporal_latest_by" do
@@ -43,11 +52,20 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Jane").update(name: "Kevin")
       end
-      subject { EmployeeWithScope.bitemporal_latest_by(employee.id) }
-      it { expect(subject).to be_kind_of EmployeeWithScope }
-      it { expect(subject.id).to eq employee.id }
-      it { expect(subject.name).to eq "Jane" }
-      it { expect(subject.deleted_at).to be_nil }
+      subject { EmployeeWithScope.bitemporal_latest_by(id) }
+
+      context "valid `id`" do
+        let(:id) { employee.id }
+        it { expect(subject).to be_kind_of EmployeeWithScope }
+        it { expect(subject.id).to eq employee.id }
+        it { expect(subject.name).to eq "Jane" }
+        it { expect(subject.deleted_at).to be_nil }
+      end
+
+      context "invalid `id`" do
+        let(:id) { -1 }
+        it { is_expected.to be_nil }
+      end
     end
 
     describe ".bitemporal_oldest_by" do
@@ -57,11 +75,20 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Jane").update(name: "Kevin")
       end
-      subject { EmployeeWithScope.bitemporal_oldest_by(employee.id) }
-      it { expect(subject).to be_kind_of EmployeeWithScope }
-      it { expect(subject.id).to eq employee.id }
-      it { expect(subject.name).to eq "Jane" }
-      it { expect(subject.deleted_at).to be_nil }
+      subject { EmployeeWithScope.bitemporal_oldest_by(id) }
+
+      context "valid `id`" do
+        let(:id) { employee.id }
+        it { expect(subject).to be_kind_of EmployeeWithScope }
+        it { expect(subject.id).to eq employee.id }
+        it { expect(subject.name).to eq "Jane" }
+        it { expect(subject.deleted_at).to be_nil }
+      end
+
+      context "invalid `id`" do
+        let(:id) { -1 }
+        it { is_expected.to be_nil }
+      end
     end
   end
 
