@@ -233,8 +233,14 @@ module ActiveRecord
         extend ActiveSupport::Concern
 
         included do
-          scope :histories_for, -> (id) {
+          scope :bitemporal_histories_by, -> (id) {
             ignore_valid_datetime.where(bitemporal_id: id)
+          }
+          scope :bitemporal_latest_by, -> (id) {
+            bitemporal_histories_by(id).order(valid_from: :asc).last
+          }
+          scope :bitemporal_oldest_by, -> (id) {
+            bitemporal_histories_by(id).order(valid_from: :asc).first
           }
         end
       end
