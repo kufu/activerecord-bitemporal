@@ -236,12 +236,12 @@ module ActiveRecord
           scope :bitemporal_histories_by, -> (id) {
             ignore_valid_datetime.where(bitemporal_id: id)
           }
-          scope :bitemporal_latest_by, -> (id) {
+          def self.bitemporal_latest_by(id)
             bitemporal_histories_by(id).order(valid_from: :asc).last
-          }
-          scope :bitemporal_oldest_by, -> (id) {
+          end
+          def self.bitemporal_oldest_by(id)
             bitemporal_histories_by(id).order(valid_from: :asc).first
-          }
+          end
         end
       end
 
