@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 class EmployeeWithScope < Employee
-  include ActiveRecord::Bitemporal::Scope::Extention
+  include ActiveRecord::Bitemporal::Scope::Extension
   include ActiveRecord::Bitemporal::Scope::Experimental
 end
 
@@ -22,7 +22,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     it { is_expected.to eq 2 }
   end
 
-  describe ActiveRecord::Bitemporal::Scope::Extention do
+  describe ActiveRecord::Bitemporal::Scope::Extension do
     describe ".bitemporal_histories_by" do
       let(:employee) { EmployeeWithScope.create!(name: "Jane") }
       before do
