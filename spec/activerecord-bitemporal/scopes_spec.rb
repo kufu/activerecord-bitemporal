@@ -31,7 +31,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         EmployeeWithScope.create!(name: "Kevin").update(name: "Jane")
       end
       subject { EmployeeWithScope.bitemporal_histories_by(employee.id) }
-      it { expect(subject.count).to eq 3 }
+      it { expect(subject.pluck(:name)).to contain_exactly("Jane", "Tom", "Jane") }
       it { expect(subject.where(name: "Jane").count).to eq 2 }
       it { expect(subject.ids).to eq [employee.id, employee.id, employee.id] }
     end
@@ -47,6 +47,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       it { expect(subject).to be_kind_of EmployeeWithScope }
       it { expect(subject.id).to eq employee.id }
       it { expect(subject.name).to eq "Jane" }
+      it { expect(subject.deleted_at).to be_nil }
     end
 
     describe ".bitemporal_oldest_by" do
@@ -60,6 +61,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       it { expect(subject).to be_kind_of EmployeeWithScope }
       it { expect(subject.id).to eq employee.id }
       it { expect(subject.name).to eq "Jane" }
+      it { expect(subject.deleted_at).to be_nil }
     end
   end
 
