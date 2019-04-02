@@ -229,7 +229,7 @@ module ActiveRecord
         }
       end
 
-      module Extention
+      module Extension
         extend ActiveSupport::Concern
 
         included do
