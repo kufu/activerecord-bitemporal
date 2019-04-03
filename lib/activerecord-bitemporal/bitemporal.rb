@@ -48,6 +48,10 @@ module ActiveRecord
     #   # in valid_datetime is "2018/4/1".
     # }
     module ::ActiveRecord::Bitemporal
+      class Current < ActiveSupport::CurrentAttributes
+        attribute :option
+      end
+
       class << self
         include Optionable
 
@@ -73,6 +77,15 @@ module ActiveRecord
           else
             bitemporal_option_strage.merge(option)
           end
+        end
+
+      private
+        def bitemporal_option_strage
+          Current.option ||= {}
+        end
+
+        def bitemporal_option_strage=(value)
+          Current.option = value
         end
       end
     end
