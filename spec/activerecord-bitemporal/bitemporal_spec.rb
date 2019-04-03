@@ -1125,6 +1125,31 @@ RSpec.describe ActiveRecord::Bitemporal do
           }
         end
       end
+
+      context "thread" do
+        it do
+          t1 = Thread.new {
+            ActiveRecord::Bitemporal.with_bitemporal_option(value: 42) { |it|
+              value = it.bitemporal_option[:value]
+              sleep 0.1
+              expect(value).to eq it.bitemporal_option[:value]
+            }
+          }
+
+          t2 = Thread.new {
+            ActiveRecord::Bitemporal.with_bitemporal_option(value: "homu") { |it|
+              value = it.bitemporal_option[:value]
+              sleep 0.3
+              expect(value).to eq it.bitemporal_option[:value]
+            }
+          }
+
+          t1.join
+          t2.join
+
+          expect(ActiveRecord::Bitemporal.bitemporal_option).to be_empty
+        end
+      end
     end
 
     describe ".ignore_valid_datetime" do

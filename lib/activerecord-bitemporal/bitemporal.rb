@@ -17,28 +17,28 @@ module ActiveRecord
 
     module Optionable
       def bitemporal_option
-        ::ActiveRecord::Bitemporal.merge_by(bitemporal_option_strage)
+        ::ActiveRecord::Bitemporal.merge_by(bitemporal_option_storage)
       end
 
       def bitemporal_option_merge!(other)
-        self.bitemporal_option_strage = bitemporal_option.merge other
+        self.bitemporal_option_storage = bitemporal_option.merge other
       end
 
       def with_bitemporal_option(**opt)
-        tmp_opt = bitemporal_option_strage
-        self.bitemporal_option_strage = tmp_opt.merge(opt)
+        tmp_opt = bitemporal_option_storage
+        self.bitemporal_option_storage = tmp_opt.merge(opt)
         yield self
       ensure
-        self.bitemporal_option_strage = tmp_opt
+        self.bitemporal_option_storage = tmp_opt
       end
 
     private
-      def bitemporal_option_strage
-        @bitemporal_option_strage ||= {}
+      def bitemporal_option_storage
+        @bitemporal_option_storage ||= {}
       end
 
-      def bitemporal_option_strage=(value)
-        @bitemporal_option_strage = value
+      def bitemporal_option_storage=(value)
+        @bitemporal_option_storage = value
       end
     end
 
@@ -48,6 +48,10 @@ module ActiveRecord
     #   # in valid_datetime is "2018/4/1".
     # }
     module ::ActiveRecord::Bitemporal
+      class Current < ActiveSupport::CurrentAttributes
+        attribute :option
+      end
+
       class << self
         include Optionable
 
@@ -68,11 +72,20 @@ module ActiveRecord
         end
 
         def merge_by(option)
-          if bitemporal_option_strage[:force]
-            option.merge(bitemporal_option_strage)
+          if bitemporal_option_storage[:force]
+            option.merge(bitemporal_option_storage)
           else
-            bitemporal_option_strage.merge(option)
+            bitemporal_option_storage.merge(option)
           end
+        end
+
+      private
+        def bitemporal_option_storage
+          Current.option ||= {}
+        end
+
+        def bitemporal_option_storage=(value)
+          Current.option = value
         end
       end
     end
@@ -188,11 +201,11 @@ module ActiveRecord
 
       private
 
-      def bitemporal_option_strage(klass_ = self.klass)
+      def bitemporal_option_storage(klass_ = self.klass)
         bitemporal_clause[klass_]
       end
 
-      def bitemporal_option_strage=(value)
+      def bitemporal_option_storage=(value)
         bitemporal_clause[klass] = value
       end
     end
