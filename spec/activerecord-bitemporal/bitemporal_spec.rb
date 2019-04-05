@@ -1152,9 +1152,31 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
 
+    describe "ActiveRecord::Bitemporal.ignore_valid_datetime" do
+      it do
+        ActiveRecord::Bitemporal.ignore_valid_datetime {
+          expect(Employee.all.bitemporal_option).to include(ignore_valid_datetime: true)
+        }
+      end
+
+      context "nexted call `.valid_at`" do
+        it do
+          ActiveRecord::Bitemporal.ignore_valid_datetime {
+            ActiveRecord::Bitemporal.valid_at("2019/1/1") {
+              expect(Employee.all.bitemporal_option).to include(ignore_valid_datetime: false)
+            }
+          }
+        end
+      end
+    end
+
     describe ".ignore_valid_datetime" do
       it { expect(Employee.ignore_valid_datetime.bitemporal_option).to include(ignore_valid_datetime: true) }
       it { expect(Employee.ignore_valid_datetime.first.bitemporal_option.keys).not_to include(:ignore_valid_datetime) }
+
+      context "call `.valid_at` later" do
+        it { expect(Employee.ignore_valid_datetime.valid_at("2019/1/1").bitemporal_option).to include(ignore_valid_datetime: false) }
+      end
     end
   end
 
