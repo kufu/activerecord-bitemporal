@@ -21,20 +21,20 @@ jobs:
       - run: bundle exec appraisal rails-master bundle install
       - run: bundle exec appraisal rails-master rake
 
-  rails-6.0beta2:
+  rails-6.0beta3:
     docker:
       - image: ruby:2.5.3
       - image: circleci/postgres:11-alpine
     steps:
       - checkout
       - run: bundle install
-      - run: bundle exec appraisal rails-6.0beta2 bundle install
-      - run: bundle exec appraisal rails-6.0beta2 rake
+      - run: bundle exec appraisal rails-6.0beta3 bundle install
+      - run: bundle exec appraisal rails-6.0beta3 rake
 
 workflows:
   version: 2
   test:
     jobs:
       - rails-5.2
-      - rails-6.0beta2
-      - rails-master
+      - rails-6.0beta3
+      # - rails-master
