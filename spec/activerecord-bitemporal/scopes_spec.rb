@@ -22,15 +22,136 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     it { is_expected.to eq 2 }
   end
 
+  describe ".bitemporal_for" do
+    let(:employee) { Employee.create!(name: "Jane") }
+    before do
+      Employee.create!
+      Employee.create!
+      Employee.create!
+      employee.update(name: "Tom")
+      employee.update(name: "Kevin")
+    end
+    subject { Employee.ignore_valid_datetime.bitemporal_for(employee.id) }
+    it { expect(subject.count).to eq 3 }
+  end
+
+  describe ".valid_in" do
+    before do
+      emp1 = nil
+      emp2 = nil
+      Timecop.freeze("2019/1/10") {
+        emp1 = Employee.create!(name: "Jane")
+        emp2 = Employee.create!(name: "Homu")
+      }
+
+      Timecop.freeze("2019/1/20") {
+        emp1.update!(name: "Tom")
+        emp2.update!(name: "Mami")
+      }
+
+      Timecop.freeze("2019/1/30") {
+        emp1.update!(name: "Kevin")
+        emp2.update!(name: "Mado")
+      }
+    end
+
+    subject { Employee.valid_in(from: from, to: to).pluck(:name).flatten }
+
+    context "2019/1/5 - 2019/1/25" do
+      let(:from) { "2019/1/5" }
+      let(:to) { "2019/1/25" }
+      it { is_expected.to contain_exactly("Jane", "Homu", "Tom", "Mami") }
+    end
+
+    context "2019/1/15 - 2019/2/1" do
+      let(:from) { "2019/1/15" }
+      let(:to) { "2019/2/1" }
+      it { is_expected.to contain_exactly("Jane", "Homu", "Tom", "Mami", "Kevin", "Mado") }
+    end
+
+    context "2019/1/20 - 2019/1/30" do
+      let(:from) { "2019/1/20" }
+      let(:to) { "2019/1/30" }
+      it { is_expected.to contain_exactly("Homu", "Jane", "Mami", "Tom") }
+    end
+
+    context "with `exclude_to: true`" do
+      subject { Employee.valid_in(from: from, to: to, exclude_to: true).pluck(:name).flatten }
+      let(:from) { "2019/1/20" }
+      let(:to) { "2019/1/30" }
+      it { is_expected.to contain_exactly("Homu", "Jane", "Kevin", "Mado", "Mami", "Tom") }
+    end
+  end
+
+  describe ".valid_allin" do
+    before do
+      emp1 = nil
+      emp2 = nil
+      Timecop.freeze("2019/1/10") {
+        emp1 = Employee.create!(name: "Jane")
+        emp2 = Employee.create!(name: "Homu")
+      }
+
+      Timecop.freeze("2019/1/20") {
+        emp1.update!(name: "Tom")
+        emp2.update!(name: "Mami")
+      }
+
+      Timecop.freeze("2019/1/30") {
+        emp1.update!(name: "Kevin")
+        emp2.update!(name: "Mado")
+      }
+    end
+
+    subject { Employee.valid_allin(from: from, to: to).pluck(:name).flatten }
+
+    context "2019/1/5 - 2019/1/15" do
+      let(:from) { "2019/1/5" }
+      let(:to) { "2019/1/15" }
+      it { is_expected.to be_empty }
+    end
+
+    context "2019/1/5 - 2019/1/25" do
+      let(:from) { "2019/1/5" }
+      let(:to) { "2019/1/25" }
+      it { is_expected.to contain_exactly("Jane", "Homu") }
+    end
+
+    context "2019/1/10 - 2019/1/20" do
+      let(:from) { "2019/1/10" }
+      let(:to) { "2019/1/20" }
+      it { is_expected.to be_empty }
+    end
+
+    context "2019/1/10 - 2019/1/21" do
+      let(:from) { "2019/1/10" }
+      let(:to) { "2019/1/21" }
+      it { is_expected.to contain_exactly("Jane", "Homu") }
+    end
+
+    context "2019/1/15 - 2019/2/1" do
+      let(:from) { "2019/1/15" }
+      let(:to) { "2019/2/1" }
+      it { is_expected.to contain_exactly("Tom", "Mami") }
+    end
+
+    context "with `exclude_to: true`" do
+      subject { Employee.valid_allin(from: from, to: to, exclude_to: true).pluck(:name).flatten }
+      let(:from) { "2019/1/10" }
+      let(:to) { "2019/1/20" }
+      it { is_expected.to contain_exactly("Jane", "Homu") }
+    end
+  end
+
   describe ActiveRecord::Bitemporal::Scope::Extension do
-    describe ".bitemporal_histories_by" do
+    describe ".bitemporal_histories" do
       let(:employee) { EmployeeWithScope.create!(name: "Jane") }
       before do
         employee.update(name: "Tom")
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Kevin").update(name: "Jane")
       end
-      subject { EmployeeWithScope.bitemporal_histories_by(id) }
+      subject { EmployeeWithScope.bitemporal_histories(id) }
 
       context "valid `id`" do
         let(:id) { employee.id }
@@ -45,14 +166,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       end
     end
 
-    describe ".bitemporal_latest_by" do
+    describe ".bitemporal_more_future" do
       let(:employee) { EmployeeWithScope.create!(name: "Jane") }
       before do
         employee.update(name: "Tom")
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Jane").update(name: "Kevin")
       end
-      subject { EmployeeWithScope.bitemporal_latest_by(id) }
+      subject { EmployeeWithScope.bitemporal_more_future(id) }
 
       context "valid `id`" do
         let(:id) { employee.id }
@@ -68,14 +189,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       end
     end
 
-    describe ".bitemporal_oldest_by" do
+    describe ".bitemporal_more_past" do
       let(:employee) { EmployeeWithScope.create!(name: "Jane") }
       before do
         employee.update(name: "Tom")
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Jane").update(name: "Kevin")
       end
-      subject { EmployeeWithScope.bitemporal_oldest_by(id) }
+      subject { EmployeeWithScope.bitemporal_more_past(id) }
 
       context "valid `id`" do
         let(:id) { employee.id }
@@ -88,69 +209,6 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       context "invalid `id`" do
         let(:id) { -1 }
         it { is_expected.to be_nil }
-      end
-    end
-  end
-
-  describe ActiveRecord::Bitemporal::Scope::Experimental do
-    shared_examples "defined records" do
-      before do
-        emp1 = nil
-        emp2 = nil
-        Timecop.freeze("2019/1/10") {
-          emp1 = EmployeeWithScope.create!(name: "Jane")
-          emp2 = EmployeeWithScope.create!(name: "Homu")
-        }
-
-        Timecop.freeze("2019/1/17") {
-          emp1.update!(name: "Tom")
-          emp2.update!(name: "Mami")
-        }
-
-        Timecop.freeze("2019/1/25") {
-          emp1.update!(name: "Kevin")
-          emp2.update!(name: "Mado")
-        }
-      end
-    end
-
-    describe ".valid_in" do
-      include_context "defined records"
-      subject { EmployeeWithScope.valid_in(from: from, to: to).pluck(:name).flatten }
-
-      context "2019/1/5 - 2019/1/8" do
-        let(:from) { "2019/1/5" }
-        let(:to) { "2019/1/8" }
-        it { is_expected.to be_empty }
-      end
-
-      context "2019/1/5 - 2019/1/10" do
-        let(:from) { "2019/1/5" }
-        let(:to) { "2019/1/10" }
-        it { is_expected.to contain_exactly("Jane", "Homu") }
-
-        context "with .within_deleted" do
-          subject { EmployeeWithScope.valid_in(from: from, to: to).within_deleted.count }
-          it { is_expected.to eq 4 }
-        end
-      end
-
-      context "2019/1/5 - 2019/1/20" do
-        let(:from) { "2019/1/5" }
-        let(:to) { "2019/1/20" }
-        it { is_expected.to contain_exactly("Jane", "Homu", "Tom", "Mami") }
-      end
-
-      context "2019/1/20 - 2019/1/30" do
-        let(:from) { "2019/1/20" }
-        let(:to) { "2019/1/30" }
-        it { is_expected.to contain_exactly("Tom", "Mami", "Kevin", "Mado") }
-      end
-
-      context "2019/1/27 - 2019/1/30" do
-        let(:from) { "2019/1/27" }
-        let(:to) { "2019/1/30" }
-        it { is_expected.to contain_exactly("Kevin", "Mado") }
       end
     end
   end

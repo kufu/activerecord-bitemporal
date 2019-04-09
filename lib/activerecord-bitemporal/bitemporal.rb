@@ -227,32 +227,41 @@ module ActiveRecord
         scope :without_deleted, -> {
           with_bitemporal_option(within_deleted: false)
         }
+        scope :bitemporal_for, -> (id) {
+          where(bitemporal_id: id)
+        }
+        scope :valid_in, -> (from: nil, to: nil, exclude_to: false) {
+          ignore_valid_datetime
+            .tap { |relation| break relation.where("? <= valid_to", from.in_time_zone.to_datetime) if from }
+            .tap { |relation| break relation.where("valid_from <= ?", to.in_time_zone.to_datetime) if to && exclude_to }
+            .tap { |relation| break relation.where("valid_from < ?", to.in_time_zone.to_datetime) if to && !exclude_to }
+        }
+        scope :valid_allin, -> (from: nil, to: nil, exclude_to: false) {
+          ignore_valid_datetime
+            .tap { |relation| break relation.where("? <= valid_from", from.in_time_zone.to_datetime) if from }
+            .tap { |relation| break relation.where("valid_to <= ?", to.in_time_zone.to_datetime) if to && exclude_to }
+            .tap { |relation| break relation.where("valid_to < ?", to.in_time_zone.to_datetime) if to && !exclude_to }
+        }
       end
 
       module Extension
         extend ActiveSupport::Concern
 
         included do
-          scope :bitemporal_histories_by, -> (id) {
-            ignore_valid_datetime.where(bitemporal_id: id)
+          scope :bitemporal_histories, -> (*ids) {
+            ignore_valid_datetime.bitemporal_for(*ids)
           }
-          def self.bitemporal_latest_by(id)
-            bitemporal_histories_by(id).order(valid_from: :asc).last
+          def self.bitemporal_more_future(id)
+            bitemporal_histories(id).order(valid_from: :asc).last
           end
-          def self.bitemporal_oldest_by(id)
-            bitemporal_histories_by(id).order(valid_from: :asc).first
+          def self.bitemporal_more_past(id)
+            bitemporal_histories(id).order(valid_from: :asc).first
           end
         end
       end
 
       module Experimental
         extend ActiveSupport::Concern
-
-        included do
-          scope :valid_in, -> (from:, to:) {
-            ignore_valid_datetime.where("valid_from <= ?", to).where("? < valid_to", from)
-          }
-        end
       end
     end
 
@@ -451,14 +460,14 @@ module ActiveRecord
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record.valid_datetime && (record.valid_from..record.valid_to).include?(record.valid_datetime)) == false
-            finder_class.where(bitemporal_id: record.bitemporal_id).where('valid_from > ?', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
+            finder_class.where(bitemporal_id: record.bitemporal_id).where('? < valid_from', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
           else
             valid_to
           end
         }
 
         bitemporal_scope = finder_class.unscoped.ignore_valid_datetime
-            .where("valid_from < ?", valid_to).where("valid_to > ?", valid_from)
+            .where("valid_from < ?", valid_to).where("? < valid_to", valid_from)
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
