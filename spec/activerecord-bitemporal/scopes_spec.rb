@@ -76,10 +76,23 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     end
 
     context "with `exclude_to: true`" do
-      subject { Employee.valid_in(from: from, to: to, exclude_to: true).pluck(:name).flatten }
       let(:from) { "2019/1/20" }
       let(:to) { "2019/1/30" }
+      subject { Employee.valid_in(from: from, to: to, exclude_to: true).pluck(:name).flatten }
       it { is_expected.to contain_exactly("Homu", "Jane", "Kevin", "Mado", "Mami", "Tom") }
+    end
+
+    describe ".to_sql" do
+      before do
+        @old_time_zone = Time.zone
+        Time.zone = "Tokyo"
+      end
+      after { Time.zone = @old_time_zone }
+      let(:from) { "2019/1/20" }
+      let(:to) { "2019/1/30" }
+      subject { Employee.valid_in(from: from, to: to).to_sql }
+      it { is_expected.to match /'2019-01-19 15:00:00' <= employees.valid_to/ }
+      it { is_expected.to match /employees.valid_from < '2019-01-29 15:00:00'/ }
     end
   end
 
@@ -140,6 +153,19 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let(:from) { "2019/1/10" }
       let(:to) { "2019/1/20" }
       it { is_expected.to contain_exactly("Jane", "Homu") }
+    end
+
+    describe ".to_sql" do
+      before do
+        @old_time_zone = Time.zone
+        Time.zone = "Tokyo"
+      end
+      after { Time.zone = @old_time_zone }
+      let(:from) { "2019/1/20" }
+      let(:to) { "2019/1/30" }
+      subject { Employee.valid_allin(from: from, to: to).to_sql }
+      it { is_expected.to match /'2019-01-19 15:00:00' <= employees.valid_from/ }
+      it { is_expected.to match /employees.valid_to < '2019-01-29 15:00:00'/ }
     end
   end
 

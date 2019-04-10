@@ -231,16 +231,22 @@ module ActiveRecord
           where(bitemporal_id: id)
         }
         scope :valid_in, -> (from: nil, to: nil, exclude_to: false) {
+          table_name = klass.table_name
+          column_valid_to = "#{table_name}.valid_to"
+          column_valid_from = "#{table_name}.valid_from"
           ignore_valid_datetime
-            .tap { |relation| break relation.where("? <= valid_to", from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.where("valid_from <= ?", to.in_time_zone.to_datetime) if to && exclude_to }
-            .tap { |relation| break relation.where("valid_from < ?", to.in_time_zone.to_datetime) if to && !exclude_to }
+            .tap { |relation| break relation.where("? <= #{column_valid_to}", from.in_time_zone.to_datetime) if from }
+            .tap { |relation| break relation.where("#{column_valid_from} <= ?", to.in_time_zone.to_datetime) if to && exclude_to }
+            .tap { |relation| break relation.where("#{column_valid_from} < ?", to.in_time_zone.to_datetime) if to && !exclude_to }
         }
         scope :valid_allin, -> (from: nil, to: nil, exclude_to: false) {
+          table_name = klass.table_name
+          column_valid_to = "#{table_name}.valid_to"
+          column_valid_from = "#{table_name}.valid_from"
           ignore_valid_datetime
-            .tap { |relation| break relation.where("? <= valid_from", from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.where("valid_to <= ?", to.in_time_zone.to_datetime) if to && exclude_to }
-            .tap { |relation| break relation.where("valid_to < ?", to.in_time_zone.to_datetime) if to && !exclude_to }
+            .tap { |relation| break relation.where("? <= #{column_valid_from}", from.in_time_zone.to_datetime) if from }
+            .tap { |relation| break relation.where("#{column_valid_to} <= ?", to.in_time_zone.to_datetime) if to && exclude_to }
+            .tap { |relation| break relation.where("#{column_valid_to} < ?", to.in_time_zone.to_datetime) if to && !exclude_to }
         }
       end
 
