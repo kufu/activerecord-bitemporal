@@ -316,7 +316,6 @@ module ActiveRecord
         each_association(deep: true, only_cached: true)
           .select { |asso| asso.class.bi_temporal_model? && asso.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM && asso.new_record? }
           .each   { |asso| asso.valid_from = self.valid_from }
-#         ActiveRecord::Bitemporal.valid_at(valid_from) { super() }
         super()
       end
 
