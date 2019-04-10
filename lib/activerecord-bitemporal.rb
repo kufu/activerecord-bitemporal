@@ -4,27 +4,50 @@ require "activerecord-bitemporal/bitemporal"
 require "activerecord-bitemporal/patches"
 require "activerecord-bitemporal/version"
 
-module ActiveRecord
-  module Bitemporal
-    DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
-    DEFAULT_VALID_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
+module ActiveRecord::Bitemporal
+  DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
+  DEFAULT_VALID_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
 
-    include ActiveRecord::Bitemporal::Persistence
-    extend ActiveSupport::Concern
+  extend ActiveSupport::Concern
+  included do
+    bitemporalize
+  end
+end
 
-    module ClassMethods
-      include ActiveRecord::Bitemporal::Relation::Finder
-
-      def bitemporal_id_key
-        'bitemporal_id'
-      end
-
-      # Override ActiveRecord::Core::ClassMethods#cached_find_by_statement
-      # `.find_by` not use caching
-      def cached_find_by_statement(key, &block)
-        ActiveRecord::StatementCache.create(connection, &block)
+module ActiveRecord::Bitemporal::Bitemporalize
+  using Module.new {
+    refine ::ActiveRecord::Base do
+      class << ::ActiveRecord::Base
+        def prepend_relation_delegate_class(mod)
+          relation_delegate_class(ActiveRecord::Relation).prepend mod
+          relation_delegate_class(ActiveRecord::AssociationRelation).prepend mod
+          relation_delegate_class(ActiveRecord::Associations::CollectionProxy).prepend mod
+        end
       end
     end
+  }
+
+  module ClassMethods
+    include ActiveRecord::Bitemporal::Relation::Finder
+
+    def bitemporal_id_key
+      'bitemporal_id'
+    end
+
+    # Override ActiveRecord::Core::ClassMethods#cached_find_by_statement
+    # `.find_by` not use caching
+    def cached_find_by_statement(key, &block)
+      ActiveRecord::StatementCache.create(connection, &block)
+    end
+
+    def inherited(klass)
+      super
+      klass.prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
+    end
+  end
+
+  module InstanceMethods
+    include ActiveRecord::Bitemporal::Persistence
 
     def swap_id!
       @_swapped_id = self.id
@@ -53,50 +76,49 @@ module ActiveRecord
         errors.add(:valid_from, "can't be greater equal than valid_to")
       end
     end
+  end
+
+  def bitemporalize(enable_raise_validation_bitemporal_id: true)
+    extend ClassMethods
+    include InstanceMethods
+    include ActiveRecord::Bitemporal::Scope
+
+    after_create do
+      # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
+      update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
+    end
+
+    after_find do
+      self.swap_id! if self.send(bitemporal_id_key).present?
+    end
+
+    attribute :valid_from, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_VALID_FROM }
+    attribute :valid_to, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_VALID_TO }
 
     # Callback hook to `validates :xxx, uniqueness: true`
     const_set(:UniquenessValidator, Class.new(ActiveRecord::Validations::UniquenessValidator) {
       prepend ActiveRecord::Bitemporal::Uniqueness
     })
 
-    included do
-      after_create do
-        # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
-        update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
-      end
+    # validations
+    validates :valid_from, presence: true
+    validates :valid_to, presence: true
+    validate :valid_from_cannot_be_greater_equal_than_valid_to
 
-      after_find do
-        self.swap_id! if self.send(bitemporal_id_key).present?
-      end
-
-      attribute :valid_from, :datetime, default: -> { DEFAULT_VALID_FROM }
-      attribute :valid_to, :datetime, default: -> { DEFAULT_VALID_TO }
-
-      # validations
-      validates :valid_from, presence: true
-      validates :valid_to, presence: true
-      validate :valid_from_cannot_be_greater_equal_than_valid_to
-
+    if enable_raise_validation_bitemporal_id
       validates! bitemporal_id_key, uniqueness: true, allow_nil: true
-
-      # リレーションメソッドの追加
-      const_get(:ActiveRecord_Relation).prepend ActiveRecord::Bitemporal::Relation
-      const_get(:ActiveRecord_AssociationRelation).prepend ActiveRecord::Bitemporal::Relation
-      const_get(:ActiveRecord_Associations_CollectionProxy).prepend ActiveRecord::Bitemporal::Relation
-      # 継承先の Relation にも追加する
-      def self.inherited(subclass)
-        super
-        subclass.const_get(:ActiveRecord_Relation).prepend ActiveRecord::Bitemporal::Relation
-        subclass.const_get(:ActiveRecord_AssociationRelation).prepend ActiveRecord::Bitemporal::Relation
-        subclass.const_get(:ActiveRecord_Associations_CollectionProxy).prepend ActiveRecord::Bitemporal::Relation
-      end
-
-      include ActiveRecord::Bitemporal::Scope
+    else
+      validates bitemporal_id_key, uniqueness: true, allow_nil: true
     end
+
+    prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
   end
 end
 
 ActiveSupport.on_load(:active_record) do
+  ActiveRecord::Base
+    .extend ActiveRecord::Bitemporal::Bitemporalize
+
   ActiveRecord::Base
     .prepend ActiveRecord::Bitemporal::Patches::Persistence
 
