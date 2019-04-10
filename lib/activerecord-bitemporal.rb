@@ -78,7 +78,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     end
   end
 
-  def bitemporalize(enable_raise_validation_bitemporal_id: true)
+  def bitemporalize(enable_strict_by_validates_bitemporal_id: true)
     extend ClassMethods
     include InstanceMethods
     include ActiveRecord::Bitemporal::Scope
@@ -105,11 +105,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     validates :valid_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
 
-    if enable_raise_validation_bitemporal_id
-      validates! bitemporal_id_key, uniqueness: true, allow_nil: true
-    else
-      validates bitemporal_id_key, uniqueness: true, allow_nil: true
-    end
+    validates bitemporal_id_key, uniqueness: true, allow_nil: true, strict: enable_strict_by_validates_bitemporal_id
 
     prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
   end
