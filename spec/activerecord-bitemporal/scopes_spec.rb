@@ -166,14 +166,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       end
     end
 
-    describe ".bitemporal_more_future" do
+    describe ".bitemporal_most_future" do
       let(:employee) { EmployeeWithScope.create!(name: "Jane") }
       before do
         employee.update(name: "Tom")
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Jane").update(name: "Kevin")
       end
-      subject { EmployeeWithScope.bitemporal_more_future(id) }
+      subject { EmployeeWithScope.bitemporal_most_future(id) }
 
       context "valid `id`" do
         let(:id) { employee.id }
@@ -189,14 +189,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       end
     end
 
-    describe ".bitemporal_more_past" do
+    describe ".bitemporal_most_past" do
       let(:employee) { EmployeeWithScope.create!(name: "Jane") }
       before do
         employee.update(name: "Tom")
         employee.update(name: "Jane")
         EmployeeWithScope.create!(name: "Jane").update(name: "Kevin")
       end
-      subject { EmployeeWithScope.bitemporal_more_past(id) }
+      subject { EmployeeWithScope.bitemporal_most_past(id) }
 
       context "valid `id`" do
         let(:id) { employee.id }

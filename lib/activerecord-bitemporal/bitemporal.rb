@@ -251,10 +251,10 @@ module ActiveRecord
           scope :bitemporal_histories, -> (*ids) {
             ignore_valid_datetime.bitemporal_for(*ids)
           }
-          def self.bitemporal_more_future(id)
+          def self.bitemporal_most_future(id)
             bitemporal_histories(id).order(valid_from: :asc).last
           end
-          def self.bitemporal_more_past(id)
+          def self.bitemporal_most_past(id)
             bitemporal_histories(id).order(valid_from: :asc).first
           end
         end
