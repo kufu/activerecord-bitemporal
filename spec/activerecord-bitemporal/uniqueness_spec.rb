@@ -305,6 +305,23 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
         end
       end
     end
+
+    context "and `valid_from`" do
+      before do
+        EmployeeWithUniquness.create(name: "Jane", valid_from: "2019/1/10", valid_to: "2019/20")
+      end
+      subject { EmployeeWithUniquness.new(name: "Jane", valid_from: "2019/1/15").valid_at("2019/1/30", &:save) }
+    end
+
+    context "`valid_datetime` out of range `valid_from` ~ `valid_to`" do
+      it { is_expected.to be_truthy }
+
+      context "empty records" do
+        before { EmployeeWithUniquness.destroy_all }
+        subject { EmployeeWithUniquness.new(valid_from: "9999/1/10").valid_at("9999/1/1", &:save) }
+        it { is_expected.to be_truthy }
+      end
+    end
   end
 
   describe EmployeeWithUniqunessAndScope do
