@@ -985,8 +985,8 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "with `bitemporal_id`" do
       let!(:employee0) { Employee.create!(name: "Jane") }
-      subject { Employee.create(name: "Jane", bitemporal_id: employee0.bitemporal_id) }
-      it { is_expected.to raise_error(ActiveModel::StrictValidationFailed) }
+      subject { Employee.new(name: "Jane", bitemporal_id: employee0.bitemporal_id).save }
+      it { is_expected.to be_falsey }
     end
   end
 
