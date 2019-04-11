@@ -502,7 +502,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       subject { model_class.validators_on(:bitemporal_id).first.options[:strict] }
       context "empty" do
         let(:option) { {} }
-        it { is_expected.to be_truthy }
+        it { is_expected.to be_falsey }
       end
       context "`true`" do
         let(:option) { { enable_strict_by_validates_bitemporal_id: true } }
@@ -985,8 +985,8 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "with `bitemporal_id`" do
       let!(:employee0) { Employee.create!(name: "Jane") }
-      subject { -> { Employee.create(name: "Jane", bitemporal_id: employee0.bitemporal_id) } }
-      it { expect(&subject).to raise_error(ActiveModel::StrictValidationFailed) }
+      subject { Employee.create(name: "Jane", bitemporal_id: employee0.bitemporal_id) }
+      it { is_expected.to raise_error(ActiveModel::StrictValidationFailed) }
     end
   end
 
