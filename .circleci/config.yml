@@ -37,4 +37,4 @@ workflows:
     jobs:
       - rails-5.2
       - rails-6.0beta3
-      # - rails-master
+      - rails-master
