@@ -78,7 +78,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     end
   end
 
-  def bitemporalize(enable_strict_by_validates_bitemporal_id: true)
+  def bitemporalize(enable_strict_by_validates_bitemporal_id: false)
     extend ClassMethods
     include InstanceMethods
     include ActiveRecord::Bitemporal::Scope

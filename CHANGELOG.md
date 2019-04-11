@@ -13,7 +13,7 @@
 
 | option | describe | default |
 | --- | --- | --- |
-| `enable_strict_by_validates_bitemporal_id` | raised with `validates :bitemporal_id, uniqueness: true` if true | true |
+| `enable_strict_by_validates_bitemporal_id` | raised with `validates :bitemporal_id, uniqueness: true` if `true` | false |
 
 
 ### Fixed
