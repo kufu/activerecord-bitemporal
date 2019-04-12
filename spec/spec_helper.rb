@@ -20,6 +20,8 @@ RSpec.configure do |config|
   connection.create_database(dbconfig["database"])
   ActiveRecord::Base.establish_connection(dbconfig)
 
+  Time.zone = "UTC"
+
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
