@@ -6,11 +6,9 @@ addAssignees: false
 
 # A list of reviewers to be added to pull requests (GitHub user name)
 reviewers:
-  - mserizawa
   - f440
   - AtsushiM
   - meganemura
-  - gongo
   - t-mori23
   - marumarism
   - motsat

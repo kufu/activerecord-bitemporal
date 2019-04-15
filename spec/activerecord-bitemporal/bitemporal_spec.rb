@@ -490,6 +490,31 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
   end
 
+  describe ".bitemporalize" do
+    let(:option) { {} }
+    let(:model_class) {
+      opt = option
+      Class.new(ActiveRecord::Base) {
+        bitemporalize **opt
+      }
+    }
+    describe "with `enable_strict_by_validates_bitemporal_id`" do
+      subject { model_class.validators_on(:bitemporal_id).first.options[:strict] }
+      context "empty" do
+        let(:option) { {} }
+        it { is_expected.to be_falsey }
+      end
+      context "`true`" do
+        let(:option) { { enable_strict_by_validates_bitemporal_id: true } }
+        it { is_expected.to be_truthy }
+      end
+      context "`false`" do
+        let(:option) { { enable_strict_by_validates_bitemporal_id: false } }
+        it { is_expected.to be_falsey }
+      end
+    end
+  end
+
   describe "#ignore_valid_datetime" do
     let!(:employee) { Employee.create!(name: "Jone") }
     let(:update) { -> { Employee.find(employee).update(name: "Tom"); Time.current } }
@@ -960,8 +985,8 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "with `bitemporal_id`" do
       let!(:employee0) { Employee.create!(name: "Jane") }
-      subject { -> { Employee.create(name: "Jane", bitemporal_id: employee0.bitemporal_id) } }
-      it { expect(&subject).to raise_error(ActiveModel::StrictValidationFailed) }
+      subject { Employee.new(name: "Jane", bitemporal_id: employee0.bitemporal_id).save }
+      it { is_expected.to be_falsey }
     end
   end
 
