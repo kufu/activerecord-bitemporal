@@ -60,7 +60,7 @@ module ActiveRecord
         end
 
         def valid_at!(datetime, &block)
-          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, force: true, &block)
+          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, force_valid_datetime: true, &block)
         end
 
         def valid_datetime
@@ -68,12 +68,12 @@ module ActiveRecord
         end
 
         def ignore_valid_datetime(&block)
-          with_bitemporal_option(ignore_valid_datetime: true, &block)
+          with_bitemporal_option(ignore_valid_datetime: true, valid_datetime: nil, &block)
         end
 
         def merge_by(option)
-          if bitemporal_option_storage[:force]
-            option.merge(bitemporal_option_storage)
+          if bitemporal_option_storage[:force_valid_datetime]
+            bitemporal_option_storage.merge(option.merge(valid_datetime: bitemporal_option_storage[:valid_datetime]))
           else
             bitemporal_option_storage.merge(option)
           end
@@ -156,12 +156,9 @@ module ActiveRecord
       def load
         return super if loaded?
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        if valid_datetime
-          records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-        else
-          records = super
-        end
-        return records if records.empty?
+        records = ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) { super }
+
+        return records if records.empty? || bitemporal_option[:ignore_valid_datetime]
         records.each do |record|
           record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
         end
@@ -219,7 +216,7 @@ module ActiveRecord
           with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime)
         }
         scope :ignore_valid_datetime, -> {
-          with_bitemporal_option(ignore_valid_datetime: true)
+          with_bitemporal_option(ignore_valid_datetime: true, valid_datetime: nil)
         }
         scope :within_deleted, -> {
           with_bitemporal_option(within_deleted: true)
