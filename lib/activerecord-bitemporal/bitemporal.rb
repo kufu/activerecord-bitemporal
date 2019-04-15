@@ -460,7 +460,7 @@ module ActiveRecord
           # レコードを更新する時に valid_datetime が valid_from ~ valid_to の範囲外だった場合、
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
-          if (record.valid_datetime && (record.valid_from..record.valid_to).include?(record.valid_datetime)) == false && (not record.new_record?)
+          if (record.valid_datetime && (record.valid_from..record.valid_to).include?(record.valid_datetime)) == false && (record.persisted?)
             finder_class.where(bitemporal_id: record.bitemporal_id).where('? < valid_from', target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
           else
             valid_to
