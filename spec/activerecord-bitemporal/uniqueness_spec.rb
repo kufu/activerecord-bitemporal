@@ -254,8 +254,8 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
 
     describe "#dup" do
       let(:employee) { EmployeeWithUniquness.create!(name: "Jane").tap { |it| it.update(name: "Tom") } }
-      subject { -> { employee.dup.save } }
-      it { is_expected.to raise_error(ActiveModel::StrictValidationFailed) }
+      subject { employee.dup.save  }
+      it { is_expected.to be_falsey }
     end
 
     describe ".create" do
