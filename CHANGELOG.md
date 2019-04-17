@@ -5,6 +5,7 @@
 ### Breaking Changes
 
 - [#15](https://github.com/kufu/activerecord-bitemporal/pull/15) - `validates :bitemporal_id, uniqueness: true` is no raise by default.
+- [#19](https://github.com/kufu/activerecord-bitemporal/pull/19) - Fix create history records after logical destroy in #destroy.
 
 ### Added
 
