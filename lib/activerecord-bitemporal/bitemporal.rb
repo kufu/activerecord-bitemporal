@@ -410,16 +410,16 @@ module ActiveRecord
         target_datetime = valid_datetime || Time.current
 
         with_transaction_returning_status do
-          # 削除時の状態を履歴レコードとして保存する
           duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
 
-          duplicated_instance.valid_to = target_datetime
-          # 事実情報の削除を destroy のコールバックで検知することができるように,
-          # _run_destroy_callbacks の前に save しています. 呼び出し順を意図せず変更しないよう注意.
-          duplicated_instance.save!(validate: false)
-
           @destroyed = false
-          _run_destroy_callbacks { @destroyed = update_columns(deleted_at: Time.current) }
+          _run_destroy_callbacks {
+            @destroyed = update_columns(deleted_at: Time.current)
+
+            # 削除時の状態を履歴レコードとして保存する
+            duplicated_instance.valid_to = target_datetime
+            duplicated_instance.save!(validate: false)
+          }
           raise ActiveRecord::Rollback unless @destroyed
 
           self

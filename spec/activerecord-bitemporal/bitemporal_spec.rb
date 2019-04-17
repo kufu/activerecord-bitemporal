@@ -826,10 +826,19 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     it "create state-destroy record before _run_destroy_callbacks" do
       before_count = Employee.ignore_valid_datetime.count
+      before_count_within_deleted = Employee.ignore_valid_datetime.within_deleted.count
 
       self_ = self
       employee.define_singleton_method(:on_before_destroy) do
-        self_.instance_exec { expect(Employee.ignore_valid_datetime.count).to eq before_count + 1 }
+        self_.instance_exec { expect(Employee.ignore_valid_datetime.count).to eq before_count }
+        self_.instance_exec { expect(Employee.ignore_valid_datetime.within_deleted.count).to eq before_count_within_deleted }
+      rescue => e
+        self_.instance_exec { expect(e).to eq true }
+      end
+
+      employee.define_singleton_method(:on_after_destroy) do
+        self_.instance_exec { expect(Employee.ignore_valid_datetime.count).to eq before_count }
+        self_.instance_exec { expect(Employee.ignore_valid_datetime.within_deleted.count).to eq before_count_within_deleted + 1 }
       rescue => e
         self_.instance_exec { expect(e).to eq true }
       end
