@@ -5,6 +5,7 @@
 ### Breaking Changes
 
 - [#15](https://github.com/kufu/activerecord-bitemporal/pull/15) - `validates :bitemporal_id, uniqueness: true` is no raise by default.
+- [#19](https://github.com/kufu/activerecord-bitemporal/pull/19) - Fix create history records after logical destroy in #destroy.
 
 ### Added
 
@@ -25,6 +26,7 @@
 
 ### Fixed
 
+- [#17](https://github.com/kufu/activerecord-bitemporal/pull/17) - Fixed bug in create record with valid_datetime out of the range valid_from to valid_to.
 - [#18](https://github.com/kufu/activerecord-bitemporal/pull/18) - `record.valid_datetime` is not nil when after `Model.valid_at("2019/1/1").ignore_valid_datetime`.
 - [#18](https://github.com/kufu/activerecord-bitemporal/pull/18) - `ignore_valid_datetime` is not applied in `ActiveRecord::Bitemporal.valid_at!`.
 
