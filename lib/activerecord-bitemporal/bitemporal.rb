@@ -345,7 +345,24 @@ module ActiveRecord
         super()
       end
 
+      def update(*)
+        lock!
+        ActiveRecord::Base.transaction do
+          self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
+          super
+        end
+      end
+
+      def update!(*)
+        lock!
+        ActiveRecord::Base.transaction do
+          self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
+          super
+        end
+      end
+
       def _update_row(attribute_names, attempted_action = 'update')
+        pp __method__
         target_datetime = valid_datetime || Time.current
         # NOTE: force_update の場合は自身のレコードを取得するような時間を指定しておく
         target_datetime = valid_from if force_update?
