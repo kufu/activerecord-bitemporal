@@ -346,7 +346,6 @@ module ActiveRecord
       end
 
       def update(*)
-        lock!
         ActiveRecord::Base.transaction do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
@@ -354,7 +353,6 @@ module ActiveRecord
       end
 
       def update!(*)
-        lock!
         ActiveRecord::Base.transaction do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
