@@ -1345,7 +1345,7 @@ RSpec.describe ActiveRecord::Bitemporal do
   end
 
   context "with multi thread", use_truncation: true do
-    context "#update" do
+    describe "#update" do
       let!(:company) { Company.create!(name: "Company") }
       let!(:company2) { Company.create!(name: "Company") }
       subject do
@@ -1371,9 +1371,16 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
       end
       it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
+      (1..10).each do
+        it do
+          subject.call
+          com1, com2 = Company.ignore_valid_datetime.bitemporal_for(company.id).order(:valid_from).last(2)
+          expect(com1.valid_to).not_to eq com2.valid_to
+        end
+      end
     end
 
-    context "#save" do
+    describe "#save" do
       let!(:company) { Company.create!(name: "Company") }
       let!(:company2) { Company.create!(name: "Company") }
       subject do
@@ -1400,6 +1407,48 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
       end
       it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
+      it do
+        subject.call
+        com1, com2 = Company.ignore_valid_datetime.bitemporal_for(company.id).order(:valid_from).last(2)
+        expect(com1.valid_to).not_to eq com2.valid_to
+      end
+    end
+
+    context "wiht lock! by application side" do
+      let!(:company) { Company.create!(name: "Company") }
+      let!(:company2) { Company.create!(name: "Company") }
+      subject do
+        thread_new = proc { |id|
+          Thread.new(id) { |id|
+            ActiveRecord::Base.connection_pool.with_connection do
+              ActiveRecord::Base.transaction do
+                Company.where(bitemporal_id: id).lock!.pluck(:id)
+                company = Company.find(id)
+                company.name += "!"
+                if !company.save
+                  expect(company.errors[:bitemporal_id]).to include("has already been taken")
+                end
+              end
+            end
+          }
+        }
+        proc do
+          [
+            thread_new.call(company.id),
+            thread_new.call(company.id),
+            thread_new.call(company.id),
+            thread_new.call(company2.id),
+            thread_new.call(company2.id),
+          ].each { |t| t.join(3) }
+        end
+      end
+      (1..10).each do
+        it do
+          subject.call
+          com1, com2 = Company.ignore_valid_datetime.bitemporal_for(company.id).order(:valid_from).last(2)
+          expect(com1.valid_to).not_to eq com2.valid_to
+        end
+      end
     end
   end
 end
