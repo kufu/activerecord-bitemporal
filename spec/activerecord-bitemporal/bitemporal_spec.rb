@@ -1345,30 +1345,61 @@ RSpec.describe ActiveRecord::Bitemporal do
   end
 
   context "with multi thread", use_truncation: true do
-    let!(:company) { Company.create!(name: "Company") }
-    let!(:company2) { Company.create!(name: "Company") }
-    subject do
-      thread_new = proc { |id|
-        Thread.new(id) { |id|
-          ActiveRecord::Base.connection_pool.with_connection do
-            company = Company.find(id)
-            if !company.update(name: "Company2")
-              expect(company.errors[:bitemporal_id]).to include("has already been taken")
+    context "#update" do
+      let!(:company) { Company.create!(name: "Company") }
+      let!(:company2) { Company.create!(name: "Company") }
+      subject do
+        thread_new = proc { |id|
+          Thread.new(id) { |id|
+            ActiveRecord::Base.connection_pool.with_connection do
+              company = Company.find(id)
+              if !company.update(name: "Company2")
+                expect(company.errors[:bitemporal_id]).to include("has already been taken")
+              end
             end
-          end
+          }
         }
-      }
-      proc do
-        [
-          thread_new.call(company.id),
-          thread_new.call(company.id),
-          thread_new.call(company.id),
-          thread_new.call(company2.id),
-          thread_new.call(company2.id),
-          thread_new.call(company2.id),
-        ].each { |t| t.join(3) }
+        proc do
+          [
+            thread_new.call(company.id),
+            thread_new.call(company.id),
+            thread_new.call(company.id),
+            thread_new.call(company2.id),
+            thread_new.call(company2.id),
+            thread_new.call(company2.id),
+          ].each { |t| t.join(3) }
+        end
       end
+      it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
     end
-    it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
+
+    context "#save" do
+      let!(:company) { Company.create!(name: "Company") }
+      let!(:company2) { Company.create!(name: "Company") }
+      subject do
+        thread_new = proc { |id|
+          Thread.new(id) { |id|
+            ActiveRecord::Base.connection_pool.with_connection do
+              company = Company.find(id)
+              company.name = "Company2"
+              if !company.save
+                expect(company.errors[:bitemporal_id]).to include("has already been taken")
+              end
+            end
+          }
+        }
+        proc do
+          [
+            thread_new.call(company.id),
+            thread_new.call(company.id),
+            thread_new.call(company.id),
+            thread_new.call(company2.id),
+            thread_new.call(company2.id),
+            thread_new.call(company2.id),
+          ].each { |t| t.join(3) }
+        end
+      end
+      it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
+    end
   end
 end

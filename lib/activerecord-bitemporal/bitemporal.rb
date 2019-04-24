@@ -345,14 +345,14 @@ module ActiveRecord
         super()
       end
 
-      def update(*)
+      def save(*)
         ActiveRecord::Base.transaction do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
         end
       end
 
-      def update!(*)
+      def save!(*)
         ActiveRecord::Base.transaction do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
