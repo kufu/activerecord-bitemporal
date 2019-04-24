@@ -1343,4 +1343,39 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
   end
+
+  context "with multi thread", use_truncation: true do
+    let!(:company) { Company.create!(name: "Company") }
+    subject do
+      proc do
+        [
+          Thread.new(company.id) { |id|
+            ActiveRecord::Base.connection_pool.with_connection do
+              company = Company.find(id)
+              if !company.update(name: "Company2")
+                expect(company.errors[:bitemporal_id]).to include("has already been taken")
+              end
+            end
+          },
+          Thread.new(company.id) { |id|
+            ActiveRecord::Base.connection_pool.with_connection do
+              company = Company.find(id)
+              if !company.update(name: "Company3")
+                expect(company.errors[:bitemporal_id]).to include("has already been taken")
+              end
+            end
+          },
+          Thread.new(company.id) { |id|
+            ActiveRecord::Base.connection_pool.with_connection do
+              company = Company.find(id)
+              if !company.update(name: "Company4")
+                expect(company.errors[:bitemporal_id]).to include("has already been taken")
+              end
+            end
+          }
+        ].each { |t| t.join(3) }
+      end
+    end
+    it { is_expected.to change { Company.ignore_valid_datetime.count }.by(1) }
+  end
 end
