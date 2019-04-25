@@ -182,14 +182,14 @@ module ActiveRecord
       end
 
       def bitemporal_clause
-        get_value(:bitemporal_clause).yield_self { |result|
+        @values[:bitemporal_clause].yield_self { |result|
           next result if result
           self.bitemporal_clause = Relation::BitemporalClause.new
         }
       end
 
       def bitemporal_clause=(value)
-        set_value(:bitemporal_clause, value)
+        @values[:bitemporal_clause] = value
       end
 
       def primary_key
