@@ -207,6 +207,15 @@ RSpec.describe "Association" do
         it { expect(CompanyWithoutBitemporal.includes(:employees).where(employees: { name: "Jane" }).count).to eq 2 }
         it { expect(CompanyWithoutBitemporal.joins(:employees).where(employees: { name: "Jane" }).count).to eq 3 }
       end
+
+      xdescribe "using table name alias for multiple join" do
+        let!(:company) { CompanyWithoutBitemporal.create(name: "Company") }
+        let!(:employee) { company.employees.create(name: "Jane").tap { |m| m.update(name: "Tom") } }
+
+        it 'returns a record' do
+          expect(CompanyWithoutBitemporal.joins(:employees).left_joins(:employees).where(employees: { bitemporal_id: employee.id }).count).to eq(1)
+        end
+      end
     end
 
     describe "nested_attributes" do
