@@ -30,6 +30,7 @@
 - [#18](https://github.com/kufu/activerecord-bitemporal/pull/18) - `record.valid_datetime` is not nil when after `Model.valid_at("2019/1/1").ignore_valid_datetime`.
 - [#18](https://github.com/kufu/activerecord-bitemporal/pull/18) - `ignore_valid_datetime` is not applied in `ActiveRecord::Bitemporal.valid_at!`.
 - [#21](https://github.com/kufu/activerecord-bitemporal/pull/21) - Fixed bug in multi thread with `#update`.
+- [#24](https://github.com/kufu/activerecord-bitemporal/pull/24) [#25](https://github.com/kufu/activerecord-bitemporal/pull/25) - Fixed bug. Does not respect table alias on join clause.
 
 ### Deprecated
 
