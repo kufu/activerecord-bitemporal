@@ -107,18 +107,19 @@ module ActiveRecord
           @predicates[klass] = value
         end
 
-        def ast(klass = nil)
-          return predicates.keys.map(&method(:ast)).select(&:present?).inject(&:and) unless klass
+        def ast(klass: nil, table: nil)
+          return predicates.keys.map { |klass| ast(klass: klass, table: table) }.select(&:present?).inject(&:and) unless klass
 
           option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
 
-          arel_table = klass.arel_table
+          table = klass.arel_table unless table
+          table = option[:through].arel_table if option[:through].present?
           arels = []
           if !option[:ignore_valid_datetime]
             target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
-            arels << arel_table[:valid_from].lteq(target_datetime).and(arel_table[:valid_to].gt(target_datetime))
+            arels << table[:valid_from].lteq(target_datetime).and(table[:valid_to].gt(target_datetime))
           end
-          arels << arel_table[:deleted_at].eq(nil) unless option[:within_deleted]
+          arels << table[:deleted_at].eq(nil) unless option[:within_deleted]
           arels.inject(&:and)
         end
       end
@@ -167,7 +168,7 @@ module ActiveRecord
       def build_arel(args = nil)
         ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
           super.tap { |arel|
-            bitemporal_clause.ast&.tap { |clause|
+            bitemporal_clause.ast(table: table)&.tap { |clause|
               arel.ast.cores.each do |node|
                 next unless node.kind_of?(Arel::Nodes::SelectCore)
                 if node.wheres.empty?

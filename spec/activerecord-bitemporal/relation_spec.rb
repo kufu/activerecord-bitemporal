@@ -172,7 +172,7 @@ RSpec.describe "Relation" do
     end
 
     context ".includes" do
-      let(:company)  { company_relation.includes(*associations).first }
+      let(:company) { company_relation.includes(*associations).first }
       context "associations is `:employees`" do
         let(:associations) { [:employees] }
         it { expect(employee).to have_attributes(name: "Employee1") }
@@ -191,27 +191,43 @@ RSpec.describe "Relation" do
     end
 
     context ".includes.includes" do
-      let(:company)  { company_relation.includes(:employees).includes(employees: :address).first }
+      let(:company) { company_relation.includes(:employees).includes(employees: :address).first }
       it { expect(employee).to have_attributes(name: "Employee1") }
       it { expect(address).to have_attributes(name: "Address1") }
     end
 
     context ".eager_load" do
-      let(:company)  { company_relation.eager_load(:employees, employees: :address).first }
+      let(:company) { company_relation.eager_load(:employees, employees: :address).first }
       it { expect(employee).to have_attributes(name: "Employee1") }
       it { expect(address).to have_attributes(name: "Address1") }
     end
 
     context ".joins" do
-      let(:company)  { company_relation.joins(:employees, employees: :address).first }
+      let(:company) { company_relation.joins(:employees, employees: :address).first }
       it { expect(employee).to have_attributes(name: "Employee1") }
       it { expect(address).to have_attributes(name: "Address1") }
     end
 
     context ".preload" do
-      let(:company)  { company_relation.preload(:employees, employees: :address).first }
+      let(:company) { company_relation.preload(:employees, employees: :address).first }
       it { expect(employee).to have_attributes(name: "Employee1") }
       it { expect(address).to have_attributes(name: "Address1") }
+    end
+
+    context ".joins.left_joins" do
+      let(:company) { company_relation.joins(:employees).left_joins(:employees) }
+      it { expect(company.count).to eq(1) }
+    end
+  end
+
+  context ".left_joins" do
+    describe "using table name alias for multiple join" do
+      let!(:company) { Company.create(name: "Company") }
+      let!(:employee) { company.employees.create(name: "Jane").tap { |m| m.update(name: "Tom") } }
+
+      it 'returns a record' do
+        expect(Company.joins(:employees).left_joins(:employees).where(employees: { bitemporal_id: employee.id }).count).to eq(1)
+      end
     end
   end
 end
