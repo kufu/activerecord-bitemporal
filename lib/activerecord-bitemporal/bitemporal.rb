@@ -413,6 +413,7 @@ module ActiveRecord
             after_instance.save!(validate: false)
           end
           # update 後に新しく生成したインスタンスのデータを移行する
+          @attributes.instance_variable_set("@_loaded_swapped_id", nil)
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
         end

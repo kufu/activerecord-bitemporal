@@ -50,13 +50,15 @@ module ActiveRecord::Bitemporal::Bitemporalize
     include ActiveRecord::Bitemporal::Persistence
 
     def swap_id!
-      @_swapped_id = self.id
+      @_swapped_id = nil
+      tmp_id = self.id
       self.id = self.send(bitemporal_id_key)
       clear_changes_information
+      @attributes.instance_variable_set("@_loaded_swapped_id", tmp_id)
     end
 
     def swapped_id
-      @_swapped_id || self.id
+      @attributes.instance_variable_get("@_loaded_swapped_id") || @_swapped_id || self.id
     end
 
     def bitemporal_id_key

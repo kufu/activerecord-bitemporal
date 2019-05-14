@@ -159,9 +159,9 @@ RSpec.describe ActiveRecord::Bitemporal do
     subject { Employee.find_at_time(time, id) }
 
     before do
-      employee.update(name: "Tom")
-      employee.update(name: "Mami")
-      employee.update(name: "Homu")
+      employee.update!(name: "Tom")
+      employee.update!(name: "Mami")
+      employee.update!(name: "Homu")
     end
 
     # Tom:    |-----------|
@@ -512,6 +512,20 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:option) { { enable_strict_by_validates_bitemporal_id: false } }
         it { is_expected.to be_falsey }
       end
+    end
+  end
+
+  describe ".reload" do
+    let(:employee) { Employee.create!(name: "Tom").tap { |emp| emp.update!(name: "Jane") } }
+
+    context "call #update" do
+      subject { -> { employee.update!(name: "Kevin") } }
+      it { is_expected.to change { employee.reload.swapped_id } }
+    end
+
+    context "call .update" do
+      subject { -> { Employee.find(employee.id).update!(name: "Kevin") } }
+      it { is_expected.to change { employee.reload.swapped_id } }
     end
   end
 
