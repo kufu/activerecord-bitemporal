@@ -515,7 +515,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
   end
 
-  describe ".reload" do
+  describe "#reload" do
     let(:employee) { Employee.create!(name: "Tom").tap { |emp| emp.update!(name: "Jane") } }
 
     context "call #update" do
