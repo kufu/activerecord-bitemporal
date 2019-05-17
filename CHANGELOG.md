@@ -31,6 +31,7 @@
 - [#18](https://github.com/kufu/activerecord-bitemporal/pull/18) - `ignore_valid_datetime` is not applied in `ActiveRecord::Bitemporal.valid_at!`.
 - [#21](https://github.com/kufu/activerecord-bitemporal/pull/21) - Fixed bug in multi thread with `#update`.
 - [#24](https://github.com/kufu/activerecord-bitemporal/pull/24) [#25](https://github.com/kufu/activerecord-bitemporal/pull/25) - Fixed bug. Does not respect table alias on join clause.
+- [#27](https://github.com/kufu/activerecord-bitemporal/pull/27) - Fixed a bug that `swapped_id` doesn't change after `#reload`.
 
 ### Deprecated
 

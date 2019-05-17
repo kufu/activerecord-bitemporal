@@ -443,6 +443,29 @@ module ActiveRecord
           false
         end
       end
+
+      module ::ActiveRecord::Persistence
+        # MEMO: Must be override ActiveRecord::Persistence#reload
+        alias_method :active_record_bitemporal_original_reload, :reload
+        def reload(options = nil)
+          return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
+
+          self.class.connection.clear_query_cache
+
+          fresh_object =
+            if options && options[:lock]
+              self.class.unscoped { self.class.lock(options[:lock]).find(id) }
+            else
+              self.class.unscoped { self.class.find(id) }
+            end
+
+          @attributes = fresh_object.instance_variable_get("@attributes")
+          @new_record = false
+          # NOTE: Hook to copying swapped_id
+          @_swapped_id = fresh_object.swapped_id
+          self
+        end
+      end
     end
 
     module Uniqueness
