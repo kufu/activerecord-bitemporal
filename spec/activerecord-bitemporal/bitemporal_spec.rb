@@ -762,11 +762,6 @@ RSpec.describe ActiveRecord::Bitemporal do
           it { is_expected.to raise_error(ActiveRecord::RecordNotSaved) }
         end
       end
-
-      xcontext "`valid_datetime` is `company.valid_to`" do
-        let(:valid_datetime) { company.valid_to }
-        it { is_expected.not_to change(&company_count) }
-      end
     end
   end
 
