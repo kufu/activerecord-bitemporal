@@ -378,7 +378,7 @@ module ActiveRecord
           # 履歴データとして保存する新しいインスタンス
           # NOTE: 以前の履歴データ(現時点で有効なレコードを元にする)
           before_instance = current_valid_record.dup
-          # NOTE: 以降の履歴ところで Ruby 2.6 なので `yield_self` よりも `then` のほうがいいのではデータ(自身のインスタンスを元にする)
+          # NOTE: 以降の履歴データ(自身のインスタンスを元にする)
           after_instance = build_new_instance
 
           # force_update の場合は既存のレコードを論理削除した上で新しいレコードを生成する
@@ -401,7 +401,6 @@ module ActiveRecord
             # 以降の履歴データは valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
             after_instance.valid_to = current_valid_record.valid_to
-
             raise ActiveRecord::Rollback if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
             after_instance.save!(validate: false)
 
