@@ -347,14 +347,14 @@ module ActiveRecord
       end
 
       def save(*)
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(requires_new: true) do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
         end
       end
 
       def save!(*)
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(requires_new: true) do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
         end
@@ -366,7 +366,7 @@ module ActiveRecord
         target_datetime = valid_from if force_update?
 
         # MEMO: このメソッドに来るまでに validation が発動しているので、以後 validate は考慮しなくて大丈夫
-        ActiveRecord::Base.transaction do
+        ActiveRecord::Base.transaction(requires_new: true) do
           # 対象基準日において有効なレコード
           # NOTE: 論理削除対象
           current_valid_record = self.class.find_at_time(target_datetime, self.id)&.tap { |record|
@@ -395,11 +395,13 @@ module ActiveRecord
 
             # 以前の履歴データは valid_to を詰めて保存
             before_instance.valid_to = target_datetime
+            raise ActiveRecord::Rollback if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
             before_instance.save!(validate: false)
 
             # 以降の履歴データは valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
             after_instance.valid_to = current_valid_record.valid_to
+            raise ActiveRecord::Rollback if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
             after_instance.save!(validate: false)
 
           # 有効なレコードがない場合
@@ -415,8 +417,10 @@ module ActiveRecord
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
-        end
-        return 1
+
+          return 1
+        # MEMO: Must return false instead of nil, if `#_update_row` failure.
+        end || false
       end
 
       def destroy(force_delete: false)

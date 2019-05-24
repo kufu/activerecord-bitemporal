@@ -32,6 +32,7 @@
 - [#21](https://github.com/kufu/activerecord-bitemporal/pull/21) - Fixed bug in multi thread with `#update`.
 - [#24](https://github.com/kufu/activerecord-bitemporal/pull/24) [#25](https://github.com/kufu/activerecord-bitemporal/pull/25) - Fixed bug. Does not respect table alias on join clause.
 - [#27](https://github.com/kufu/activerecord-bitemporal/pull/27) - Fixed a bug that `swapped_id` doesn't change after `#reload`.
+- [#28](https://github.com/kufu/activerecord-bitemporal/pull/28) - Fix the bug that `valid_from == valid_to` record is generated.
 
 ### Deprecated
 

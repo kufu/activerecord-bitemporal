@@ -632,18 +632,6 @@ RSpec.describe ActiveRecord::Bitemporal do
           let(:valid_to) { finish }
         end
       end
-
-      context "any updated" do
-        let(:now) { from }
-        it do
-          expect { employee.update(name: "Tom") }.to change(employee, :swapped_id)
-            .and(change(employee, :name).from("Jone").to("Tom"))
-          expect { employee.update(name: "Mami") }.to change(employee, :swapped_id)
-            .and(change(employee, :name).from("Tom").to("Mami"))
-          expect { employee.update(name: "Mado") }.to change(employee, :swapped_id)
-            .and(change(employee, :name).from("Mami").to("Mado"))
-        end
-      end
     end
 
     context "wrapper method with the same name as the column name" do
@@ -718,7 +706,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { is_expected.not_to change(employee, :emp_code) }
     end
 
-    context "with `#valid_at`" do
+    context "in `#valid_at`" do
       describe "set deleted_at" do
         let(:employee) { Timecop.freeze("2019/1/1") { Employee.create!(name: "Jane") } }
         let(:time_current) { employee.updated_at + 10.days }
@@ -740,6 +728,26 @@ RSpec.describe ActiveRecord::Bitemporal do
         before { Timecop.freeze("2019/1/10") { Employee.create!(name: "Homu") } }
         it do
           is_expected.to change { latest_employee.call.valid_to }.from(employee.valid_to).to(employee.valid_from)
+        end
+      end
+    end
+
+    context "failure" do
+      let(:company) { Company.create!(valid_from: "2019/2/1") }
+      let(:company_count) { -> { Company.ignore_valid_datetime.bitemporal_for(company.id).count } }
+      let(:company_deleted_at) { -> { Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.id).first.deleted_at } }
+      subject { -> { company.valid_at(valid_datetime) { |c| c.update(name: "Company") } } }
+
+      context "`valid_datetime` is `company.valid_from`" do
+        let(:valid_datetime) { company.valid_from }
+
+        it { expect(subject.call).to be_falsey }
+        it { is_expected.not_to change(&company_count) }
+        it { is_expected.not_to change(&company_deleted_at) }
+
+        context "call `update!`" do
+          subject { -> { company.valid_at(valid_datetime) { |c| c.update!(name: "Company") } } }
+          it { is_expected.to raise_error(ActiveRecord::RecordNotSaved) }
         end
       end
     end
@@ -940,12 +948,14 @@ RSpec.describe ActiveRecord::Bitemporal do
   end
 
   describe "#touch" do
-    let(:employee) { Employee.create(name: "Jane").tap { |it| it.update(name: "Tom") } }
+    let!(:employee) { Employee.create(name: "Jane").tap { |it| it.update!(name: "Tom") } }
+    let(:employee_count) { -> { Employee.ignore_valid_datetime.bitemporal_for(employee.id).count } }
     subject { -> { employee.touch(:archived_at) } }
-    around { |e| Timecop.freeze(time_current) { e.run } }
 
+    it { expect(employee).to have_attributes(name: "Tom", id: employee.id) }
     it { expect(subject.call).to eq true }
-    it { is_expected.to change { employee.reload.archived_at }.from(nil).to(time_current) }
+    it { is_expected.to change(&employee_count).by(1) }
+    it { is_expected.to change { employee.reload.archived_at }.from(nil) }
   end
 
   describe "validation" do
@@ -1395,36 +1405,38 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
 
     describe "#save" do
-      let!(:company) { Company.create!(name: "Company") }
-      let!(:company2) { Company.create!(name: "Company") }
-      subject do
-        thread_new = proc { |id|
-          Thread.new(id) { |id|
-            ActiveRecord::Base.connection_pool.with_connection do
-              company = Company.find(id)
-              company.name = "Company2"
-              if !company.save
-                expect(company.errors[:bitemporal_id]).to include("has already been taken")
+      context "multi threading" do
+        let!(:company) { Company.create!(name: "Company") }
+        let!(:company2) { Company.create!(name: "Company") }
+        subject do
+          thread_new = proc { |id|
+            Thread.new(id) { |id|
+              ActiveRecord::Base.connection_pool.with_connection do
+                company = Company.find(id)
+                company.name = "Company2"
+                if !company.save
+                  expect(company.errors[:bitemporal_id]).to include("has already been taken")
+                end
               end
-            end
+            }
           }
-        }
-        proc do
-          [
-            thread_new.call(company.id),
-            thread_new.call(company.id),
-            thread_new.call(company.id),
-            thread_new.call(company2.id),
-            thread_new.call(company2.id),
-            thread_new.call(company2.id),
-          ].each { |t| t.join(3) }
+          proc do
+            [
+              thread_new.call(company.id),
+              thread_new.call(company.id),
+              thread_new.call(company.id),
+              thread_new.call(company2.id),
+              thread_new.call(company2.id),
+              thread_new.call(company2.id),
+            ].each { |t| t.join(3) }
+          end
         end
-      end
-      it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
-      it do
-        subject.call
-        com1, com2 = Company.ignore_valid_datetime.bitemporal_for(company.id).order(:valid_from).last(2)
-        expect(com1.valid_to).not_to eq com2.valid_to
+        it { is_expected.to change { Company.ignore_valid_datetime.count }.by(2) }
+        it do
+          subject.call
+          com1, com2 = Company.ignore_valid_datetime.bitemporal_for(company.id).order(:valid_from).last(2)
+          expect(com1.valid_to).not_to eq com2.valid_to
+        end
       end
     end
 
