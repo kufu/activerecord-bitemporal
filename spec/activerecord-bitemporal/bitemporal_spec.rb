@@ -632,18 +632,6 @@ RSpec.describe ActiveRecord::Bitemporal do
           let(:valid_to) { finish }
         end
       end
-
-      xcontext "any updated" do
-        let(:now) { from }
-        it do
-          expect { employee.update!(name: "Tom") }.to \
-            change(employee, :swapped_id).and(change(employee, :name).from("Jone").to("Tom"))
-          expect { employee.update!(name: "Mami") }.to \
-            change(employee, :swapped_id).and(change(employee, :name).from("Tom").to("Mami"))
-          expect { employee.update!(name: "Mado") }.to \
-            change(employee, :swapped_id) .and(change(employee, :name).from("Mami").to("Mado"))
-        end
-      end
     end
 
     context "wrapper method with the same name as the column name" do
