@@ -6,12 +6,16 @@ addAssignees: false
 
 # A list of reviewers to be added to pull requests (GitHub user name)
 reviewers:
-  - f440
   - AtsushiM
-  - meganemura
-  - t-mori23
+  - f440
+  - kouryou
   - marumarism
+  - meganemura
   - motsat
+  - t-mori23
+  - tkimi
+  - wakasa5
+  - wata727
   - osyo-manga
 
 # A list of keywords to be skipped the process that add reviewers if pull requests include it
