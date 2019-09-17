@@ -6,6 +6,6 @@ appraise "rails-master" do
   gem "rails", git: 'https://github.com/rails/rails.git'
 end
 
-appraise "rails-6.0.rc1" do
-  gem "rails", git: 'https://github.com/rails/rails.git', tag: "v6.0.0.rc1"
+appraise "rails-6.0.0" do
+  gem "rails", git: 'https://github.com/rails/rails.git', tag: "v6.0.0"
 end
