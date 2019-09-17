@@ -36,5 +36,5 @@ workflows:
   test:
     jobs:
       - rails-5.2
-      - rails-6.0.rc1
+      - rails-6.0.0
       - rails-master
