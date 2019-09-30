@@ -521,14 +521,24 @@ module ActiveRecord
           end
         }
 
-        bitemporal_scope = finder_class.unscoped.ignore_valid_datetime
+        valid_at_scope = finder_class.unscoped.ignore_valid_datetime
             .where("valid_from < ?", valid_to).where("? < valid_to", valid_from)
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
               record.id && record.swapped_id ? scope.where.not(id: record.swapped_id) : scope
             }
-        relation.merge(bitemporal_scope)
+
+        transaction_at_scope = if record.created_at && record.deleted_at
+          finder_class.unscoped.ignore_valid_datetime.within_deleted
+            .where.not(deleted_at: nil)
+            .tap { |it| break it.where("? < deleted_at", record.created_at) if record.created_at }
+            .tap { |it| break it.where("created_at < ?", record.deleted_at) if record.deleted_at }
+        else
+          finder_class.unscoped.ignore_valid_datetime
+        end
+
+        relation.merge(valid_at_scope).merge(transaction_at_scope)
       end
     end
   end
