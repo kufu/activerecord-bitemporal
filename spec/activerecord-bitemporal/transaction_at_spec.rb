@@ -224,6 +224,14 @@ RSpec.describe "transaction_at" do
         let(:new_to) { new_from + 5.days }
         let(:active_to) { nil }
       end
+
+      # active transaction time : |<-----------------------> Infinite
+      # new transaction time    :        |<-----------------------> Infinite
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from + 5.days }
+        let(:new_to) { nil }
+        let(:active_to) { nil }
+      end
     end
 
     context "have an active models" do
