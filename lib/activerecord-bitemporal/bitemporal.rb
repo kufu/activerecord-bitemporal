@@ -423,6 +423,7 @@ module ActiveRecord
           end
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id = after_instance.swapped_id
+          self.created_at = after_instance.created_at
           self.valid_from = after_instance.valid_from
 
           return 1
@@ -529,14 +530,13 @@ module ActiveRecord
               record.id && record.swapped_id ? scope.where.not(id: record.swapped_id) : scope
             }
 
-        transaction_at_scope = if record.created_at && record.deleted_at
-          finder_class.unscoped.ignore_valid_datetime.within_deleted
-            .where.not(deleted_at: nil)
-            .tap { |it| break it.where("? < deleted_at", record.created_at) if record.created_at }
-            .tap { |it| break it.where("created_at < ?", record.deleted_at) if record.deleted_at }
-        else
-          finder_class.unscoped.ignore_valid_datetime
-        end
+        created_at = record.created_at || Time.current
+        deleted_at = record.deleted_at || ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+        transaction_at_scope = finder_class.unscoped
+          .ignore_valid_datetime
+          .within_deleted
+          .where("deleted_at is NULL OR ? < deleted_at", created_at)
+          .where("created_at < ?", deleted_at)
 
         relation.merge(valid_at_scope).merge(transaction_at_scope)
       end

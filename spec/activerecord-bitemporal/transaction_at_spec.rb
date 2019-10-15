@@ -18,6 +18,10 @@ RSpec.describe "transaction_at" do
                                          .and(eq(company_all[-1].created_at))
       end
 
+      it "updated `created_at`" do
+        expect { company.update(name: "Company4").to change { company.created_at } }
+      end
+
       context "with `#force_update`" do
         it do
           company.force_update { |it| it.update!(name: "NewCompany") }
@@ -110,20 +114,22 @@ RSpec.describe "transaction_at" do
       shared_context "define active model" do
         let(:active_from) { time_current }
         let(:active_to) { active_from + 10.days }
+        let(:valid_from) { "2019/01/01".to_time }
+        let(:valid_to) { "2019/12/31".to_time }
         before do
-          EmployeeWithUniquness.create!(name: "Jane", created_at: active_from, deleted_at: active_to)
+          EmployeeWithUniquness.create!(name: "Jane", created_at: active_from, deleted_at: active_to, valid_from: valid_from, valid_to: valid_to)
         end
       end
 
       shared_examples "valid uniqueness" do
         include_context "define active model"
-        subject { EmployeeWithUniquness.new(name: "Jane", created_at: new_from, deleted_at: new_to) }
+        subject { EmployeeWithUniquness.new(name: "Jane", created_at: new_from, deleted_at: new_to, valid_from: valid_from, valid_to: valid_to) }
         it { is_expected.to be_valid }
       end
 
       shared_examples "invalid uniqueness" do
         include_context "define active model"
-        subject { EmployeeWithUniquness.new(name: "Jane", created_at: new_from, deleted_at: new_to) }
+        subject { EmployeeWithUniquness.new(name: "Jane", created_at: new_from, deleted_at: new_to, valid_from: valid_from, valid_to: valid_to) }
         it { is_expected.to be_invalid }
       end
 
@@ -272,62 +278,7 @@ RSpec.describe "transaction_at" do
       end
     end
 
-    xdescribe "#update" do
-      let(:employee) { EmployeeWithUniquness.create!(name: "Jane", emp_code: "000") }
-      context "any update" do
-        it do
-          expect { employee.update(emp_code: "001") }.to change(employee, :swapped_id)
-          expect { employee.update(emp_code: "002") }.to change(employee, :swapped_id)
-          expect { employee.update(emp_code: "003") }.to change(employee, :swapped_id)
-        end
-      end
-
-      context "update to name" do
-        subject { -> { employee.update!(name: "Tom") } }
-
-        context "exitst other records" do
-          context "same name" do
-            let!(:other) { EmployeeWithUniquness.create!(name: "Jane").tap { |m| m.update!(name: "Tom") } }
-            it { is_expected.to raise_error ActiveRecord::RecordInvalid }
-          end
-          context "other name" do
-            let!(:other) { EmployeeWithUniquness.create!(name: "Mami").tap { |m| m.update!(name: "Homu") }  }
-            it { is_expected.not_to raise_error }
-            it { is_expected.to change { employee.reload.name }.from("Jane").to("Tom") }
-          end
-        end
-
-        context "after updating other record" do
-          let!(:other) { EmployeeWithUniquness.create!(name: "Jane").tap { |m| m.update!(name: "Tom") } }
-          before do
-            other.update!(name: "Homu")
-          end
-          it { is_expected.not_to raise_error }
-          it { is_expected.to change { employee.reload.name }.from("Jane").to("Tom") }
-
-          context "with `valid_at`" do
-            subject { -> { employee.valid_at(Time.current - 1.days) { |m| m.update!(name: "Tom") } } }
-            it { is_expected.to raise_error ActiveRecord::RecordInvalid }
-          end
-        end
-
-        context "after destroying other record" do
-          let!(:other) { EmployeeWithUniquness.create!(name: "Jane").tap { |m| m.update!(name: "Tom") } }
-          before do
-            other.destroy
-          end
-          it { is_expected.not_to raise_error }
-          it { is_expected.to change { employee.reload.name }.from("Jane").to("Tom") }
-
-          context "with `valid_at`" do
-            subject { -> { employee.valid_at(Time.current - 1.days) { |m| m.update!(name: "Tom") } } }
-            it { is_expected.to raise_error ActiveRecord::RecordInvalid }
-          end
-        end
-      end
-    end
-
-    xdescribe ".create" do
+    describe ".create" do
       subject { -> { EmployeeWithUniquness.create!(name: "Tom") } }
       context "exists destroyed model" do
         let(:employee) { EmployeeWithUniquness.create!(name: "Jane").tap { |it| it.update(name: "Tom") } }
@@ -339,9 +290,16 @@ RSpec.describe "transaction_at" do
 
       context "exists past model" do
         before do
-          EmployeeWithUniquness.create!(name: "Tom", valid_from: "1982/12/02", valid_to: "2001/03/24")
+          EmployeeWithUniquness.create!(name: "Tom", created_at: "1982/12/02", deleted_at: "2001/03/24")
         end
         it { is_expected.not_to raise_error }
+      end
+
+      context "exists future model" do
+        before do
+          EmployeeWithUniquness.create!(name: "Tom", created_at: Time.current + 10.days)
+        end
+        it { is_expected.to raise_error ActiveRecord::RecordInvalid }
       end
     end
 
@@ -361,6 +319,33 @@ RSpec.describe "transaction_at" do
         it { is_expected.to be_truthy }
       end
     end
-  end
 
+    context "duplicated `valid_from` `valid_to` with non set `created_at`" do
+      let(:created_at) { "2019/04/01".to_time }
+      let(:deleted_at) { "2019/10/01".to_time }
+      let(:valid_from) { "2019/01/01".to_time }
+      let(:valid_to) { "2019/06/01".to_time }
+      before do
+        EmployeeWithUniquness.create!(created_at: created_at, deleted_at: deleted_at, valid_from: valid_from, valid_to: valid_to, name: "Jane")
+      end
+
+      context "current time in created_at ~ deleted_at" do
+        it do
+          Timecop.freeze(created_at + 1.days) {
+            emp = EmployeeWithUniquness.new(valid_from: valid_from, valid_to: valid_to, name: "Jane")
+            expect(emp).to be_invalid
+          }
+        end
+      end
+
+      context "current time in created_at ~ deleted_at" do
+        it do
+          Timecop.freeze(created_at + 1000.days) {
+            emp = EmployeeWithUniquness.new(valid_from: valid_from, valid_to: valid_to, name: "Jane")
+            expect(emp).to be_valid
+          }
+        end
+      end
+    end
+  end
 end
