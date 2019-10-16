@@ -233,16 +233,16 @@ module ActiveRecord
           column_valid_to = "#{table_name}.valid_to"
           column_valid_from = "#{table_name}.valid_from"
           ignore_valid_datetime
-            .tap { |relation| break relation.where("? <= #{column_valid_to}", from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.where("#{column_valid_from} <= ?", to.in_time_zone.to_datetime) if to }
+            .tap { |relation| break relation.where(klass.arel_table[:valid_to].gteq(from.in_time_zone.to_datetime)) if from }
+            .tap { |relation| break relation.where(klass.arel_table[:valid_from].lteq(to.in_time_zone.to_datetime)) if to }
         }
         scope :valid_allin, -> (from: nil, to: nil) {
           table_name = klass.table_name
           column_valid_to = "#{table_name}.valid_to"
           column_valid_from = "#{table_name}.valid_from"
           ignore_valid_datetime
-            .tap { |relation| break relation.where("? <= #{column_valid_from}", from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.where("#{column_valid_to} <= ?", to.in_time_zone.to_datetime) if to }
+            .tap { |relation| break relation.where(klass.arel_table[:valid_from].gteq(from.in_time_zone.to_datetime)) if from }
+            .tap { |relation| break relation.where(klass.arel_table[:valid_to].lteq(to.in_time_zone.to_datetime)) if to }
         }
       end
 
