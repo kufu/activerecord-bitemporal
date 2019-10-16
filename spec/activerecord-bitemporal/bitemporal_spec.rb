@@ -786,6 +786,22 @@ RSpec.describe ActiveRecord::Bitemporal do
         expect(Employee.ignore_valid_datetime.where(name: "Jane", deleted_at: nil).exists?).to be_falsey
       end
     end
+
+    context "within `valid_at`" do
+      class EmployeeWithUniquness < Employee
+        validates :name, uniqueness: true
+      end
+
+      it do
+        EmployeeWithUniquness.create!(name: "Company1", valid_from: "2019/04/01", valid_to: "2019/06/01")
+        company = EmployeeWithUniquness.create!(name: "Company0", valid_from: "2019/07/01")
+        expect {
+          ActiveRecord::Bitemporal.valid_at("2019/05/01") {
+            company.force_update { |it| it.update!(name: "Company1") }
+          }
+        }.to_not raise_error
+      end
+    end
   end
 
   describe "#force_update?" do
