@@ -513,7 +513,7 @@ module ActiveRecord
           end
         }
 
-        # MEMO: `force_update` does not refer to` valid_datetime`
+        # MEMO: `force_update` does not refer to `valid_datetime`
         valid_from = record.valid_from if record.force_update?
 
         valid_to = record.valid_to.yield_self { |valid_to|
