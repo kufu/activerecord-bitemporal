@@ -507,6 +507,9 @@ module ActiveRecord
           end
         }
 
+        # MEMO: `force_update` does not refer to `valid_datetime`
+        valid_from = record.valid_from if record.force_update?
+
         valid_to = record.valid_to.yield_self { |valid_to|
           # レコードを更新する時に valid_datetime が valid_from ~ valid_to の範囲外だった場合、
           #   一番近い未来の履歴レコードを参照して更新する
