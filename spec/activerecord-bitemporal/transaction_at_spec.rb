@@ -370,5 +370,14 @@ RSpec.describe "transaction_at" do
         end
       end
     end
+
+    context "Update with duplicate name after update" do
+      it do
+        company1 = EmployeeWithUniquness.create!(name: "Jane")
+        company2 = EmployeeWithUniquness.create!(name: "Tom")
+        company1.update!(name: "Homu")
+        expect { company2.update!(name: "Jane") }.not_to raise_error
+      end
+    end
   end
 end

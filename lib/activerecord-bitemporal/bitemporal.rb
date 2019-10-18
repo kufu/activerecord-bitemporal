@@ -530,7 +530,9 @@ module ActiveRecord
               record.id && record.swapped_id ? scope.where.not(id: record.swapped_id) : scope
             }
 
-        created_at = record.created_at || Time.current
+        # MEMO: Must refer Time.current, when not new record
+        #       Because you don't want created_at to be rewritten
+        created_at = record.new_record? ? (record.created_at || Time.current) : Time.current
         deleted_at = record.deleted_at || ActiveRecord::Bitemporal::DEFAULT_VALID_TO
         transaction_at_scope = finder_class.unscoped
           .ignore_valid_datetime
