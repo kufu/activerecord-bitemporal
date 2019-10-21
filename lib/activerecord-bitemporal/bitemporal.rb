@@ -423,7 +423,6 @@ module ActiveRecord
           end
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id = after_instance.swapped_id
-          self.created_at = after_instance.created_at
           self.valid_from = after_instance.valid_from
 
           return 1
