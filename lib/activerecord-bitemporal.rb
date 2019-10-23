@@ -76,6 +76,12 @@ module ActiveRecord::Bitemporal::Bitemporalize
         errors.add(:valid_from, "can't be greater equal than valid_to")
       end
     end
+
+    def created_at_cannot_be_greater_equal_than_deleted_at
+      if created_at && deleted_at && created_at >= deleted_at
+        errors.add(:created_at, "can't be greater equal than deleted_at")
+      end
+    end
   end
 
   def bitemporalize(enable_strict_by_validates_bitemporal_id: false)
@@ -104,6 +110,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     validates :valid_from, presence: true
     validates :valid_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
+    validate :created_at_cannot_be_greater_equal_than_deleted_at
 
     validates bitemporal_id_key, uniqueness: true, allow_nil: true, strict: enable_strict_by_validates_bitemporal_id
 

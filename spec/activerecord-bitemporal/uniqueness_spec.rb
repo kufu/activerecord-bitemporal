@@ -308,9 +308,10 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
 
     context "and `valid_from`" do
       before do
-        EmployeeWithUniquness.create(name: "Jane", valid_from: "2019/1/10", valid_to: "2019/20")
+        EmployeeWithUniquness.create(name: "Jane", valid_from: "2019/1/10", valid_to: "2019/1/20")
       end
       subject { EmployeeWithUniquness.new(name: "Jane", valid_from: "2019/1/15").valid_at("2019/1/30", &:save) }
+      it { is_expected.to be_falsey }
     end
 
     context "`valid_datetime` out of range `valid_from` ~ `valid_to`" do
