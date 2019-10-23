@@ -354,7 +354,7 @@ RSpec.describe "transaction_at" do
         end
       end
 
-      context "current time in created_at ~ deleted_at" do
+      context "current time greater than deleted_at" do
         it do
           Timecop.freeze(created_at + 1000.days) {
             emp = EmployeeWithUniquness.new(valid_from: valid_from, valid_to: valid_to, name: "Jane")
