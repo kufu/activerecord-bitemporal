@@ -192,7 +192,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { expect(subject).to be_kind_of EmployeeWithScope }
         it { expect(subject.id).to eq employee.id }
         it { expect(subject.name).to eq "Jane" }
-        it { expect(subject.deleted_at).to be_nil }
+        it { expect(subject.deleted_at).to eq ActiveRecord::Bitemporal::DEFAULT_DELETED_AT }
       end
 
       context "invalid `id`" do
@@ -215,7 +215,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { expect(subject).to be_kind_of EmployeeWithScope }
         it { expect(subject.id).to eq employee.id }
         it { expect(subject.name).to eq "Jane" }
-        it { expect(subject.deleted_at).to be_nil }
+        it { expect(subject.deleted_at).to eq ActiveRecord::Bitemporal::DEFAULT_DELETED_AT }
       end
 
       context "invalid `id`" do

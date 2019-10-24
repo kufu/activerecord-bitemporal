@@ -119,7 +119,7 @@ module ActiveRecord
             target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
             arels << table[:valid_from].lteq(target_datetime).and(table[:valid_to].gt(target_datetime))
           end
-          arels << table[:deleted_at].eq(nil) unless option[:within_deleted]
+          arels << table[:deleted_at].eq(ActiveRecord::Bitemporal::DEFAULT_DELETED_AT) unless option[:within_deleted]
           arels.inject(&:and)
         end
       end
@@ -532,11 +532,11 @@ module ActiveRecord
         # MEMO: Must refer Time.current, when not new record
         #       Because you don't want created_at to be rewritten
         created_at = record.new_record? ? (record.created_at || Time.current) : Time.current
-        deleted_at = record.deleted_at || ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+        deleted_at = record.deleted_at || ActiveRecord::Bitemporal::DEFAULT_DELETED_AT
         transaction_at_scope = finder_class.unscoped
           .ignore_valid_datetime
           .within_deleted
-          .where("deleted_at is NULL OR ? < deleted_at", created_at)
+          .where("? < deleted_at", created_at)
           .where("created_at < ?", deleted_at)
 
         relation.merge(valid_at_scope).merge(transaction_at_scope)

@@ -152,9 +152,9 @@ RSpec.describe ActiveRecord::Bitemporal do
   describe ".find_at_time" do
     let!(:employee) { Employee.create!(name: "Jone") }
     let(:id) { employee.id }
-    let(:tom) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Tom", deleted_at: nil) }
-    let(:mami) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Mami", deleted_at: nil) }
-    let(:homu) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Homu", deleted_at: nil) }
+    let(:tom) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Tom") }
+    let(:mami) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Mami") }
+    let(:homu) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Homu") }
 
     subject { Employee.find_at_time(time, id) }
 
@@ -556,19 +556,19 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:finish) { Time.utc(9999, 12, 31).in_time_zone }
       let!(:employee) { Employee.create!(name: "Jone", valid_from: from, valid_to: to) }
       let(:count) { -> { Employee.where(bitemporal_id: employee.id).ignore_valid_datetime.count } }
-      let(:old_jone) { Employee.ignore_valid_datetime.where.not(deleted_at: nil).find_by(bitemporal_id: employee.id, name: "Jone") }
+      let(:old_jone) { Employee.ignore_valid_datetime.within_deleted.find_by(bitemporal_id: employee.id, name: "Jone") }
       let(:now) { time_current }
 
       subject { -> { employee.update(name: "Tom") } }
 
       shared_examples "updated Jone" do
-        let(:jone) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Jone", deleted_at: nil) }
+        let(:jone) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Jone") }
         before { subject.call }
         it { expect(jone).to have_attributes valid_from: valid_from, valid_to: valid_to }
       end
 
       shared_examples "updated Tom" do
-        let(:tom) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Tom", deleted_at: nil) }
+        let(:tom) { Employee.ignore_valid_datetime.find_by(bitemporal_id: employee.id, name: "Tom") }
         before { subject.call }
         it { expect(tom).to have_attributes valid_from: valid_from, valid_to: valid_to }
       end
@@ -664,7 +664,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     context "defined #bitemporal_ignore_update_columns" do
       let!(:employee) { Employee.create(emp_code: "001", name: "Jane") }
       let(:ignore_columns) { [] }
-      let(:histories) { -> { Employee.ignore_valid_datetime.where(bitemporal_id: employee.bitemporal_id, deleted_at: nil).order(valid_from: :desc) } }
+      let(:histories) { -> { Employee.ignore_valid_datetime.where(bitemporal_id: employee.bitemporal_id).order(valid_from: :desc) } }
       let(:now) { -> { histories.call.first } }
       let(:old) { -> { histories.call.second } }
 
@@ -712,7 +712,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:time_current) { employee.updated_at + 10.days }
         let(:valid_at) { employee.updated_at + 5.days }
         let(:employee_deleted_at) {
-          Employee.ignore_valid_datetime.within_deleted.find(employee.id).deleted_at
+          Employee.ignore_valid_datetime.within_deleted.where.not(deleted_at: ActiveRecord::Bitemporal::DEFAULT_DELETED_AT).find(employee.id).deleted_at
         }
         subject { employee_deleted_at }
         before do
@@ -780,10 +780,10 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "empty `valid_datetime`" do
       it do
-        employee = Employee.ignore_valid_datetime.where(name: "Jane", deleted_at: nil).first
+        employee = Employee.ignore_valid_datetime.where(name: "Jane").first
         employee.force_update { |m| m.update(name: "Kevin") }
         expect(Employee.find_at_time(employee.valid_from, employee.id).name).to eq "Kevin"
-        expect(Employee.ignore_valid_datetime.where(name: "Jane", deleted_at: nil).exists?).to be_falsey
+        expect(Employee.ignore_valid_datetime.where(name: "Jane").exists?).to be_falsey
       end
     end
 
@@ -847,7 +847,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     it { is_expected.to change(employee, :destroyed?).from(false).to(true) }
     it { is_expected.not_to change(employee, :valid_from) }
     it { is_expected.not_to change(employee, :valid_to) }
-    it { is_expected.to change(employee, :deleted_at).from(nil).to(destroyed_time) }
+    it { is_expected.to change(employee, :deleted_at).from(ActiveRecord::Bitemporal::DEFAULT_DELETED_AT).to(destroyed_time) }
     it { is_expected.to change { Employee.ignore_valid_datetime.within_deleted.count }.by(1) }
     it { expect(subject.call).to eq employee }
 
@@ -856,7 +856,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       expect(represent_deleted).to have_attributes(
         valid_from: employee.valid_from,
         valid_to: destroyed_time,
-        deleted_at: nil,
+        deleted_at: ActiveRecord::Bitemporal::DEFAULT_DELETED_AT,
         name: employee.name,
         emp_code: employee.emp_code
       )
@@ -891,7 +891,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         it { expect(subject.call).to eq false }
         it do
           subject.call
-          expect(employee.reload.deleted_at).to be_nil
+          expect(employee.reload.deleted_at).to eq ActiveRecord::Bitemporal::DEFAULT_DELETED_AT
         end
       end
 
@@ -949,7 +949,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
 
     context "after changing" do
-      let(:deleted_histroy_record) { Employee.ignore_valid_datetime.where(bitemporal_id: employee.bitemporal_id, deleted_at: nil).order(:created_at).to_a.last }
+      let(:deleted_histroy_record) { Employee.ignore_valid_datetime.where(bitemporal_id: employee.bitemporal_id).order(:created_at).to_a.last }
       before do
         employee.name = "Homu"
         employee.destroy
@@ -959,7 +959,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "with `#valid_at`" do
       subject { -> { Timecop.freeze(destroyed_time) { employee.valid_at(destroyed_time + 1.days, &:destroy) } } }
-      it { is_expected.to change(employee, :deleted_at).from(nil).to(destroyed_time) }
+      it { is_expected.to change(employee, :deleted_at).from(ActiveRecord::Bitemporal::DEFAULT_DELETED_AT).to(destroyed_time) }
     end
   end
 

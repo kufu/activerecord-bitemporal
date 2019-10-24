@@ -7,6 +7,7 @@ require "activerecord-bitemporal/version"
 module ActiveRecord::Bitemporal
   DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
   DEFAULT_VALID_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
+  DEFAULT_DELETED_AT = Time.utc(9999, 12, 31).in_time_zone.freeze
 
   extend ActiveSupport::Concern
   included do
@@ -100,6 +101,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
 
     attribute :valid_from, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_VALID_FROM }
     attribute :valid_to, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_VALID_TO }
+    attribute :deleted_at, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_DELETED_AT }
 
     # Callback hook to `validates :xxx, uniqueness: true`
     const_set(:UniquenessValidator, Class.new(ActiveRecord::Validations::UniquenessValidator) {
@@ -109,6 +111,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     # validations
     validates :valid_from, presence: true
     validates :valid_to, presence: true
+    validates :deleted_at, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
     validate :created_at_cannot_be_greater_equal_than_deleted_at
 

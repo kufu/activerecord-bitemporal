@@ -70,13 +70,13 @@ RSpec.describe "transaction_at" do
       context "`deleted_at` is `nil`" do
         let(:created_at) { time_current }
         let(:deleted_at) { nil }
-        it { is_expected.to be_valid }
+        it { is_expected.to be_invalid }
       end
 
       context "`created_at` and `deleted_at` is `nil`" do
         let(:created_at) { nil }
         let(:deleted_at) { nil }
-        it { is_expected.to be_valid }
+        it { is_expected.to be_invalid }
       end
     end
 
@@ -222,7 +222,7 @@ RSpec.describe "transaction_at" do
       it_behaves_like "invalid uniqueness" do
         let(:new_from) { active_from + 5.days }
         let(:new_to) { new_from + 5.days }
-        let(:active_to) { nil }
+        let(:active_to) { ActiveRecord::Bitemporal::DEFAULT_DELETED_AT }
       end
 
       # active transaction time : |<-----------------------> Infinite
@@ -230,7 +230,7 @@ RSpec.describe "transaction_at" do
       it_behaves_like "invalid uniqueness" do
         let(:new_from) { active_from + 5.days }
         let(:new_to) { nil }
-        let(:active_to) { nil }
+        let(:active_to) { ActiveRecord::Bitemporal::DEFAULT_DELETED_AT }
       end
     end
 
