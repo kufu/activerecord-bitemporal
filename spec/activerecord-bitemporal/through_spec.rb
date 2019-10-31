@@ -9,6 +9,8 @@ ActiveRecord::Schema.define(version: 1) do
     t.datetime :valid_from
     t.datetime :valid_to
     t.datetime :deleted_at
+    t.datetime :transaction_from
+    t.datetime :transaction_to
 
     t.timestamps
   end
@@ -20,6 +22,8 @@ ActiveRecord::Schema.define(version: 1) do
     t.datetime :valid_from
     t.datetime :valid_to
     t.datetime :deleted_at
+    t.datetime :transaction_from
+    t.datetime :transaction_to
 
     t.timestamps
   end
@@ -34,6 +38,8 @@ ActiveRecord::Schema.define(version: 1) do
     t.datetime :valid_from
     t.datetime :valid_to
     t.datetime :deleted_at
+    t.datetime :transaction_from
+    t.datetime :transaction_to
 
     t.timestamps
   end
