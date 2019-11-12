@@ -92,6 +92,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     after_create do
       # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
       update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
+      swap_id!
     end
 
     after_find do

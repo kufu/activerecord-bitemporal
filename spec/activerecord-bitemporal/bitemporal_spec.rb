@@ -20,8 +20,10 @@ RSpec.describe ActiveRecord::Bitemporal do
       subject { Employee.create!(name: "Tom", **attributes) }
 
       context "with `bitemporal_id`" do
-        let(:attributes) { { bitemporal_id: 3 } }
-        it { is_expected.to have_attributes bitemporal_id: 3 }
+        let(:other_record) { Employee.create!(name: "Jane", valid_from: "2019/01/01", valid_to: "2019/04/01") }
+        let(:attributes) { { bitemporal_id: other_record.id, valid_from: "2019/04/01", valid_to: "2019/10/01" } }
+        it { is_expected.to have_attributes bitemporal_id: other_record.id }
+        it { is_expected.to have_attributes bitemporal_id: subject.id }
       end
 
       context "blank `bitemporal_id`" do
