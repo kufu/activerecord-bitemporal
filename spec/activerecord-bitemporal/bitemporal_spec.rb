@@ -28,7 +28,7 @@ RSpec.describe ActiveRecord::Bitemporal do
             previous_changes: include(
               "id" => [nil, subject.swapped_id],
               "valid_from" => [nil, be_present],
-              "valid_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_VALID_TO],
+              "valid_to" => [nil, "2019/10/01".in_time_zone],
               "name" => [nil, "Tom"]
             )
           )
