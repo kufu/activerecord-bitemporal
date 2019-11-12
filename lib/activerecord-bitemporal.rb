@@ -49,10 +49,10 @@ module ActiveRecord::Bitemporal::Bitemporalize
   module InstanceMethods
     include ActiveRecord::Bitemporal::Persistence
 
-    def swap_id!
+    def swap_id!(without_clear_changes_information: false)
       @_swapped_id = self.id
       self.id = self.send(bitemporal_id_key)
-      clear_changes_information
+      clear_changes_information unless without_clear_changes_information
     end
 
     def swapped_id
@@ -92,7 +92,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     after_create do
       # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
       update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
-      swap_id!
+      swap_id!(without_clear_changes_information: true)
     end
 
     after_find do
