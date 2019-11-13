@@ -20,12 +20,34 @@ RSpec.describe ActiveRecord::Bitemporal do
       subject { Employee.create!(name: "Tom", **attributes) }
 
       context "with `bitemporal_id`" do
-        let(:attributes) { { bitemporal_id: 3 } }
-        it { is_expected.to have_attributes bitemporal_id: 3 }
+        let(:other_record) { Employee.create!(name: "Jane", valid_from: "2019/01/01", valid_to: "2019/04/01") }
+        let(:attributes) { { bitemporal_id: other_record.id, valid_from: "2019/04/01", valid_to: "2019/10/01" } }
+        it {
+          is_expected.to have_attributes(
+            bitemporal_id: subject.id,
+            previous_changes: include(
+              "id" => [nil, subject.swapped_id],
+              "valid_from" => [nil, be_present],
+              "valid_to" => [nil, "2019/10/01".in_time_zone],
+              "name" => [nil, "Tom"]
+            )
+          )
+        }
+        it { is_expected.to have_attributes bitemporal_id: other_record.id }
       end
 
-      context "blank `bitemporal_id`" do
-        it { is_expected.to have_attributes bitemporal_id: subject.id }
+      context "without `bitemporal_id`" do
+        it {
+          is_expected.to have_attributes(
+            bitemporal_id: subject.id,
+            previous_changes: include(
+              "id" => [nil, subject.id],
+              "valid_from" => [nil, be_present],
+              "valid_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_VALID_TO],
+              "name" => [nil, "Tom"]
+            )
+          )
+        }
       end
 
       context "blank `valid_from` and `valid_to`" do
