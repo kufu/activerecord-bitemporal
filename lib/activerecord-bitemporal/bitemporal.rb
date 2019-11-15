@@ -126,7 +126,7 @@ module ActiveRecord
             arels << table["valid_from"].lteq(bind_attribute(klass, "valid_from", target_datetime))
             arels << table["valid_to"].gt(bind_attribute(klass, "valid_to", target_datetime))
           end
-          arels << table["deleted_at"].eq(nil) unless option[:within_deleted]
+          arels << table["transaction_to"].eq(ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO) unless option[:within_deleted]
           Arel::Nodes::And.new(arels) unless arels.empty?
         end
 
@@ -656,17 +656,16 @@ module ActiveRecord
             }
 
         # MEMO: Must refer Time.current, when not new record
-        #       Because you don't want created_at to be rewritten
-        created_at = record.new_record? ? (record.created_at || Time.current) : Time.current
-        deleted_at = record.deleted_at || ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+        #       Because you don't want transaction_from to be rewritten
+        transaction_from = record.new_record? ? (record.transaction_from || Time.current) : Time.current
+        transaction_to = record.transaction_to || ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
         transaction_at_scope = finder_class.unscoped
           .ignore_valid_datetime
           .within_deleted
-          .yield_self { |scope|
-            scope.where(deleted_at: nil).or(scope.bitemporal_where_bind("deleted_at", :gt, created_at))
-          }
-          .bitemporal_where_bind("created_at", :lt, deleted_at)
+          .bitemporal_where_bind("transaction_to", :gt, transaction_from)
+          .bitemporal_where_bind("transaction_from", :lt, transaction_to)
 
+        puts relation.merge(valid_at_scope).merge(transaction_at_scope).to_sql if $debug
         relation.merge(valid_at_scope).merge(transaction_at_scope)
       end
     end
