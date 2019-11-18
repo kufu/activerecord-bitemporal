@@ -38,7 +38,27 @@ RSpec.describe "transaction_at" do
     end
   end
 
-  describe "validation `created_at` `deleted_at`" do
+  describe "#update" do
+    let(:company) { Company.create(name: "Company1") }
+
+    context "before valid_from" do
+      let(:created_at) { company.created_at.round(6) }
+      let(:updated_at) { created_at + 3.seconds }
+      let(:valid_datetime) { company.valid_from - 1.days }
+      subject { -> {
+        Timecop.freeze(updated_at) {
+          ActiveRecord::Bitemporal.valid_at(valid_datetime) {
+            company.update(name: "Comapny2")
+          }
+        }
+      } }
+      it do
+        is_expected.to change { Company.ignore_valid_datetime.bitemporal_for(company.id).order(:transaction_from).pluck(:transaction_from) }.to match [created_at, updated_at]
+      end
+    end
+  end
+
+  describe "validation `transaction_from` `transaction_to`" do
     let(:time_current) { Time.current.round(6) }
     subject { employee }
     context "with `created_at` and `deleted_at`" do

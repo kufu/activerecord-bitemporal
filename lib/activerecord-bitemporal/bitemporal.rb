@@ -439,6 +439,8 @@ module ActiveRecord
             # valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
             after_instance.valid_to = nearest_instance.valid_from
+            after_instance.created_at = current_time
+            after_instance.transaction_from = current_time
             after_instance.save!(validate: false)
           end
           # update 後に新しく生成したインスタンスのデータを移行する
