@@ -42,7 +42,7 @@ RSpec.describe "transaction_at" do
     let(:company) { Company.create(name: "Company1") }
 
     context "before valid_from" do
-      let(:created_at) { company.created_at.round(6) }
+      let(:created_at) { (company.created_at - 0.0000005).round(6) }
       let(:updated_at) { created_at + 3.seconds }
       let(:valid_datetime) { company.valid_from - 1.days }
       subject { -> {
