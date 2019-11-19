@@ -9,14 +9,14 @@ RSpec.describe ActiveRecord::Bitemporal do
   end
 
   describe ".create" do
-    let(:attributes) { {} }
-
     context "creating" do
+      let(:attributes) { {} }
       subject { -> { Employee.create!(name: "Tom", **attributes) } }
       it { is_expected.to change(Employee, :call_after_save_count).by(1) }
     end
 
     context "created" do
+      let(:attributes) { {} }
       subject { Employee.create!(name: "Tom", **attributes) }
 
       context "with `bitemporal_id`" do
@@ -54,6 +54,27 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:time) { time_current }
         around { |e| Timecop.freeze(time) { e.run } }
         it { is_expected.to have_attributes(valid_from: time, valid_to:  Time.utc(9999, 12, 31).in_time_zone) }
+      end
+    end
+
+    context "with transaction_from, created_at" do
+      context "only transaction_from" do
+        let(:transaction_from) { "2019/01/01".to_time }
+        subject { Employee.create(transaction_from: transaction_from) }
+        it { is_expected.to have_attributes(transaction_from: transaction_from, created_at: transaction_from) }
+      end
+
+      context "only created_at" do
+        let(:created_at) { "2019/01/01".to_time }
+        subject { Employee.create(created_at: created_at) }
+        it { is_expected.to have_attributes(created_at: created_at, transaction_from: created_at) }
+      end
+
+      context "created_at and transaction_from" do
+        let(:created_at) { "2019/01/01".to_time }
+        let(:transaction_from) { "2019/08/01".to_time }
+        subject { Employee.create(transaction_from: transaction_from, created_at: created_at) }
+        it { is_expected.to have_attributes(created_at: created_at, transaction_from: created_at) }
       end
     end
   end
