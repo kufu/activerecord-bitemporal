@@ -358,6 +358,8 @@ module ActiveRecord
         self.valid_from = valid_datetime || Time.current if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
 
         self.transaction_from = self.created_at if changes.key?("created_at")
+        self.created_at = self.transaction_from
+        self.deleted_at = self.transaction_to if self.transaction_to != ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
 
         # アソシエーションの子に対して `valid_from` を設定
         # MEMO: cache が存在しない場合、 public_send(reflection.name) のタイミングで新しくアソシエーションオブジェクトが生成されるが
