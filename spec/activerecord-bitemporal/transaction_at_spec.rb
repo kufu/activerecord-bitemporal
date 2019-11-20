@@ -40,6 +40,7 @@ RSpec.describe "transaction_at" do
 
   describe "#update" do
     let(:company) { Company.create(name: "Company1") }
+    define_method(:company_all) { Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.id).order(:transaction_from) }
 
     context "some updates" do
       before do
@@ -48,8 +49,10 @@ RSpec.describe "transaction_at" do
         }
       end
       it do
-        companies = Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.bitemporal_id)
-        expect(companies.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+        expect(company_all.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+      end
+      it do
+        expect(company_all.pluck(:deleted_at, :transaction_to).map { |a, b| b == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO || a == b }).to be_all(true)
       end
     end
 
@@ -61,8 +64,10 @@ RSpec.describe "transaction_at" do
         }
       end
       it do
-        companies = Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.bitemporal_id)
-        expect(companies.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+        expect(company_all.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+      end
+      it do
+        expect(company_all.pluck(:deleted_at, :transaction_to).map { |a, b| b == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO || a == b }).to be_all(true)
       end
     end
 
@@ -71,8 +76,10 @@ RSpec.describe "transaction_at" do
         company.destroy!
       end
       it do
-        companies = Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.bitemporal_id)
-        expect(companies.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+        expect(company_all.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+      end
+      it do
+        expect(company_all.pluck(:deleted_at, :transaction_to).map { |a, b| b == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO || a == b }).to be_all(true)
       end
     end
 
