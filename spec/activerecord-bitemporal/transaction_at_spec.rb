@@ -41,6 +41,41 @@ RSpec.describe "transaction_at" do
   describe "#update" do
     let(:company) { Company.create(name: "Company1") }
 
+    context "some updates" do
+      before do
+        (2..5).each { |i|
+          company.update(name: "Company#{i}")
+        }
+      end
+      it do
+        companies = Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.bitemporal_id)
+        expect(companies.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+      end
+    end
+
+    context "some force updates" do
+      before do
+        (2..5).each { |i|
+          company.name = "Company#{i}"
+          company.force_update(&:save!)
+        }
+      end
+      it do
+        companies = Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.bitemporal_id)
+        expect(companies.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+      end
+    end
+
+    context "destroyed" do
+      before do
+        company.destroy!
+      end
+      it do
+        companies = Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.bitemporal_id)
+        expect(companies.pluck(:created_at, :transaction_from).map { |a, b| a == b }).to be_all(true)
+      end
+    end
+
     context "before valid_from" do
       let(:created_at) { (company.created_at - 0.0000005).round(6) }
       let(:updated_at) { created_at + 3.seconds }
