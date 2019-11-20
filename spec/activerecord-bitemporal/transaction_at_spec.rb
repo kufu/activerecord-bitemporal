@@ -435,4 +435,48 @@ RSpec.describe "transaction_at" do
       end
     end
   end
+
+  describe "without created_at deleted_at" do
+    ActiveRecord::Schema.define(version: 1) do
+      create_table :without_created_at_deleted_ats, force: true do |t|
+        t.string :name
+        t.integer :bitemporal_id
+        t.datetime :valid_from
+        t.datetime :valid_to
+        t.datetime :transaction_from
+        t.datetime :transaction_to
+      end
+    end
+    class WithoutCreatedAtDeletedAt < ActiveRecord::Base
+      include ActiveRecord::Bitemporal
+    end
+
+    context "create" do
+      subject { -> { WithoutCreatedAtDeletedAt.create!(name: "Tom") } }
+      it { is_expected.not_to raise_error }
+
+      context "with transaction_to" do
+        subject { -> { WithoutCreatedAtDeletedAt.create!(name: "Tom", transaction_to: Time.current + 10.days) } }
+        it { is_expected.not_to raise_error }
+      end
+    end
+
+    context "update" do
+      let(:record) { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
+      subject { -> { record.update(name: "Jane") } }
+      it { is_expected.not_to raise_error }
+    end
+
+    context "force_update" do
+      let(:record) { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
+      subject { -> { record.force_update { |record| record.update(name: "Jane") } } }
+      it { is_expected.not_to raise_error }
+    end
+
+    context "destroy" do
+      let(:record) { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
+      subject { -> { record.destroy! } }
+      it { is_expected.not_to raise_error }
+    end
+  end
 end
