@@ -3,6 +3,7 @@
 require "active_record"
 require "active_support/core_ext/time/calculations"
 require "activerecord-bitemporal/bitemporal"
+require "activerecord-bitemporal/scope"
 require "activerecord-bitemporal/patches"
 require "activerecord-bitemporal/version"
 
@@ -145,9 +146,6 @@ ActiveSupport.on_load(:active_record) do
 
   ActiveRecord::Base
     .prepend ActiveRecord::Bitemporal::Patches::Persistence
-
-  ActiveRecord::Relation::Merger
-    .prepend ActiveRecord::Bitemporal::Patches::Merger
 
   ActiveRecord::Associations::Association
     .prepend ActiveRecord::Bitemporal::Patches::Association

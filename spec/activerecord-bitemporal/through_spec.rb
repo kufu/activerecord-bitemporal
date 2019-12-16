@@ -198,8 +198,9 @@ RSpec.describe "has_xxx with through" do
 
     context "with valid_at" do
       let(:relation) { blog.users.valid_at("2019/2/2") }
-      it { is_expected.to match %r/articles"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
-      it { is_expected.to match %r/"users"."valid_from" <= '2019-02-01 15:00:00' AND "users"."valid_to" > '2019-02-01 15:00:00'/ }
+      it { is_expected.to match %r/"users"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_from" <= '2019-02-01 15:00:00'/ }
+      it { is_expected.to match %r/"users"."valid_to" > '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
+      it { is_expected.to match %r/"users"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_from" <= '2019-02-01 15:00:00' AND "users"."valid_to" > '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
     end
 
     context "with ignore_valid_datetime" do

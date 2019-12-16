@@ -138,7 +138,9 @@ RSpec.describe "Relation" do
   end
 
   describe ".except" do
-    describe "relation `bitemporal_option`" do
+    # TODO: deprecated
+    #       bitemporal_option has not state
+    xdescribe "relation `bitemporal_option`" do
       subject { Company.with_bitemporal_option(hoge: 42).except(:where).bitemporal_option }
       it { is_expected.to include(hoge: 42) }
     end
@@ -147,13 +149,8 @@ RSpec.describe "Relation" do
   describe ".merge" do
     let(:relation) { Company.valid_at("2019/1/1").merge(Company.valid_at("2019/2/2")) }
     subject { relation.bitemporal_option }
-    it { is_expected.to include(valid_datetime: "2019/2/2") }
+    it { is_expected.to include(valid_datetime: "2019/2/2".in_time_zone) }
     it { expect(relation.loaded?).to be_falsey }
-  end
-
-  describe ".ignore_valid_datetime" do
-    subject { Company.ignore_valid_datetime.to_sql }
-    it { is_expected.to match %r/"companies"."transaction_to" = #{ActiveRecord::Base.connection.quote ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO.to_s(:db)}/ }
   end
 
   describe "preload" do

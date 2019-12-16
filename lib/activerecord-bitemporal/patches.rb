@@ -59,7 +59,10 @@ module ActiveRecord::Bitemporal
         scope = super
         return scope unless scope.bi_temporal_model?
 
-        scope.merge!(klass.valid_at(owner.valid_datetime)) if owner.class&.bi_temporal_model? && owner.valid_datetime
+        if owner.class&.bi_temporal_model? && owner.valid_datetime
+          scope.merge!(klass.valid_at(owner.valid_datetime))
+          scope.merge!(scope.bitemporal_value[:through].valid_at(owner.valid_datetime)) if scope.bitemporal_value[:through]
+        end
         return scope
       end
 
@@ -76,8 +79,7 @@ module ActiveRecord::Bitemporal
         reflection.chain.drop(1).each do |reflection|
           klass = reflection.klass&.scope_for_association&.klass
           next unless klass&.bi_temporal_model?
-          # MEMO: Add dummy option.
-          scope.merge!(klass&.with_bitemporal_option(through: klass))
+          scope.bitemporal_value[:through] = klass
         end
         scope
       end

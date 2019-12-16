@@ -250,8 +250,9 @@ RSpec.describe "transaction_at" do
     end
 
     context "before valid_from" do
-      let(:created_at) { (company.created_at - 0.0000005).round(6) }
-      let(:updated_at) { created_at + 3.seconds }
+      let(:created_at) { 3.days.ago.round(6) }
+      let(:company) { Timecop.freeze(created_at) { Company.create(name: "Company1") } }
+      let(:updated_at) { created_at + 1.days }
       let(:valid_datetime) { company.valid_from - 1.days }
       subject { -> {
         Timecop.freeze(updated_at) {
