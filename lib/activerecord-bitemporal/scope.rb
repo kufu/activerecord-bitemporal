@@ -164,9 +164,6 @@ module ActiveRecord::Bitemporal
           :gteq   # column >= datetime
         ].each { |op|
           scope :"#{column}_#{op}", -> (datetime) {
-            pp "#{klass.name}::#{column}_#{op}" if $debug
-            pp bitemporal_value[:through] if $debug
-            pp datetime if $debug
             target_datetime = datetime&.in_time_zone&.to_datetime || Time.current
             public_send(:"ignore_#{column}").where(table[column].public_send(op, target_datetime))
               .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"#{column}_#{op}", target_datetime)) if bitemporal_value[:through] }
@@ -176,7 +173,6 @@ module ActiveRecord::Bitemporal
 
       # valid_from <= datetime && datetime < valid_to
       scope :valid_at, -> (datetime) {
-        pp "#{klass.name}::valid_at" if $debug
         if ActiveRecord::Bitemporal.force_valid_datetime?
           datetime = ActiveRecord::Bitemporal.valid_datetime
         end
