@@ -106,10 +106,19 @@ module ActiveRecord::Bitemporal::Bitemporalize
     end
   end
 
-  def bitemporalize(enable_strict_by_validates_bitemporal_id: false)
+  def bitemporalize(
+    enable_strict_by_validates_bitemporal_id: false,
+    enable_default_scope: true
+  )
     extend ClassMethods
     include InstanceMethods
     include ActiveRecord::Bitemporal::Scope
+
+    if enable_default_scope
+      default_scope {
+        bitemporal_default_scope
+      }
+    end
 
     after_create do
       # MEMO: #update_columns is not call #_update_row (and validations, callbacks)

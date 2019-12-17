@@ -564,6 +564,23 @@ RSpec.describe ActiveRecord::Bitemporal do
         expect(instance.valid_to.nsec).to eq(0)
       end
     end
+
+    describe "with `enable_default_scope`" do
+      subject { model_class.default_scopes }
+      let(:option) { { enable_default_scope: true } }
+      context "empty" do
+        let(:option) { {} }
+        it { is_expected.not_to be_empty }
+      end
+      context "`true`" do
+        let(:option) { { enable_default_scope: true } }
+        it { is_expected.not_to be_empty }
+      end
+      context "`false`" do
+        let(:option) { { enable_default_scope: false } }
+        it { is_expected.to be_empty }
+      end
+    end
   end
 
   describe "#reload" do

@@ -172,10 +172,6 @@ module ActiveRecord::Bitemporal
         bitemporal_at(Time.current)
       }
 
-      default_scope {
-        bitemporal_default_scope
-      }
-
       scope :within_deleted, -> {
         ignore_transaction_datetime
       }
