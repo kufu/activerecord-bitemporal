@@ -1,41 +1,5 @@
 module ActiveRecord::Bitemporal
   module Relation
-    module Finder
-      def find(*ids)
-        return super if block_given?
-        expects_array = ids.first.kind_of?(Array) || ids.size > 1
-        ids = ids.first if ids.first.kind_of?(Array)
-        where(bitemporal_id_key => ids).yield_self { |it| expects_array ? it&.to_a : it&.take }.presence || raise(::ActiveRecord::RecordNotFound)
-      end
-
-      def find_at_time!(datetime, *ids)
-        valid_at(datetime).find(*ids)
-      end
-
-      def find_at_time(datetime, *ids)
-        find_at_time!(datetime, *ids)
-      rescue ActiveRecord::RecordNotFound
-        expects_array = ids.first.kind_of?(Array) || ids.size > 1
-        expects_array ? [] : nil
-      end
-    end
-    include Finder
-
-    def load
-      return super if loaded?
-      return super unless respond_to? :valid_datetime
-
-      # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-      records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
-      records.each do |record|
-        record.bitemporal_option_merge! valid_datetime: valid_datetime
-      end
-    end
-
-    def primary_key
-      bitemporal_id_key
-    end
-
     class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
       private
 
