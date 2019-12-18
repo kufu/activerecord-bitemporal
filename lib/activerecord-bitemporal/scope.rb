@@ -48,7 +48,7 @@ module ActiveRecord::Bitemporal
               node
             end
           }.inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
-            result[node.left.relation.name][node.left.name] = [node.operator, node.right.val]
+            result[node.left.relation.name][node.left.name] = [node.operator, node.right.try(:val)]
             result
           }
         end

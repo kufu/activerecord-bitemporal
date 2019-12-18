@@ -621,5 +621,10 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       it { is_expected.to include(valid_datetime: time_current) }
       it { is_expected.not_to include(transaction_datetime: time_current) }
     end
+
+    context "with Arel::Nodes::SqlLiteral" do
+      let(:relation) { Blog.where(Blog.arel_table[:valid_to].gt(Arel::Nodes::SqlLiteral.new(1.days.to_s))) }
+      it { is_expected.to include(valid_from: time_current, valid_to: nil) }
+    end
   end
 end
