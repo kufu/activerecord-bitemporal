@@ -34,6 +34,9 @@ module ActiveRecord
         self.bitemporal_option_storage = tmp_opt
       end
 
+      def valid_datetime
+        bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+      end
     private
       def bitemporal_option_storage
         @bitemporal_option_storage ||= {}
@@ -58,15 +61,11 @@ module ActiveRecord
         include Optionable
 
         def valid_at(datetime, &block)
-          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, &block)
+          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, relation_valid_datetime: datetime, &block)
         end
 
         def valid_at!(datetime, &block)
-          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, force_valid_datetime: true, &block)
-        end
-
-        def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, relation_valid_datetime: datetime, force_valid_datetime: true, &block)
         end
 
         def ignore_valid_datetime(&block)
@@ -75,7 +74,7 @@ module ActiveRecord
 
         def merge_by(option)
           if bitemporal_option_storage[:force_valid_datetime]
-            bitemporal_option_storage.merge(option.merge(valid_datetime: bitemporal_option_storage[:valid_datetime]))
+            bitemporal_option_storage.merge(option.merge(valid_datetime: bitemporal_option_storage[:valid_datetime], relation_valid_datetime: bitemporal_option_storage[:valid_datetime]))
           else
             bitemporal_option_storage.merge(option)
           end
@@ -116,12 +115,11 @@ module ActiveRecord
 
       def load
         return super if loaded?
-        return super unless respond_to? :valid_datetime
 
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
         records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
         records.each do |record|
-          record.bitemporal_option_merge! valid_datetime: valid_datetime
+          record.send(:bitemporal_option_storage)[:relation_valid_datetime] = valid_datetime
         end
       end
 
@@ -177,8 +175,8 @@ module ActiveRecord
           with_bitemporal_option(valid_datetime: datetime, &block)
         end
 
-        def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+        def relation_valid_datetime
+          bitemporal_option[:relation_valid_datetime]&.in_time_zone&.to_datetime
         end
 
         def bitemporal_option_merge_with_association!(other)

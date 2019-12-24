@@ -49,8 +49,6 @@ module ActiveRecord::Bitemporal
     end
 
     module Association
-      include ::ActiveRecord::Bitemporal::Optionable
-
       def skip_statement_cache?(scope)
         super || bi_temporal_model?
       end
@@ -59,9 +57,10 @@ module ActiveRecord::Bitemporal
         scope = super
         return scope unless scope.bi_temporal_model?
 
-        if owner.class&.bi_temporal_model? && owner.valid_datetime
-          scope.merge!(klass.valid_at(owner.valid_datetime))
-          scope.merge!(scope.bitemporal_value[:through].valid_at(owner.valid_datetime)) if scope.bitemporal_value[:through]
+        if owner.class&.bi_temporal_model? && (owner.valid_datetime || owner.bitemporal_option[:relation_valid_datetime])
+          valid_datetime = owner.valid_datetime || owner.bitemporal_option[:relation_valid_datetime]
+          scope.merge!(klass.valid_at(valid_datetime))
+          scope.merge!(scope.bitemporal_value[:through].valid_at(valid_datetime)) if scope.bitemporal_value[:through]
         end
         return scope
       end

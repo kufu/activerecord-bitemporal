@@ -578,7 +578,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
   describe "bitemporal_option" do
     let(:time_current) { Time.current.round }
-    let(:bitemporal_option) { Timecop.freeze(time_current) { relation.bitemporal_option } }
+    let(:bitemporal_option) { relation.bitemporal_option }
     subject { Timecop.freeze(time_current) { bitemporal_option } }
 
     context "default_scope" do
@@ -595,6 +595,30 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         let(:relation) { Blog.valid_at(valid_datetime).ignore_valid_datetime }
         it { is_expected.not_to include(valid_datetime: time_current) }
         it { is_expected.to include(transaction_datetime: time_current) }
+      end
+    end
+
+    context "ActiveRecord::Bitemporal.valid_at" do
+      let(:valid_datetime) { "2019/01/1".in_time_zone }
+      let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { Blog.all } }
+      it { is_expected.to include(valid_datetime: valid_datetime, transaction_datetime: time_current) }
+
+      context ".valid_at" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.valid_at("1999/01/01") { Blog.valid_at(valid_datetime) } }
+        it { is_expected.to include(valid_datetime: valid_datetime, transaction_datetime: time_current) }
+      end
+    end
+
+    context "ActiveRecord::Bitemporal.valid_at!" do
+      let(:valid_datetime) { "2019/01/1".in_time_zone }
+      let(:relation) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { Blog.all } }
+      it { is_expected.to include(valid_datetime: valid_datetime, transaction_datetime: time_current) }
+
+      context ".valid_at" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { Blog.valid_at("1999/01/01") } }
+        it { is_expected.to include(valid_datetime: valid_datetime, transaction_datetime: time_current) }
       end
     end
 
@@ -625,6 +649,153 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     context "with Arel::Nodes::SqlLiteral" do
       let(:relation) { Blog.where(Blog.arel_table[:valid_to].gt(Arel::Nodes::SqlLiteral.new(1.days.to_s))) }
       it { is_expected.to include(valid_from: time_current, valid_to: nil) }
+    end
+
+    describe "record#bitemporal_option" do
+      let!(:blog) { Blog.create(valid_from: "1999/01/01", transaction_from: "1999/01/01") }
+      let(:record) { relation.first }
+      let(:bitemporal_option) { record.bitemporal_option  }
+      subject { Timecop.freeze(time_current) { bitemporal_option } }
+
+      context "default_scope" do
+        let(:relation) { Blog.all }
+        it { is_expected.to include(relation_valid_datetime: time_current) }
+        it { is_expected.not_to include(valid_datetime: nil) }
+      end
+
+      context ".valid_at" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { Blog.valid_at(valid_datetime) }
+        it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+        it { is_expected.not_to include(valid_datetime: nil) }
+      end
+
+      context "#valid_at" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { Blog.all }
+        let(:bitemporal_option) { Timecop.freeze(time_current) { record.valid_at(valid_datetime) { |it| it.bitemporal_option } } }
+        it { is_expected.to include(relation_valid_datetime: time_current) }
+        it { is_expected.to include(valid_datetime: valid_datetime) }
+      end
+
+      context ".find_at_time" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+        let(:record) { Blog.find_at_time(valid_datetime, blog.id) }
+        it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+        it { is_expected.not_to include(valid_datetime: nil) }
+      end
+
+      context "ActiveRecord::Bitemporal.valid_at" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+
+        context "around get relation" do
+          let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { Blog.all } }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+
+          context "in .valid_at" do
+            let(:bitemporal_valid_datetime) { "2019/05/1".in_time_zone }
+            let(:relation_valid_datetime) { "2019/01/1".in_time_zone }
+            let(:relation) { ActiveRecord::Bitemporal.valid_at(bitemporal_valid_datetime) { Blog.valid_at(relation_valid_datetime) } }
+            it { is_expected.to include(relation_valid_datetime: relation_valid_datetime) }
+            it { is_expected.not_to include(valid_datetime: nil) }
+          end
+
+          context "outside .valid_at" do
+            let(:bitemporal_valid_datetime) { "2019/05/1".in_time_zone }
+            let(:relation_valid_datetime) { "2019/01/1".in_time_zone }
+            let(:relation) { ActiveRecord::Bitemporal.valid_at(bitemporal_valid_datetime) { Blog.all }.valid_at(relation_valid_datetime) }
+            it { is_expected.to include(relation_valid_datetime: relation_valid_datetime) }
+            it { is_expected.not_to include(valid_datetime: nil) }
+          end
+        end
+
+        context "around get record" do
+          let(:record) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { Blog.all.first } }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+        end
+
+        context "around get bitemporal_option" do
+          let(:bitemporal_option) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { Blog.all.first.bitemporal_option } }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.to include(valid_datetime: valid_datetime) }
+        end
+      end
+
+      context "ActiveRecord::Bitemporal.valid_at!" do
+        let(:valid_datetime) { "2019/01/1".in_time_zone }
+
+        context "around get relation" do
+          let(:relation) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { Blog.all } }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+
+          context "in .valid_at" do
+            let(:bitemporal_valid_datetime) { "2019/05/1".in_time_zone }
+            let(:relation_valid_datetime) { "2019/01/1".in_time_zone }
+            let(:relation) { ActiveRecord::Bitemporal.valid_at!(bitemporal_valid_datetime) { Blog.valid_at(relation_valid_datetime) } }
+            it { is_expected.to include(relation_valid_datetime: bitemporal_valid_datetime) }
+            it { is_expected.not_to include(valid_datetime: nil) }
+          end
+
+          context "outside .valid_at" do
+            let(:bitemporal_valid_datetime) { "2019/05/1".in_time_zone }
+            let(:relation_valid_datetime) { "2019/01/1".in_time_zone }
+            let(:relation) { ActiveRecord::Bitemporal.valid_at!(bitemporal_valid_datetime) { Blog.all }.valid_at(relation_valid_datetime) }
+            it { is_expected.to include(relation_valid_datetime: relation_valid_datetime) }
+            it { is_expected.not_to include(valid_datetime: nil) }
+          end
+        end
+
+        context "around get record" do
+          let(:record) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { Blog.all.first } }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+        end
+
+        context "around get bitemporal_option" do
+          let(:bitemporal_option) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { Blog.all.first.bitemporal_option } }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.to include(valid_datetime: valid_datetime) }
+        end
+      end
+
+      describe "association" do
+        let!(:blog) { Blog.create(valid_from: "1999/01/01", transaction_from: "1999/01/01") }
+        let!(:article) { blog.articles.create(valid_from: "1999/01/01", transaction_from: "1999/01/01") }
+        let(:record) { relation.first }
+        let(:bitemporal_option) { Timecop.freeze(time_current) { record.bitemporal_option } }
+        subject { Timecop.freeze(time_current) { bitemporal_option } }
+
+        context "default_scope" do
+          let(:relation) { Blog.all.first.articles }
+          it { is_expected.to include(relation_valid_datetime: time_current) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+        end
+
+        context "owner.valid_at" do
+          let(:valid_datetime) { "2019/01/1".in_time_zone }
+          let(:owner) { Blog.valid_at(valid_datetime).first }
+          let(:relation) { owner.articles }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+
+          context "with association.valid_at" do
+            let(:association_valid_datetime) { "2019/05/1".in_time_zone }
+            let(:relation) { owner.articles.valid_at(association_valid_datetime) }
+            it { is_expected.to include(relation_valid_datetime: association_valid_datetime) }
+            it { is_expected.not_to include(valid_datetime: nil) }
+          end
+        end
+
+        context "association.valid_at" do
+          let(:valid_datetime) { "2019/01/1".in_time_zone }
+          let(:relation) { Blog.all.first.articles.valid_at(valid_datetime) }
+          it { is_expected.to include(relation_valid_datetime: valid_datetime) }
+          it { is_expected.not_to include(valid_datetime: nil) }
+        end
+      end
     end
   end
 end
