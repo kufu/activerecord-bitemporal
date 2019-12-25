@@ -118,6 +118,9 @@ module ActiveRecord
 
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
         records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+
+        return records if records.empty?
+
         records.each do |record|
           record.send(:bitemporal_option_storage)[:relation_valid_datetime] = valid_datetime
         end
