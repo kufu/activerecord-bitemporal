@@ -65,7 +65,7 @@ end
 RSpec.describe ActiveRecord::Bitemporal::Scope do
   describe "bitemporal_scope" do
     let(:time_current) { Time.current.round }
-    let(:sql) { Timecop.freeze(time_current) { relation.to_sql } }
+    let(:sql) { relation.to_sql }
     define_method(:scan_once) { |x| satisfy { |sql| sql.scan(x).one? } }
     RSpec::Matchers.define_negated_matcher :not_scan, :scan_once
 
@@ -96,7 +96,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       not_have_valid_at(table: table).and not_have_transaction_at(table: table)
     }
 
-    subject { Timecop.freeze(time_current) { sql } }
+    around { |e| Timecop.freeze(time_current) { e.run } }
+    subject { sql }
 
     describe "default_scope" do
       let(:relation) { User.all }
@@ -573,6 +574,94 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       after { Time.zone = old_time_zone }
       it { is_expected.to have_valid_at("2019-01-01 00:00:00".to_time, table: "users") }
       it { is_expected.to have_transaction_at(time_current, table: "users") }
+    end
+
+    describe "Supported ActiveRecord methods" do
+      describe ".scoping" do
+        describe "with .valid_at" do
+          let(:relation) { User.all }
+          let(:scoping_valid_datetime) { "2019/01/1".in_time_zone }
+          around { |e| User.valid_at(scoping_valid_datetime).scoping { e.run } }
+
+          it { is_expected.to have_valid_at(scoping_valid_datetime, table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+
+          context "with .valid_at" do
+            let(:valid_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.valid_at(valid_datetime) }
+
+            it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+            it { is_expected.to have_transaction_at(time_current, table: "users") }
+          end
+
+          context "other model query" do
+            let(:relation) { Article.all }
+
+            it { is_expected.to have_bitemporal_at(time_current, table: "articles") }
+          end
+        end
+
+        describe "with .ignore_valid_datetime" do
+          let(:relation) { User.all }
+          around { |e| User.ignore_valid_datetime.scoping { e.run } }
+
+          it { is_expected.to not_have_valid_at(table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+
+          context "with .valid_at" do
+            let(:valid_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.valid_at(valid_datetime) }
+
+            it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+            it { is_expected.to have_transaction_at(time_current, table: "users") }
+          end
+        end
+
+        describe "with .ignore_bitemporal_datetime" do
+          let(:relation) { User.all }
+          around { |e| User.ignore_bitemporal_datetime.scoping { e.run } }
+
+          it { is_expected.to not_have_bitemporal_at(table: "users") }
+
+          context "with .valid_at" do
+            let(:valid_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.valid_at(valid_datetime) }
+
+            it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+            it { is_expected.to not_have_transaction_at(table: "users") }
+          end
+        end
+
+        describe "with association" do
+          let(:relation) { Blog.create.articles }
+          let(:scoping_valid_datetime) { "2019/01/1".in_time_zone }
+          around { |e| Article.valid_at(scoping_valid_datetime).scoping { e.run } }
+
+          it { is_expected.to have_valid_at(scoping_valid_datetime, table: "articles") }
+          it { is_expected.to have_transaction_at(time_current, table: "articles") }
+        end
+      end
+
+      describe ".unscoped" do
+        let(:relation) { User.all }
+        around { |e| User.unscoped { e.run } }
+
+        it { is_expected.to not_have_bitemporal_at(table: "users") }
+
+        context "with .valid_at" do
+          let(:valid_datetime) { "2019/04/1".in_time_zone }
+          let(:relation) { User.valid_at(valid_datetime) }
+
+          it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+          it { is_expected.to not_have_transaction_at(table: "users") }
+        end
+
+        context "other model query" do
+          let(:relation) { Article.all }
+
+          it { is_expected.to have_bitemporal_at(time_current, table: "articles") }
+        end
+      end
     end
   end
 
