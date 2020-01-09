@@ -1080,7 +1080,10 @@ RSpec.describe ActiveRecord::Bitemporal do
   describe "Optionable" do
     describe "#bitemporal_option" do
       context "after query method" do
-        let!(:employee) { Employee.create(emp_code: "001", name: "Tom", valid_from: "2018/1/1", valid_to: "2020/1/1") }
+        let(:previous_year) { 1.year.ago.beginning_of_year.to_date }
+        let(:current_year) { Time.current.beginning_of_year.to_date }
+        let(:next_year) { 1.year.since.beginning_of_year.to_date }
+        let!(:employee) { Employee.create(emp_code: "001", name: "Tom", valid_from: previous_year, valid_to: next_year) }
         context "not `valid_at`" do
           it { expect(Employee.find(employee.id).bitemporal_option).to be_empty }
           it { expect(Employee.find_by(name: "Tom").bitemporal_option).to be_empty }
@@ -1088,21 +1091,21 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
 
         context "`valid_at` within call bitemporal_option" do
-          it { expect(Employee.valid_at("2019/1/1").find(employee.id).bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1").find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1").where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at(current_year).find(employee.id).bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: current_year) }
         end
 
         context "`valid_at` without call bitemporal_option" do
-          it { expect(Employee.valid_at("2019/1/1").find(employee.id).bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1").find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.valid_at("2019/1/1").where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.valid_at(current_year).find(employee.id).bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: current_year) }
         end
 
         context "relation to `valid_at`" do
-          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1").find(employee.id).bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1").find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: "2019/1/1") }
-          it { expect(Employee.where(emp_code: "001").valid_at("2019/1/1").where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: "2019/1/1") }
+          it { expect(Employee.where(emp_code: "001").valid_at(current_year).find(employee.id).bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.where(emp_code: "001").valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.where(emp_code: "001").valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: current_year) }
         end
       end
 
