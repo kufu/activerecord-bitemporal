@@ -38,3 +38,16 @@ workflows:
       - rails-5.2
       - rails-6.0.0
       - rails-master
+
+  daily_test:
+    triggers:
+      - schedule:
+          cron: "0 23 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - rails-5.2
+      - rails-6.0.0
+      - rails-master
