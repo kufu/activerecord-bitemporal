@@ -632,7 +632,10 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           end
         end
 
-        describe "with association" do
+        # NOTE: Rails 6.0 is not supported.
+        #     > Association loading isn't to be affected by scoping consistently whether preloaded / eager loaded or not, with the exception of unscoped.
+        #     https://github.com/rails/rails/blob/v6.0.0/activerecord/CHANGELOG.md#rails-600rc1-april-24-2019
+        xdescribe "with association" do
           let(:relation) { Blog.create.articles }
           let(:scoping_valid_datetime) { "2019/01/1".in_time_zone }
           around { |e| Article.valid_at(scoping_valid_datetime).scoping { e.run } }
