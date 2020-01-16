@@ -589,11 +589,13 @@ RSpec.describe ActiveRecord::Bitemporal do
     context "call #update" do
       subject { -> { employee.update!(name: "Kevin") } }
       it { is_expected.to change { employee.reload.swapped_id } }
+      it { is_expected.to change { employee.reload.relation_valid_datetime } }
     end
 
     context "call .update" do
       subject { -> { Employee.find(employee.id).update!(name: "Kevin") } }
       it { is_expected.to change { employee.reload.swapped_id } }
+      it { is_expected.to change { employee.reload.relation_valid_datetime } }
     end
   end
 
