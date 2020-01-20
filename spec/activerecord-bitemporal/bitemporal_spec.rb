@@ -589,13 +589,21 @@ RSpec.describe ActiveRecord::Bitemporal do
     context "call #update" do
       subject { -> { employee.update!(name: "Kevin") } }
       it { is_expected.to change { employee.reload.swapped_id } }
-      it { is_expected.to change { employee.reload.relation_valid_datetime } }
     end
 
     context "call .update" do
       subject { -> { Employee.find(employee.id).update!(name: "Kevin") } }
       it { is_expected.to change { employee.reload.swapped_id } }
-      it { is_expected.to change { employee.reload.relation_valid_datetime } }
+    end
+
+    context "with #valid_at" do
+      let(:employee) { Employee.create!(valid_from: "2019/01/01") }
+      it { expect { ActiveRecord::Bitemporal.valid_at("2020/01/01") { employee.reload } }.to change { employee.relation_valid_datetime }.from(nil).to("2020/01/01".in_time_zone) }
+    end
+
+    # TODO
+    xcontext "with #valid_at" do
+      it { expect { employee.valid_at('2020/01/01', &:reload) }.to change { employee.relation_valid_datetime } }
     end
   end
 

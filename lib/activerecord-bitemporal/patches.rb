@@ -105,7 +105,7 @@ module ActiveRecord::Bitemporal
     module Merger
       def merge
         if relation.klass.bi_temporal_model? && other.klass.bi_temporal_model?
-          relation.bitemporal_clause.predicates.merge!(other.bitemporal_clause.predicates)
+          relation.bitemporal_value.merge! other.bitemporal_value
         end
         super
       end

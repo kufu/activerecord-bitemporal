@@ -135,13 +135,21 @@ module ActiveRecord::Bitemporal
         }
       }
 
+      scope :with_relation_valid_datetime, -> {
+        tap { |relation| relation.bitemporal_value[:with_relation_valid_datetime] = true }
+      }
+
+      scope :without_relation_valid_datetime, -> {
+        tap { |relation| relation.bitemporal_value[:with_relation_valid_datetime] = false }
+      }
+
       # valid_from <= datetime && datetime < valid_to
       scope :valid_at, -> (datetime) {
         if ActiveRecord::Bitemporal.force_valid_datetime?
           datetime = ActiveRecord::Bitemporal.valid_datetime
         end
         datetime = Time.current if datetime.nil?
-        valid_from_lteq(datetime).valid_to_gt(datetime)
+        valid_from_lteq(datetime).valid_to_gt(datetime).with_relation_valid_datetime
       }
       scope :ignore_valid_datetime, -> {
         ignore_valid_from.ignore_valid_to
@@ -169,7 +177,11 @@ module ActiveRecord::Bitemporal
       }
 
       scope :bitemporal_default_scope, -> {
-        bitemporal_at(Time.current)
+        if ActiveRecord::Bitemporal.valid_datetime
+          bitemporal_at(Time.current).with_relation_valid_datetime
+        else
+          bitemporal_at(Time.current).without_relation_valid_datetime
+        end
       }
 
       scope :within_deleted, -> {

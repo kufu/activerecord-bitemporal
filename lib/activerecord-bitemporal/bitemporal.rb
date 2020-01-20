@@ -120,6 +120,7 @@ module ActiveRecord
         records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
 
         return records if records.empty?
+        return records unless bitemporal_value[:with_relation_valid_datetime]
 
         records.each do |record|
           record.send(:bitemporal_option_storage)[:relation_valid_datetime] = valid_datetime

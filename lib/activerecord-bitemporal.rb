@@ -167,4 +167,7 @@ ActiveSupport.on_load(:active_record) do
 
   ActiveRecord::Reflection::AssociationReflection
     .prepend ActiveRecord::Bitemporal::Patches::AssociationReflection
+
+  ActiveRecord::Relation::Merger
+    .prepend ActiveRecord::Bitemporal::Patches::Merger
 end
