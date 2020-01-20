@@ -666,6 +666,13 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         end
       end
     end
+
+    context "with where(Arel.sql)" do
+      let!(:blog) { Blog.create(name: "Ruby") }
+      let(:relation) { Blog.where(Arel.sql("valid_from").lteq(Time.current)) }
+      subject { relation }
+      it { is_expected.to have_attributes(first: blog) }
+    end
   end
 
   describe "bitemporal_option" do

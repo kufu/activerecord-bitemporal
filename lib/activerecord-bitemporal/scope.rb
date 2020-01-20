@@ -47,6 +47,8 @@ module ActiveRecord::Bitemporal
             when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
               node
             end
+          }.select { |node|
+            node.left.respond_to? :relation
           }.inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
             result[node.left.relation.name][node.left.name] = [node.operator, node.right.try(:val)]
             result
