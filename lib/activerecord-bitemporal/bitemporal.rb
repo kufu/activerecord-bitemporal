@@ -197,10 +197,6 @@ module ActiveRecord
         bitemporal_id_key
       end
 
-      def scope_for_create
-        super.except!(bitemporal_id_key)
-      end
-
       private
 
       def bitemporal_option_storage(klass_ = self.klass)

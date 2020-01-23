@@ -1518,4 +1518,31 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
   end
+
+  describe ".scope_for_create" do
+    subject { relation.scope_for_create }
+
+    context "call after `where`" do
+      let(:relation) { Employee.where(id: 1, bitemporal_id: 3) }
+      it { is_expected.to include("id" => 1, "bitemporal_id" => 3) }
+    end
+
+    context "call after `associations.where`" do
+      let(:relation) { Company.create!.employees.where(id: 1, bitemporal_id: 3) }
+      it { is_expected.to include("id" => 1, "bitemporal_id" => 3) }
+    end
+  end
+
+  describe "build association" do
+    subject { target_obj.build_company }
+    context "belong_to associations" do
+      let(:target_obj) { Company.create.employees.create }
+      it { is_expected.to have_attributes(id: nil, bitemporal_id: nil) }
+
+      context "with `bitemporal_id:" do
+        subject { target_obj.build_company(bitemporal_id: 3) }
+        it { is_expected.to have_attributes(id: nil, bitemporal_id: 3) }
+      end
+    end
+  end
 end

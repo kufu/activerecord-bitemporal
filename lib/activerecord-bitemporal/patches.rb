@@ -107,5 +107,12 @@ module ActiveRecord::Bitemporal
         super
       end
     end
+
+    module SingularAssociation
+      def scope_for_create
+        return super unless klass&.bi_temporal_model?
+        super.except!(klass.bitemporal_id_key)
+      end
+    end
   end
 end
