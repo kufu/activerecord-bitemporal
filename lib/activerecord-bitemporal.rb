@@ -135,6 +135,9 @@ ActiveSupport.on_load(:active_record) do
   ActiveRecord::Associations::ThroughAssociation
     .prepend ActiveRecord::Bitemporal::Patches::ThroughAssociation
 
+  ActiveRecord::Associations::SingularAssociation
+    .prepend ActiveRecord::Bitemporal::Patches::SingularAssociation
+
   ActiveRecord::Reflection::AssociationReflection
     .prepend ActiveRecord::Bitemporal::Patches::AssociationReflection
 end

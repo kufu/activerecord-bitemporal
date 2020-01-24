@@ -107,5 +107,15 @@ module ActiveRecord::Bitemporal
         super
       end
     end
+
+    module SingularAssociation
+      # MEMO: Except for primary_key in ActiveRecord
+      #       https://github.com/rails/rails/blob/6-0-stable/activerecord/lib/active_record/associations/singular_association.rb#L34-L36
+      #       excluding bitemporal_id_key
+      def scope_for_create
+        return super unless klass&.bi_temporal_model?
+        super.except!(klass.bitemporal_id_key)
+      end
+    end
   end
 end
