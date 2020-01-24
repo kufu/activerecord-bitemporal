@@ -1534,13 +1534,26 @@ RSpec.describe ActiveRecord::Bitemporal do
   end
 
   describe "build association" do
-    subject { target_obj.build_company }
     context "belong_to associations" do
       let(:target_obj) { Company.create.employees.create }
+      subject { target_obj.build_company }
+
       it { is_expected.to have_attributes(id: nil, bitemporal_id: nil) }
 
       context "with `bitemporal_id:" do
         subject { target_obj.build_company(bitemporal_id: 3) }
+        it { is_expected.to have_attributes(id: nil, bitemporal_id: 3) }
+      end
+    end
+
+    context "has_one associations" do
+      let(:target_obj) { Employee.create }
+      subject { target_obj.build_address }
+
+      it { is_expected.to have_attributes(id: nil, bitemporal_id: nil) }
+
+      context "with `bitemporal_id:" do
+        subject { target_obj.build_address(bitemporal_id: 3) }
         it { is_expected.to have_attributes(id: nil, bitemporal_id: 3) }
       end
     end
