@@ -598,12 +598,12 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "with #valid_at" do
       let(:employee) { Employee.create!(valid_from: "2019/01/01") }
-      it { expect { ActiveRecord::Bitemporal.valid_at("2020/01/01") { employee.reload } }.to change { employee.relation_valid_datetime }.from(nil).to("2020/01/01".in_time_zone) }
+      it { expect { ActiveRecord::Bitemporal.valid_at("2020/01/01") { employee.reload } }.to change { employee.valid_datetime }.from(nil).to("2020/01/01".in_time_zone) }
     end
 
     # TODO
     xcontext "with #valid_at" do
-      it { expect { employee.valid_at('2020/01/01', &:reload) }.to change { employee.relation_valid_datetime } }
+      it { expect { employee.valid_at('2020/01/01', &:reload) }.to change { employee.valid_datetime } }
     end
   end
 
@@ -843,7 +843,8 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
 
-    context "after `.valid_at`" do
+    # TODO:
+    xcontext "after `.valid_at`" do
       let(:first)  { Company.ignore_valid_datetime.order(:valid_from).first }
       let(:second) { Company.ignore_valid_datetime.order(:valid_from).second }
       let(:third)  { Company.ignore_valid_datetime.order(:valid_from).third }
@@ -1370,21 +1371,21 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
 
         context "`valid_at` within call bitemporal_option" do
-          it { expect(Employee.valid_at(current_year).find(employee.id).bitemporal_option).to eq(relation_valid_datetime: current_year) }
-          it { expect(Employee.valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(relation_valid_datetime: current_year) }
-          it { expect(Employee.valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(relation_valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).find(employee.id).bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: current_year) }
         end
 
         context "`valid_at` without call bitemporal_option" do
-          it { expect(Employee.valid_at(current_year).find(employee.id).bitemporal_option).to eq(relation_valid_datetime: current_year) }
-          it { expect(Employee.valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(relation_valid_datetime: current_year) }
-          it { expect(Employee.valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(relation_valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).find(employee.id).bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: current_year) }
         end
 
         context "relation to `valid_at`" do
-          it { expect(Employee.where(emp_code: "001").valid_at(current_year).find(employee.id).bitemporal_option).to eq(relation_valid_datetime: current_year) }
-          it { expect(Employee.where(emp_code: "001").valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(relation_valid_datetime: current_year) }
-          it { expect(Employee.where(emp_code: "001").valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(relation_valid_datetime: current_year) }
+          it { expect(Employee.where(emp_code: "001").valid_at(current_year).find(employee.id).bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.where(emp_code: "001").valid_at(current_year).find_by(name: "Tom").bitemporal_option).to eq(valid_datetime: current_year) }
+          it { expect(Employee.where(emp_code: "001").valid_at(current_year).where(name: "Tom").first.bitemporal_option).to eq(valid_datetime: current_year) }
         end
       end
 
@@ -1442,19 +1443,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
         it do
           Company.includes(:employees, employees: :address).find_at_time(time_current, company.id).tap { |c|
-            expect(c.valid_datetime).to eq nil
-            expect(c.employees.first.valid_datetime).to eq nil
-            expect(c.employees.first.address.valid_datetime).to eq nil
-            expect(c.relation_valid_datetime).to eq time_current
-            expect(c.employees.first.relation_valid_datetime).to eq time_current
-            expect(c.employees.first.address.relation_valid_datetime).to eq time_current
+            expect(c.valid_datetime).to eq time_current
+            expect(c.employees.first.valid_datetime).to eq time_current
+            expect(c.employees.first.address.valid_datetime).to eq time_current
             ActiveRecord::Bitemporal.valid_at("2019/1/1") {
-              expect(c.valid_datetime).to eq "2019/1/1"
-              expect(c.employees.first.valid_datetime).to eq "2019/1/1"
-              expect(c.employees.first.address.valid_datetime).to eq "2019/1/1"
-              expect(c.relation_valid_datetime).to eq time_current
-              expect(c.employees.first.relation_valid_datetime).to eq time_current
-              expect(c.employees.first.address.relation_valid_datetime).to eq time_current
+              expect(c.valid_datetime).to eq time_current
+              expect(c.employees.first.valid_datetime).to eq time_current
+              expect(c.employees.first.address.valid_datetime).to eq time_current
             }
           }
         end
@@ -1501,19 +1496,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
         it do
           Company.includes(:employees, employees: :address).find_at_time(time_current, company.id).tap { |c|
-            expect(c.valid_datetime).to eq nil
-            expect(c.employees.first.valid_datetime).to eq nil
-            expect(c.employees.first.address.valid_datetime).to eq nil
-            expect(c.relation_valid_datetime).to eq time_current
-            expect(c.employees.first.relation_valid_datetime).to eq time_current
-            expect(c.employees.first.address.relation_valid_datetime).to eq time_current
+            expect(c.valid_datetime).to eq time_current
+            expect(c.employees.first.valid_datetime).to eq time_current
+            expect(c.employees.first.address.valid_datetime).to eq time_current
             ActiveRecord::Bitemporal.valid_at!("2019/1/1") {
               expect(c.valid_datetime).to eq "2019/1/1"
               expect(c.employees.first.valid_datetime).to eq "2019/1/1"
               expect(c.employees.first.address.valid_datetime).to eq "2019/1/1"
-              expect(c.relation_valid_datetime).to eq "2019/1/1"
-              expect(c.employees.first.relation_valid_datetime).to eq "2019/1/1"
-              expect(c.employees.first.address.relation_valid_datetime).to eq "2019/1/1"
             }
           }
         end
@@ -1625,7 +1614,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
       context "call `.valid_at` later" do
         it { expect(Employee.ignore_valid_datetime.valid_at("2019/1/1").bitemporal_option).to include(ignore_valid_datetime: false, valid_datetime: "2019/1/1".in_time_zone) }
-        it { expect(Employee.ignore_valid_datetime.valid_at("2019/1/1").first.bitemporal_option).to include(relation_valid_datetime: "2019/1/1".in_time_zone) }
+        it { expect(Employee.ignore_valid_datetime.valid_at("2019/1/1").first.bitemporal_option).to include(valid_datetime: "2019/1/1".in_time_zone) }
       end
     end
   end
