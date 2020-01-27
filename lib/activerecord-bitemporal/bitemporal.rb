@@ -33,10 +33,6 @@ module ActiveRecord
       ensure
         self.bitemporal_option_storage = tmp_opt
       end
-
-      def valid_datetime
-        bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
-      end
     private
       def bitemporal_option_storage
         @bitemporal_option_storage ||= {}
@@ -80,6 +76,9 @@ module ActiveRecord
           end
         end
 
+        def valid_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+        end
       private
         def bitemporal_option_storage
           Current.option ||= {}
@@ -120,7 +119,7 @@ module ActiveRecord
         records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
 
         return records if records.empty?
-        return records unless bitemporal_value[:with_valid_datetime]
+        return records unless bitemporal_value[:with_valid_datetime] && valid_datetime
 
         records.each do |record|
           record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime
@@ -187,6 +186,10 @@ module ActiveRecord
             next unless association.respond_to?(:bitemporal_option_merge!)
             association.bitemporal_option_merge!(other)
           end
+        end
+
+        def valid_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
         end
       end
       include PersistenceOptionable

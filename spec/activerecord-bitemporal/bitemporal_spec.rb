@@ -596,13 +596,14 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { is_expected.to change { employee.reload.swapped_id } }
     end
 
-    context "with #valid_at" do
+    context "with ActiveRecord::Bitemporal.valid_at" do
       let(:employee) { Employee.create!(valid_from: "2019/01/01") }
       it { expect { ActiveRecord::Bitemporal.valid_at("2020/01/01") { employee.reload } }.to change { employee.valid_datetime }.from(nil).to("2020/01/01".in_time_zone) }
     end
 
-    # TODO
+    # TODO:
     xcontext "with #valid_at" do
+      let(:employee) { Employee.create!(valid_from: "2019/01/01") }
       it { expect { employee.valid_at('2020/01/01', &:reload) }.to change { employee.valid_datetime } }
     end
   end
@@ -1363,11 +1364,9 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:next_year) { 1.year.since.beginning_of_year.to_date }
         let!(:employee) { Employee.create(emp_code: "001", name: "Tom", valid_from: previous_year, valid_to: next_year) }
         context "not `valid_at`" do
-          # TODO: be not empty bitemporal_option
-          #       bitemporal_option[:valid_datetime] is Time.current
-          xit { expect(Employee.find(employee.id).bitemporal_option).to be_empty }
-          xit { expect(Employee.find_by(name: "Tom").bitemporal_option).to be_empty }
-          xit { expect(Employee.where(name: "Tom").first.bitemporal_option).to be_empty }
+          it { expect(Employee.find(employee.id).bitemporal_option).to be_empty }
+          it { expect(Employee.find_by(name: "Tom").bitemporal_option).to be_empty }
+          it { expect(Employee.where(name: "Tom").first.bitemporal_option).to be_empty }
         end
 
         context "`valid_at` within call bitemporal_option" do
@@ -1455,11 +1454,12 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
 
         context "with ignore_valid_datetime" do
-          xit do
+          it do
             result = ActiveRecord::Bitemporal.valid_at("2019/1/1") {
               expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
               expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
               expect(Employee.ignore_valid_datetime.first.valid_datetime).to eq "2019/1/1"
+              Employee.ignore_valid_datetime.first
             }
             expect(result.valid_datetime).to be_nil
           end
@@ -1467,7 +1467,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
 
       context "relation object" do
-        xit do
+        it do
           Company.valid_at("2019/1/1").tap { |m|
             expect(m.valid_datetime).to eq "2019/1/1"
             result = ActiveRecord::Bitemporal.valid_at("2019/2/2") {
