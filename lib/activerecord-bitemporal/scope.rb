@@ -179,11 +179,30 @@ module ActiveRecord::Bitemporal
       }
 
       scope :bitemporal_default_scope, -> {
-        if ActiveRecord::Bitemporal.valid_datetime
-          bitemporal_at(Time.current).with_valid_datetime
-        else
-          bitemporal_at(Time.current).without_valid_datetime
+        datetime = Time.current
+        relation = spawn
+        relation.unscope_values += [{ where: ["#{table.name}.valid_from", "#{table.name}.valid_to", "#{table.name}.transaction_from", "#{table.name}.transaction_to"] }]
+
+        relation.where!(table[:transaction_from].lteq(datetime))
+                .where!(table[:transaction_to].gt(datetime))
+
+        if !ActiveRecord::Bitemporal.ignore_valid_datetime?
+          datetime = ActiveRecord::Bitemporal.valid_datetime || datetime
+          relation.where!(table[:valid_from].lteq(datetime))
+                  .where!(table[:valid_to].gt(datetime))
         end
+
+        if ActiveRecord::Bitemporal.valid_datetime
+          relation.with_valid_datetime
+        else
+          relation.without_valid_datetime
+        end
+
+#         if ActiveRecord::Bitemporal.valid_datetime
+#           bitemporal_at(Time.current).with_valid_datetime
+#         else
+#           bitemporal_at(Time.current).without_valid_datetime
+#         end
       }
 
       scope :within_deleted, -> {
