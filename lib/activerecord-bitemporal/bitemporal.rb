@@ -64,6 +64,10 @@ module ActiveRecord
           with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime, force_valid_datetime: true, &block)
         end
 
+        def valid_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+        end
+
         def ignore_valid_datetime(&block)
           with_bitemporal_option(ignore_valid_datetime: true, valid_datetime: nil, &block)
         end
@@ -74,10 +78,6 @@ module ActiveRecord
           else
             bitemporal_option_storage.merge(option)
           end
-        end
-
-        def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
         end
       private
         def bitemporal_option_storage
