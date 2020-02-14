@@ -137,15 +137,6 @@ RSpec.describe "Relation" do
     end
   end
 
-  describe ".except" do
-    # TODO: deprecated
-    #       bitemporal_option has not state
-    xdescribe "relation `bitemporal_option`" do
-      subject { Company.with_bitemporal_option(hoge: 42).except(:where).bitemporal_option }
-      it { is_expected.to include(hoge: 42) }
-    end
-  end
-
   describe ".merge" do
     let(:relation) { Company.valid_at("2019/1/1").merge(Company.valid_at("2019/2/2")) }
     subject { relation.bitemporal_option }
