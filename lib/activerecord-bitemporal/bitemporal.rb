@@ -522,8 +522,7 @@ module ActiveRecord
         transaction_from = record.new_record? ? (record.transaction_from || Time.current) : Time.current
         transaction_to = record.transaction_to || ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
         transaction_at_scope = finder_class.unscoped
-          .ignore_valid_datetime
-          .within_deleted
+          .ignore_bitemporal_datetime
           .bitemporal_where_bind("transaction_to", :gt, transaction_from)
           .bitemporal_where_bind("transaction_from", :lt, transaction_to)
 
