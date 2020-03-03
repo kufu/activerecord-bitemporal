@@ -367,7 +367,7 @@ module ActiveRecord
         current_time = Time.current
         target_datetime = valid_datetime || current_time
         # NOTE: force_update の場合は自身のレコードを取得するような時間を指定しておく
-        target_datetime = valid_from if force_update?
+        target_datetime = valid_from_changed? ? valid_from_was : valid_from if force_update?
 
         # MEMO: このメソッドに来るまでに validation が発動しているので、以後 validate は考慮しなくて大丈夫
         ActiveRecord::Base.transaction(requires_new: true) do
