@@ -778,8 +778,9 @@ RSpec.describe ActiveRecord::Bitemporal do
   describe "#force_update" do
     let!(:employee) { Employee.create!(name: "Jane") }
     let(:count) { -> { Employee.ignore_valid_datetime.within_deleted.count } }
+    let(:update_attributes) { { name: "Tom" } }
 
-    subject { -> { employee.force_update { |m| m.update(name: "Tom") } } }
+    subject { -> { employee.force_update { |m| m.update!(**update_attributes) } } }
 
     it { is_expected.to change(&count).by(1) }
     it { is_expected.to change(employee, :name).from("Jane").to("Tom") }
@@ -822,6 +823,40 @@ RSpec.describe ActiveRecord::Bitemporal do
             company.force_update { |it| it.update!(name: "Company1") }
           }
         }.to_not raise_error
+      end
+    end
+
+    context "update with `valid_from`" do
+      let(:create_valid_from) { "2019/04/01".to_time }
+      let!(:employee) { Employee.create!(name: "Jane", valid_from: create_valid_from) }
+      let(:update_valid_from) { create_valid_from + 10.days }
+      let(:update_attributes) { { name: "Tom", valid_from: update_valid_from } }
+      define_method(:employee_all) { Employee.ignore_valid_datetime.within_deleted.bitemporal_for(employee.id).order(:created_at) }
+
+      it do
+        is_expected.to change { employee_all }
+          .from(match [
+            have_attributes(name: "Jane", valid_from: create_valid_from, valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO, deleted_at: be_blank)
+          ])
+          .to(match [
+            have_attributes(name: "Jane", valid_from: create_valid_from, valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO, deleted_at: be_present),
+            have_attributes(name: "Tom", valid_from: update_valid_from, valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO, deleted_at: be_blank)
+          ])
+      end
+
+      context "`update_valid_from` is older than `create_valid_from`" do
+        let(:update_valid_from) { create_valid_from - 10.days }
+
+        it do
+          is_expected.to change { employee_all }
+            .from(match [
+              have_attributes(name: "Jane", valid_from: create_valid_from, valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO, deleted_at: be_blank)
+            ])
+            .to(match [
+              have_attributes(name: "Jane", valid_from: create_valid_from, valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO, deleted_at: be_present),
+              have_attributes(name: "Tom", valid_from: update_valid_from, valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO, deleted_at: be_blank)
+            ])
+        end
       end
     end
   end
