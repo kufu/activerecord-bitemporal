@@ -868,6 +868,15 @@ RSpec.describe ActiveRecord::Bitemporal do
       employee.force_update { expect(employee.force_update?).to eq true }
       expect(employee.force_update?).to eq false
     end
+
+    context "with ActiveRecord::Bitemporal.with_bitemporal_option" do
+      subject {
+        ActiveRecord::Bitemporal.with_bitemporal_option(force_update: true) {
+          Employee.first.force_update?
+        }
+      }
+      it { is_expected.to be_truthy }
+    end
   end
 
   describe "#update_columns" do
