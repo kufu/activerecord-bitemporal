@@ -267,11 +267,11 @@ module ActiveRecord
         include Optionable
 
         def force_update(&block)
-          with_bitemporal_option(fource_update: true, &block)
+          with_bitemporal_option(force_update: true, &block)
         end
 
         def force_update?
-          bitemporal_option[:fource_update].present?
+          bitemporal_option[:force_update].present?
         end
 
         def valid_at(datetime, &block)
