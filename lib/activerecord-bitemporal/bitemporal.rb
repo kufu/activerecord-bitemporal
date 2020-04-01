@@ -65,7 +65,7 @@ module ActiveRecord
         end
 
         def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone
         end
 
         def ignore_valid_datetime(&block)
@@ -190,7 +190,7 @@ module ActiveRecord
         end
 
         def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone
         end
       end
       include PersistenceOptionable

@@ -482,7 +482,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
       it do
         Employee.valid_at("2018/12/5 9:00").tap { |m|
-          expect(m.valid_datetime.zone).to eq "+09:00"
+          expect(m.valid_datetime.zone).to eq "JST"
         }
       end
 

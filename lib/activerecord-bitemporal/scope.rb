@@ -74,11 +74,11 @@ module ActiveRecord::Bitemporal
     }
 
     def valid_datetime
-      bitemporal_clause[:valid_datetime]&.in_time_zone&.to_datetime
+      bitemporal_clause[:valid_datetime]&.in_time_zone
     end
 
     def transaction_datetime
-      bitemporal_clause[:transaction_datetime]&.in_time_zone&.to_datetime
+      bitemporal_clause[:transaction_datetime]&.in_time_zone
     end
 
     def bitemporal_option
@@ -127,7 +127,7 @@ module ActiveRecord::Bitemporal
           :gteq   # column >= datetime
         ].each { |op|
           scope :"#{column}_#{op}", -> (datetime) {
-            target_datetime = datetime&.in_time_zone&.to_datetime || Time.current
+            target_datetime = datetime&.in_time_zone || Time.current
             public_send(:"ignore_#{column}").where(table[column].public_send(op, target_datetime))
               .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"#{column}_#{op}", target_datetime)) if bitemporal_value[:through] }
           }
