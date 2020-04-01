@@ -9,9 +9,8 @@ module ActiveRecord::Bitemporal
           case node
           when Arel::Nodes::Between, Arel::Nodes::In, Arel::Nodes::NotIn, Arel::Nodes::Equality, Arel::Nodes::NotEqual, Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
             subrelation = (node.left.kind_of?(Arel::Attributes::Attribute) ? node.left : node.right)
-            query_with_table = "#{subrelation.relation.name}.#{subrelation.name}"
             # Add check table name
-            columns.include?(subrelation.name.to_s) || columns.include?(query_with_table)
+            columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
           end
         end
       end
@@ -45,10 +44,8 @@ module ActiveRecord::Bitemporal
           predicates.select { |node|
             case node
             when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
-              node
+              node && node.left.respond_to?(:relation)
             end
-          }.select { |node|
-            node.left.respond_to? :relation
           }.inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
             result[node.left.relation.name][node.left.name] = [node.operator, node.right.try(:val)]
             result

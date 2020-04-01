@@ -114,15 +114,16 @@ module ActiveRecord
 
       def load
         return super if loaded?
+        valid_datetime_ = valid_datetime
 
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        records = ActiveRecord::Bitemporal.valid_at(valid_datetime) { super }
+        records = ActiveRecord::Bitemporal.valid_at(valid_datetime_) { super }
 
         return records if records.empty?
-        return records unless bitemporal_value[:with_valid_datetime] && valid_datetime
+        return records unless bitemporal_value[:with_valid_datetime] && valid_datetime_
 
         records.each do |record|
-          record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime
+          record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime_
         end
       end
 
