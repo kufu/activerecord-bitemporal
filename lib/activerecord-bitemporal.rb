@@ -74,7 +74,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     def swap_id!(without_clear_changes_information: false)
       @_swapped_id = self.id
       self.id = self.send(bitemporal_id_key)
-      clear_changes_information unless without_clear_changes_information
+      clear_attribute_changes([:id]) unless without_clear_changes_information
     end
 
     def swapped_id
