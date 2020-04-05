@@ -95,11 +95,6 @@ module ActiveRecord::Bitemporal
         return super unless klass&.bi_temporal_model?
         klass.bitemporal_id_key
       end
-
-      def association_scope_cache(conn, owner, &block)
-        clear_association_scope_cache if klass&.bi_temporal_model?
-        super
-      end
     end
 
     module Merger
