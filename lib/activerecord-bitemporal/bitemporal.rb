@@ -405,8 +405,7 @@ module ActiveRecord
           # force_update の場合は既存のレコードを論理削除した上で新しいレコードを生成する
           if current_valid_record.present? && force_update?
             # 有効なレコードは論理削除する
-            current_valid_record.update_columns(deleted_at: current_time)
-            current_valid_record.update_columns(transaction_to: current_time)
+            current_valid_record.update_columns(deleted_at: current_time, transaction_to: current_time)
             # 以降の履歴データはそのまま保存
             after_instance.created_at = current_time
             after_instance.transaction_from = current_time
@@ -415,8 +414,7 @@ module ActiveRecord
           # 有効なレコードがある場合
           elsif current_valid_record.present?
             # 有効なレコードは論理削除する
-            current_valid_record.update_columns(deleted_at: current_time)
-            current_valid_record.update_columns(transaction_to: current_time)
+            current_valid_record.update_columns(deleted_at: current_time, transaction_to: current_time)
 
             # 以前の履歴データは valid_to を詰めて保存
             before_instance.valid_to = target_datetime
@@ -463,7 +461,7 @@ module ActiveRecord
 
           @destroyed = false
           _run_destroy_callbacks {
-            @destroyed = update_columns(deleted_at: current_time) && update_columns(transaction_to: current_time)
+            @destroyed = update_columns(deleted_at: current_time, transaction_to: current_time)
 
             # 削除時の状態を履歴レコードとして保存する
             duplicated_instance.valid_to = target_datetime
