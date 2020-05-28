@@ -6,17 +6,20 @@ addAssignees: false
 
 # A list of reviewers to be added to pull requests (GitHub user name)
 reviewers:
+  - 16bitidol
   - AtsushiM
-  - f440
+  - MRTAFU
+  - k-myst
   - kouryou
   - marumarism
-  - meganemura
   - motsat
-  - t-mori23
-  - tkimi
+  - osyo-manga
+  - sugamasao
+  - tknzk
   - wakasa5
   - wata727
-  - osyo-manga
+  - ykarakita
+  - yono
 
 # A list of keywords to be skipped the process that add reviewers if pull requests include it
 skipKeywords:
