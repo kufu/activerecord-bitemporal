@@ -459,7 +459,7 @@ module ActiveRecord
 
       module ::ActiveRecord::Persistence
         # MEMO: Must be override ActiveRecord::Persistence#reload
-        alias_method :active_record_bitemporal_original_reload, :reload
+        alias_method :active_record_bitemporal_original_reload, :reload unless method_defined? :active_record_bitemporal_original_reload
         def reload(options = nil)
           return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
 
