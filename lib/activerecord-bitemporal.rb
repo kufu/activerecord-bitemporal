@@ -65,6 +65,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
 
     def bitemporal_ignore_update_columns
       puts "hogehoge"
+      puts "foo"
       []
     end
 
