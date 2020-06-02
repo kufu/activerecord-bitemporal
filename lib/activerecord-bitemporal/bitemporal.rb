@@ -131,7 +131,7 @@ module ActiveRecord
 
         def find(*ids)
           return super if block_given?
-          all.spawn.then { |obj|
+          all.spawn.yield_self { |obj|
             def obj.primary_key
               "bitemporal_id"
             end
