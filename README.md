@@ -38,9 +38,9 @@ Timecop.freeze("2019/1/10") {
 
 以下のようなレコードが生成されます。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
 |  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-15 |
 
 そのモデルに対して更新を行うと
 
@@ -60,9 +60,9 @@ Timecop.freeze("2019/1/15") {
 
 | id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
 |  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-15 00:00:00 UTC |
-| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-15 00:00:00 UTC | NULL |
-| 3 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-15 |
+| 2 | 1 | 001 | Jane | 2019-01-10 | 2019-01-15 | 2019-01-15 | 9999-12-31 |
+| 3 | 1 | 001 | Tom | 2019-01-15 | 9999-12-31 | 2019-01-15 | 9999-12-31 |
 
 更に更新すると
 
@@ -84,13 +84,13 @@ Timecop.freeze("2019/1/20") {
 
 更新する度にどんどん履歴レコードが増えていきます。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-15 00:00:00 UTC |
-| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-15 00:00:00 UTC | NULL |
-| 3 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-20 00:00:00 UTC |
-| 4 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 2019-01-20 00:00:00 UTC | NULL |
-| 5 | 1 | 001 | Kevin | 2019-01-20 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-15 |
+| 2 | 1 | 001 | Jane | 2019-01-10 | 2019-01-15 | 2019-01-15 | 9999-12-31 |
+| 3 | 1 | 001 | Tom | 2019-01-15 | 9999-12-31 | 2019-01-15 | 2019-01-20 |
+| 4 | 1 | 001 | Tom | 2019-01-15 | 2019-01-20 | 2019-01-20 | 9999-12-31 |
+| 5 | 1 | 001 | Kevin | 2019-01-20 | 9999-12-31 | 2019-01-20 | 9999-12-31 |
 
 また、レコードを読み込む場合は暗黙的に『一番最新のレコード』を参照します。
 
@@ -119,14 +119,15 @@ Timecop.freeze("2019/1/25") {
 
   # 最新のみ参照する
   pp Employee.all
-  # => #<Employee:0x000055ee191468a8
-  #     id: 1,
-  #     bitemporal_id: 1,
-  #     emp_code: "001",
-  #     name: "Kevin",
-  #     valid_from: 2019-01-20 00:00:00 UTC,
-  #     valid_to: 9999-12-31 00:00:00 UTC,
-  #     deleted_at: nil>
+  # [#<Employee:0x0000559b1b37eb08
+  #   id: 1,
+  #   bitemporal_id: 1,
+  #   emp_code: "001",
+  #   name: "Kevin",
+  #   valid_from: 2019-01-20,
+  #   valid_to: 9999-12-31,
+  #   created_at: 2019-01-20,
+  #   deleted_at: 9999-12-31>]
 }
 ```
 
@@ -180,6 +181,7 @@ ActiveRecord::Schema.define(version: 1) do
     t.integer :bitemporal_id
     t.datetime :valid_from
     t.datetime :valid_to
+    t.datetime :created_at
     t.datetime :deleted_at
   end
 end
@@ -189,10 +191,11 @@ end
 
 | カラム名 | 型 | 値 |
 | --- | --- | --- |
-| `bitemporal_id` | `id` と同じ型 |  履歴データが共通で持つ `id` |
-| `valid_from` | `datetime` | 履歴の有効な開始時間 |
-| `valid_to` | `datetime` | 履歴の有効な終了時間 |
-| `deleted_at` | `datetime` | 論理削除された時間 |
+| `bitemporal_id` | `id` と同じ型 |  BTDM が共通で持つ `id` |
+| `valid_from` | `datetime` | 有効時間の開始時刻 |
+| `valid_to` | `datetime` | 有効時間の終了時刻 |
+| `created_at` | `datetime` | システム時間の開始時刻 |
+| `deleted_at` | `datetime` | システム時間の終了終了 |
 
 また、モデルクラスでは `ActiveRecord::Bitemporal` を `include` をする必要があります。
 
@@ -226,9 +229,9 @@ Timecop.freeze("2019/1/10") {
 
 以下のようなレコードが生成されます。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 9999-12-31 |
 
 この時に生成されるレコードのカラムには暗黙的に以下のような値が保存されます。
 
@@ -270,20 +273,20 @@ Timecop.freeze("2019/1/20") {
 
 上記の操作を行うと以下のようなレコードが生成されます。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-20 00:00:00 UTC |
-| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-20 00:00:00 UTC | NULL |
-| 3 | 1 | 001 | Tom | 2019-01-20 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-20 |
+| 2 | 1 | 001 | Jane | 2019-01-10 | 2019-01-20 | 2019-01-20 | 9999-12-31 |
+| 3 | 1 | 001 | Tom | 2019-01-20 | 9999-12-31 | 2019-01-20 | 9999-12-31 |
 
 更新時には以下のような処理を行っており、結果的に新しいレコードが2つ生成されることになります。
 また、この時に生成されるレコードは共通の `bitemporal_id` を保持します。
 
-1. 更新対象のレコード（`id = 1`）を論理削除する
-2. 更新を行った時間までの履歴レコード（`id = 2`）を新しく生成する
-3. 更新を行った時間からの履歴レコード（`id = 3`）を新しく生成する
+1. 更新対象のレコード（`id = 1`）のシステム時間の終了時刻を更新する
+2. 更新を行った時間までのレコード（`id = 2`）を新しく生成する
+3. 更新を行った時間からのレコード（`id = 3`）を新しく生成する
 
-activerecord-bitemporal ではレコードの内容を変更する際にレコードを直接変更するのではなくて『既存のレコードは論理削除』して『変更後のレコードを新しく生成』していきます。
+activerecord-bitemporal ではレコードの内容を変更する際にレコードを直接変更するのではなくて『既存のレコードはシステム時間では参照しないような時刻』にして『変更後のレコードを新しく生成』していきます。
 ただし、`#update_columns` で更新を行うと強制的にレコードが上書きされるので注意してください。
 
 ```ruby
@@ -301,11 +304,11 @@ Timecop.freeze("2019/1/20") {
 上記の場合は以下のようなレコードになります。
 `id = 1` のレコードが直接変更されるので注意してください。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Tom | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Tom | 2019-01-10 | 9999-12-31 | 2019-01-10 | 9999-12-31 |
 
-論理削除を行いつつ上書きして更新したいのであれば activerecord-bitemporal 側で用意している `#force_update` を利用する事が出来ます。
+離席を生成せずに上書きして更新したいのであれば activerecord-bitemporal 側で用意している `#force_update` を利用する事が出来ます。
 
 ```ruby
 employee = nil
@@ -317,19 +320,19 @@ Timecop.freeze("2019/1/20") {
   # #force_update のでは自身を受け取る
   # このブロック内であれば履歴を生成せずにレコードの変更が行われる
   employee.force_update { |employee|
-    employee.update_columns(name: "Tom")
+    employee.update(name: "Tom")
   }
 }
 ```
 
 上記の場合は以下のレコードが生成されます。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-20 00:00:00 UTC |
-| 2 | 1 | 001 | Tom | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-20 |
+| 2 | 1 | 001 | Tom | 2019-01-10 | 9999-12-31 | 2019-01-20 | 9999-12-31 |
 
-この場合は `id = 1` が論理削除され、新しい `id = 2` のレコードが生成されます。
+この場合は `id = 1` はシステムの終了時刻が更新され、新しい `id = 2` のレコードが生成されます。
 
 
 ### 更新時間を指定して更新
@@ -339,7 +342,7 @@ TODO:
 
 ### 削除
 
-更新と同様にレコードを論理削除しつつ、新しいレコードが生成されます。
+更新と同様にレコードのシステム時間の終了時刻を更新しつつ、新しいレコードが生成されます。
 
 ```ruby
 employee = nil
@@ -359,19 +362,19 @@ Timecop.freeze("2019/1/30") {
 
 上記の場合では以下のようなレコードが生成されます。
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-20 00:00:00 UTC |
-| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-20 00:00:00 UTC | NULL |
-| 3 | 1 | 001 | Tom | 2019-01-20 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-30 00:00:00 UTC |
-| 4 | 1 | 001 | Tom | 2019-01-20 00:00:00 UTC | 2019-01-30 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-20 |
+| 2 | 1 | 001 | Jane | 2019-01-10 | 2019-01-20 | 2019-01-20 | 9999-12-31 |
+| 3 | 1 | 001 | Tom | 2019-01-20 | 9999-12-31 | 2019-01-20 | 2019-01-30 |
+| 4 | 1 | 001 | Tom | 2019-01-20 | 2019-01-30 | 2019-01-30 | 9999-12-31 |
 
 削除も更新と同様に
 
-1. 削除対象のレコード（`id = 3`）を論理削除する
+1. 削除対象のレコード（`id = 3`）のシステム時間の終了時刻を更新する
 2. 削除を行った時間までの履歴レコード（`id = 4`）を新しく生成する
 
-という風に『論理削除してから新しいレコードを生成する』という処理を行っています。
+という風に『システム時間の終了時刻を更新してから新しいレコードを生成する』という処理を行っています。
 
 
 ### ユニーク制約
@@ -412,7 +415,7 @@ BTDM では DB からレコードを参照する場合、暗黙的に
 Timecop.freeze("2019/1/20") {
   # 現在の時間の履歴を返すために暗黙的に時間指定や論理削除されたレコードが除かれる
   puts Employee.all.to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."deleted_at" IS NULL
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."deleted_at" = '9999-12-31 00:00:00'
 }
 ```
 
@@ -435,14 +438,15 @@ Timecop.freeze("2019/1/20") {
   # => 1
 
   pp Employee.first
-  # => #<Employee:0x000056230b1ecdf8
+  # => #<Employee:0x000055efd894e9e0
   #     id: 1,
   #     bitemporal_id: 1,
   #     emp_code: nil,
   #     name: "Tom",
-  #     valid_from: 2019-01-15 00:00:00 UTC,
-  #     valid_to: 9999-12-31 00:00:00 UTC,
-  #     deleted_at: nil>
+  #     valid_from: 2019-01-15,
+  #     valid_to: 9999-12-31,
+  #     created_at: 2019-01-15,
+  #     deleted_at: 9999-12-31>
 
   # 更新前の名前で検索しても引っかからない
   pp Employee.where(name: "Jane").first
@@ -450,7 +454,7 @@ Timecop.freeze("2019/1/20") {
 
   # なぜなら暗黙的に時間指定のクエリが追加されている為
   puts Employee.where(name: "Jane").to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."deleted_at" IS NULL AND "employees"."name" = 'Jane'
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."deleted_at" = '9999-12-31 00:00:00' AND "employees"."name" = 'Jane'
 }
 ```
 
@@ -460,7 +464,7 @@ Timecop.freeze("2019/1/20") {
 ```ruby
 # default_scope であれば unscoped で無効化することが出来るが、BTDM のデフォルトクエリはそのまま
 puts Employee.unscoped { Employee.all.to_sql }
-# => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."deleted_at" IS NULL
+# => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-10-25 07:56:06.731259' AND "employees"."valid_to" > '2019-10-25 07:56:06.731259' AND "employees"."deleted_at" = '9999-12-31 00:00:00'
 ```
 
 
@@ -478,7 +482,7 @@ puts Employee.unscoped { Employee.all.to_sql }
 Timecop.freeze("2019/1/20") {
   # 時間指定をしているクエリを取り除く
   puts Employee.ignore_valid_datetime.to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."deleted_at" IS NULL
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."deleted_at" = '9999-12-31 00:00:00'
 
   # 論理削除しているレコードも含める
   puts Employee.within_deleted.to_sql
@@ -530,7 +534,7 @@ Timecop.freeze("2019/1/15") {
 Timecop.freeze("2019/1/20") {
   # valid_at で任意の時間を参照して検索する事が出来る
   puts Employee.valid_at("2019/1/10").to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-10 00:00:00' AND "employees"."valid_to" > '2019-01-10 00:00:00' AND "employees"."deleted_at" IS NULL
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-10 00:00:00' AND "employees"."valid_to" > '2019-01-10 00:00:00' AND "employees"."deleted_at" = '9999-12-31 00:00:00'
 
   pp Employee.valid_at("2019/1/10").map(&:name)
   # => ["Jane"]
@@ -539,14 +543,15 @@ Timecop.freeze("2019/1/20") {
 
   # そのまま続けてリレーション出来る
   pp Employee.valid_at("2019/1/17").where(name: "Tom").first
-  # => #<Employee:0x000055ccb3ec58d0
+  # => #<Employee:0x000055678afd1d20
   #     id: 1,
   #     bitemporal_id: 1,
   #     emp_code: "001",
   #     name: "Tom",
-  #     valid_from: 2019-01-15 00:00:00 UTC,
-  #     valid_to: 9999-12-31 00:00:00 UTC,
-  #     deleted_at: nil>
+  #     valid_from: 2019-01-15,
+  #     valid_to: 9999-12-31,
+  #     created_at: 2019-01-15,
+  #     deleted_at: 9999-12-31>
 }
 ```
 
@@ -572,9 +577,10 @@ Timecop.freeze("2019/1/20") {
   #     bitemporal_id: 1,
   #     emp_code: "001",
   #     name: "Jane",
-  #     valid_from: 2019-01-10 00:00:00 UTC,
-  #     valid_to: 2019-01-15 00:00:00 UTC,
-  #     deleted_at: nil>
+  #     valid_from: 2019-01-10,
+  #     valid_to: 2019-01-15,
+  #     created_at: 2019-01-15,
+  #     deleted_at: 9999-12-31>
 
   # 見つからなければ nil を返す
   pp Employee.find_at_time("2019/1/12", employee2.id)
@@ -644,13 +650,13 @@ Timecop.freeze("2019/1/20") {
 
 レコードの内容
 
-| id | bitemporal_id | emp_code | name | valid_from | valid_to | deleted_at |
-|  --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-15 00:00:00 UTC |
-| 2 | 1 | 001 | Jane | 2019-01-10 00:00:00 UTC | 2019-01-15 00:00:00 UTC | NULL |
-| 3 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 9999-12-31 00:00:00 UTC | 2019-01-20 00:00:00 UTC |
-| 4 | 1 | 001 | Tom | 2019-01-15 00:00:00 UTC | 2019-01-20 00:00:00 UTC | NULL |
-| 5 | 1 | 001 | Kevin | 2019-01-20 00:00:00 UTC | 9999-12-31 00:00:00 UTC | NULL |
+| id | bitemporal_id | emp_code | name | valid_from | valid_to | created_at | deleted_at |
+|  --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-15 |
+| 2 | 1 | 001 | Jane | 2019-01-10 | 2019-01-15 | 2019-01-15 | 9999-12-31 |
+| 3 | 1 | 001 | Tom | 2019-01-15 | 9999-12-31 | 2019-01-15 | 2019-01-20 |
+| 4 | 1 | 001 | Tom | 2019-01-15 | 2019-01-20 | 2019-01-20 | 9999-12-31 |
+| 5 | 1 | 001 | Kevin | 2019-01-20 | 9999-12-31 | 2019-01-20 | 9999-12-31 |
 
 また、元々の DB の `id` は `#swapped_id` で参照する事が出来ます。
 

@@ -149,7 +149,7 @@ RSpec.describe "Relation" do
 
   describe ".ignore_valid_datetime" do
     subject { Company.ignore_valid_datetime.to_sql }
-    it { is_expected.to match /"companies"."deleted_at" IS NULL/ }
+    it { is_expected.to match /"companies"."deleted_at" = #{ActiveRecord::Base.connection.quote ActiveRecord::Bitemporal::DEFAULT_DELETED_AT.to_s(:db)}/ }
   end
 
   describe "preload" do
