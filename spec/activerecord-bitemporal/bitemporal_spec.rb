@@ -752,7 +752,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:time_current) { employee.updated_at + 10.days }
         let(:valid_at) { employee.updated_at + 5.days }
         let(:employee_deleted_at) {
-          Employee.ignore_valid_datetime.within_deleted.find(employee.id).deleted_at
+          Employee.ignore_valid_datetime.within_deleted.where.not(deleted_at: nil).find(employee.id).deleted_at
         }
         subject { employee_deleted_at }
         before do
@@ -810,7 +810,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:time_current) { employee.updated_at + 10.days }
       let(:valid_at) { employee.updated_at + 5.days }
       let(:employee_deleted_at) {
-        Employee.ignore_valid_datetime.within_deleted.find(employee.id).deleted_at
+        Employee.ignore_valid_datetime.within_deleted.where.not(deleted_at: nil).find(employee.id).deleted_at
       }
       subject { employee_deleted_at }
       before do
