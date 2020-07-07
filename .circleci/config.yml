@@ -1,43 +1,35 @@
-version: 2
+version: 2.1
+
+executors:
+  ruby_2_5:
+    docker:
+      - image: ruby:2.5.3
+      - image: circleci/postgres:11-alpine
 
 jobs:
-  rails-5.2:
-    docker:
-      - image: ruby:2.5.3
-      - image: circleci/postgres:11-alpine
+  run_rspec:
+    executor: ruby_2_5
+    parameters:
+      gemfile:
+        type: string
     steps:
       - checkout
+      - run: gem install bundler
       - run: bundle install
-      - run: bundle exec appraisal rails-5.2 bundle install
-      - run: bundle exec appraisal rails-5.2 rake
-
-  rails-master:
-    docker:
-      - image: ruby:2.5.3
-      - image: circleci/postgres:11-alpine
-    steps:
-      - checkout
-      - run: bundle install
-      - run: bundle exec appraisal rails-master bundle install
-      - run: bundle exec appraisal rails-master rake
-
-  rails-6.0:
-    docker:
-      - image: ruby:2.5.3
-      - image: circleci/postgres:11-alpine
-    steps:
-      - checkout
-      - run: bundle install
-      - run: bundle exec appraisal rails-6.0 bundle install
-      - run: bundle exec appraisal rails-6.0 rake
+      - run: bundle exec appraisal << parameters.gemfile >> bundle install
+      - run: bundle exec appraisal << parameters.gemfile >> rspec
 
 workflows:
   version: 2
+
   test:
-    jobs:
-      - rails-5.2
-      - rails-6.0
-      - rails-master
+    jobs: &jobs
+      - run_rspec:
+          gemfile: rails-5.2
+      - run_rspec:
+          gemfile: rails-6.0
+      - run_rspec:
+          gemfile: rails-master
 
   daily_test:
     triggers:
@@ -47,7 +39,4 @@ workflows:
             branches:
               only:
                 - master
-    jobs:
-      - rails-5.2
-      - rails-6.0
-      - rails-master
+    jobs: *jobs
