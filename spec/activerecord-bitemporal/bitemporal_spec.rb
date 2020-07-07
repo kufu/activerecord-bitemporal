@@ -535,6 +535,24 @@ RSpec.describe ActiveRecord::Bitemporal do
         it { is_expected.to be_falsey }
       end
     end
+
+    describe 'attributes' do
+      before do
+        model_class.table_name = 'families'
+      end
+
+      it 'truncates time on assignment' do
+        time = Time.new(2000, 1, 1, 0, 0, 0).change(nsec: 12345)
+
+        instance = model_class.new(
+          valid_from: time,
+          valid_to: time
+        )
+
+        expect(instance.valid_from.nsec).to eq(0)
+        expect(instance.valid_to.nsec).to eq(0)
+      end
+    end
   end
 
   describe "#reload" do

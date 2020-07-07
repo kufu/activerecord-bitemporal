@@ -63,6 +63,17 @@ ActiveRecord::Schema.define(version: 1) do
 
     t.timestamps
   end
+
+  create_table :families, force: true do |t|
+    t.string :name
+
+    t.integer :bitemporal_id
+    t.datetime :valid_from, precision: 0
+    t.datetime :valid_to, precision: 0
+    t.datetime :deleted_at
+
+    t.timestamps
+  end
 end
 
 class Company < ActiveRecord::Base

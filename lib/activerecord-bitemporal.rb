@@ -30,6 +30,11 @@ module ActiveRecord::Bitemporal::Bitemporalize
   module ClassMethods
     include ActiveRecord::Bitemporal::Relation::Finder
 
+    DEFAULT_ATTRIBUTES = {
+      valid_from: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM,
+      valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+    }.freeze
+
     def bitemporal_id_key
       'bitemporal_id'
     end
@@ -43,6 +48,16 @@ module ActiveRecord::Bitemporal::Bitemporalize
     def inherited(klass)
       super
       klass.prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
+    end
+
+  private
+    def load_schema!
+      super
+
+      DEFAULT_ATTRIBUTES.each do |name, default_value|
+        type = type_for_attribute(name)
+        define_attribute(name.to_s, type, default: default_value)
+      end
     end
   end
 
@@ -98,9 +113,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
     after_find do
       self.swap_id! if self.send(bitemporal_id_key).present?
     end
-
-    attribute :valid_from, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_VALID_FROM }
-    attribute :valid_to, :datetime, default: -> { ActiveRecord::Bitemporal::DEFAULT_VALID_TO }
 
     # Callback hook to `validates :xxx, uniqueness: true`
     const_set(:UniquenessValidator, Class.new(ActiveRecord::Validations::UniquenessValidator) {
