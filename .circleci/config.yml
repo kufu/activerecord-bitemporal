@@ -6,9 +6,18 @@ executors:
       - image: ruby:2.5.3
       - image: circleci/postgres:11-alpine
 
-jobs:
+  ruby_2_6:
+    docker:
+      - image: ruby:2.6.6
+      - image: circleci/postgres:11-alpine
+
+  ruby_2_7:
+    docker:
+      - image: ruby:2.7.1
+      - image: circleci/postgres:11-alpine
+
+commands:
   run_rspec:
-    executor: ruby_2_5
     parameters:
       gemfile:
         type: string
@@ -19,17 +28,75 @@ jobs:
       - run: bundle exec appraisal << parameters.gemfile >> bundle install
       - run: bundle exec appraisal << parameters.gemfile >> rspec
 
+jobs:
+  ruby_2_5_rails_5_2:
+    executor: ruby_2_5
+    steps:
+      - run_rspec:
+          gemfile: rails-5.2
+
+  ruby_2_5_rails_6_0:
+    executor: ruby_2_5
+    steps:
+      - run_rspec:
+          gemfile: rails-6.0
+
+  ruby_2_5_rails_master:
+    executor: ruby_2_5
+    steps:
+      - run_rspec:
+          gemfile: rails-master
+
+  ruby_2_6_rails_5_2:
+    executor: ruby_2_6
+    steps:
+      - run_rspec:
+          gemfile: rails-5.2
+
+  ruby_2_6_rails_6_0:
+    executor: ruby_2_6
+    steps:
+      - run_rspec:
+          gemfile: rails-6.0
+
+  ruby_2_6_rails_master:
+    executor: ruby_2_6
+    steps:
+      - run_rspec:
+          gemfile: rails-master
+
+  ruby_2_7_rails_5_2:
+    executor: ruby_2_7
+    steps:
+      - run_rspec:
+          gemfile: rails-5.2
+
+  ruby_2_7_rails_6_0:
+    executor: ruby_2_7
+    steps:
+      - run_rspec:
+          gemfile: rails-6.0
+
+  ruby_2_7_rails_master:
+    executor: ruby_2_7
+    steps:
+      - run_rspec:
+          gemfile: rails-master
+
 workflows:
   version: 2
 
   test:
     jobs: &jobs
-      - run_rspec:
-          gemfile: rails-5.2
-      - run_rspec:
-          gemfile: rails-6.0
-      - run_rspec:
-          gemfile: rails-master
+      - ruby_2_5_rails_5_2
+      - ruby_2_5_rails_6_0
+      - ruby_2_5_rails_master
+      - ruby_2_6_rails_5_2
+      - ruby_2_6_rails_6_0
+      - ruby_2_6_rails_master
+      - ruby_2_7_rails_5_2
+      - ruby_2_7_rails_6_0
+      - ruby_2_7_rails_master
 
   daily_test:
     triggers:
