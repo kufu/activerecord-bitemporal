@@ -89,12 +89,6 @@ RSpec.describe ActiveRecord::Bitemporal do
         it { expect(subject).to be_kind_of(Array) }
       end
 
-      context "is `model`" do
-        let(:ids) { [employee1, employee2, employee2] }
-        it { expect(subject.map(&:name)).to contain_exactly("Tom", "Mado") }
-        it { expect(subject).to be_kind_of(Array) }
-      end
-
       context "non exists employee" do
         let(:ids) { [nil, nil, nil] }
         it { expect { subject }.to raise_error(ActiveRecord::RecordNotFound) }
@@ -118,14 +112,8 @@ RSpec.describe ActiveRecord::Bitemporal do
         it { expect(subject).to be_kind_of(Array) }
       end
 
-      context "is `model`" do
-        let(:ids) { [employee1, employee2, employee2] }
-        it { expect(subject.map(&:name)).to contain_exactly("Tom", "Mado") }
-        it { expect(subject).to be_kind_of(Array) }
-      end
-
       context "is once" do
-        let(:ids) { [employee1] }
+        let(:ids) { [employee1.id] }
         it { expect(subject.map(&:name)).to contain_exactly("Tom") }
         it { expect(subject).to be_kind_of(Array) }
       end
@@ -328,7 +316,7 @@ RSpec.describe ActiveRecord::Bitemporal do
           it { expect(subject).to be_kind_of(Array) }
         end
         context "is once" do
-          let(:ids) { [employee1] }
+          let(:ids) { [employee1.id] }
           let(:datetime) { before_update_time }
           it { expect(subject.map(&:name)).to contain_exactly("Jane") }
           it { expect(subject).to be_kind_of(Array) }
@@ -416,7 +404,7 @@ RSpec.describe ActiveRecord::Bitemporal do
           it { expect(subject).to be_kind_of(Array) }
         end
         context "is once" do
-          let(:ids) { [employee1] }
+          let(:ids) { [employee1.id] }
           let(:datetime) { before_update_time }
           it { expect(subject.map(&:name)).to contain_exactly("Jane") }
           it { expect(subject).to be_kind_of(Array) }
@@ -553,7 +541,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
   describe "#ignore_valid_datetime" do
     let!(:employee) { Employee.create!(name: "Jone") }
-    let(:update) { -> { Employee.find(employee).update(name: "Tom"); Time.current } }
+    let(:update) { -> { Employee.find(employee.id).update(name: "Tom"); Time.current } }
 
     context "called by `ActiveRecord_Relation`" do
       let(:count) { -> { Employee.where(bitemporal_id: employee).ignore_valid_datetime.count } }
