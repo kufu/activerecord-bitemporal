@@ -94,9 +94,12 @@ module ActiveRecord
       module Finder
         def find(*ids)
           return super if block_given?
-          expects_array = ids.first.kind_of?(Array) || ids.size > 1
-          ids = ids.first if ids.first.kind_of?(Array)
-          where(bitemporal_id_key => ids).yield_self { |it| expects_array ? it&.to_a : it&.take }.presence || raise(::ActiveRecord::RecordNotFound)
+          all.spawn.yield_self { |obj|
+            def obj.primary_key
+              "bitemporal_id"
+            end
+            obj.method(:find).super_method.call(*ids)
+          }
         end
 
         def find_at_time!(datetime, *ids)

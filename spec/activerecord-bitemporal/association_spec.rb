@@ -165,7 +165,7 @@ RSpec.describe "Association" do
 
       describe ".find" do
         it { expect(company.employees.find(mado.id)).to have_attributes(name: "Mado") }
-        it { expect(company.employees.find(mado.id, tom).pluck(:name)).to contain_exactly("Mado", "Tom") }
+        it { expect(company.employees.find(mado.id, tom.id).pluck(:name)).to contain_exactly("Mado", "Tom") }
       end
 
       describe ".find_by" do
