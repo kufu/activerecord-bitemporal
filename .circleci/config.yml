@@ -3,7 +3,7 @@ version: 2.1
 executors:
   ruby_2_5:
     docker:
-      - image: ruby:2.5.3
+      - image: ruby:2.5.8
       - image: circleci/postgres:11-alpine
 
   ruby_2_6:
