@@ -65,7 +65,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord-bitemporal!
   appraisal
-  bundler (~> 1.16)
+  bundler
   database_cleaner
   pg
   pry
@@ -75,4 +75,4 @@ DEPENDENCIES
   timecop
 
 BUNDLED WITH
-   1.17.0
+   2.1.4
