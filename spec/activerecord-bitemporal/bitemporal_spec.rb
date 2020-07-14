@@ -505,7 +505,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     let(:model_class) {
       opt = option
       Class.new(ActiveRecord::Base) {
-        bitemporalize **opt
+        bitemporalize(**opt)
       }
     }
     describe "with `enable_strict_by_validates_bitemporal_id`" do
@@ -1169,17 +1169,17 @@ RSpec.describe ActiveRecord::Bitemporal do
         let!(:employee) { Employee.create(name: "Jane", valid_from: "2019/1/1", valid_to: "2019/1/10") }
         it do
           opt1 = { valid_datetime: "2010/4/1", ignore_valid_datetime: false }
-          ActiveRecord::Bitemporal.with_bitemporal_option(opt1) {
+          ActiveRecord::Bitemporal.with_bitemporal_option(**opt1) {
             expect(ActiveRecord::Bitemporal.bitemporal_option).to eq(opt1)
             expect(Employee.all.bitemporal_option).to eq(opt1)
 
             opt2 = { ignore_valid_datetime: true }
-            ActiveRecord::Bitemporal.with_bitemporal_option(opt2) {
+            ActiveRecord::Bitemporal.with_bitemporal_option(**opt2) {
               expect(ActiveRecord::Bitemporal.bitemporal_option).to eq(opt1.merge(opt2))
               expect(Employee.all.bitemporal_option).to eq(opt1.merge(opt2))
 
               opt3 = { valid_datetime: "2019/1/5" }
-              Employee.with_bitemporal_option(opt3) { |m|
+              Employee.with_bitemporal_option(**opt3) { |m|
                 expect(m.find(employee.id).name).to eq "Jane"
                 expect(m.find(employee.id).valid_datetime).to eq "2019/1/5".in_time_zone.to_datetime
                 expect(Employee.find_at_time("2019/1/5", employee.id).name).to eq "Jane"
@@ -1223,8 +1223,8 @@ RSpec.describe ActiveRecord::Bitemporal do
         context "with ignore_valid_datetime" do
           it do
             result = ActiveRecord::Bitemporal.valid_at("2019/1/1") {
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_from" <= /
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_to" > /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
               expect(Employee.ignore_valid_datetime.first.valid_datetime).to eq "2019/1/1"
               Employee.ignore_valid_datetime.first
             }
@@ -1243,8 +1243,8 @@ RSpec.describe ActiveRecord::Bitemporal do
               Employee.valid_at("2019/3/3").tap { |m|
                 expect(m.valid_datetime).to eq "2019/3/3"
               }
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_from" <= /
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_to" > /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
               expect(Employee.ignore_valid_datetime.first.valid_datetime).to eq "2019/2/2"
               Employee.ignore_valid_datetime.first
             }
@@ -1278,8 +1278,8 @@ RSpec.describe ActiveRecord::Bitemporal do
       context "with ignore_valid_datetime" do
         it do
           result = ActiveRecord::Bitemporal.valid_at!("2019/1/1") {
-            expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_from" <= /
-            expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_to" > /
+            expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
+            expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
             expect(Employee.ignore_valid_datetime.first.valid_datetime).to eq "2019/1/1"
             Employee.ignore_valid_datetime.first
           }
@@ -1297,8 +1297,8 @@ RSpec.describe ActiveRecord::Bitemporal do
               Employee.valid_at("2019/3/3").tap { |m|
                 expect(m.valid_datetime).to eq "2019/2/2"
               }
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_from" <= /
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_to" > /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
             }
           }
         end
@@ -1343,10 +1343,10 @@ RSpec.describe ActiveRecord::Bitemporal do
           ActiveRecord::Bitemporal.ignore_valid_datetime {
             ActiveRecord::Bitemporal.valid_at("2019/2/1") {
               expect(Employee.all.first.valid_datetime).to eq "2019/2/1"
-              expect(Employee.all.to_sql).to match /"valid_from" <= '2019-02-01 00:00:00'/
-              expect(Employee.all.to_sql).to match /"valid_to" > '2019-02-01 00:00:00'/
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_from" <= /
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_to" > /
+              expect(Employee.all.to_sql).to match %r/"valid_from" <= '2019-02-01 00:00:00'/
+              expect(Employee.all.to_sql).to match %r/"valid_to" > '2019-02-01 00:00:00'/
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
             }
           }
         end
@@ -1358,10 +1358,10 @@ RSpec.describe ActiveRecord::Bitemporal do
           ActiveRecord::Bitemporal.ignore_valid_datetime {
             ActiveRecord::Bitemporal.valid_at!("2019/2/1") {
               expect(Employee.all.first.valid_datetime).to eq "2019/2/1"
-              expect(Employee.all.to_sql).to match /"valid_from" <= '2019-02-01 00:00:00'/
-              expect(Employee.all.to_sql).to match /"valid_to" > '2019-02-01 00:00:00'/
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_from" <= /
-              expect(Employee.ignore_valid_datetime.to_sql).not_to match /"valid_to" > /
+              expect(Employee.all.to_sql).to match %r/"valid_from" <= '2019-02-01 00:00:00'/
+              expect(Employee.all.to_sql).to match %r/"valid_to" > '2019-02-01 00:00:00'/
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
             }
           }
         end
@@ -1418,16 +1418,16 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:opt) { { only_cached: true } }
 
       context "preloading" do
-        it { expect(Company.includes(:employees).find(company.id).each_association(opt).count).to eq 3 }
-        it { expect(Company.includes(:employees).find(company.id).each_association(opt).map(&:name)).to contain_exactly("Jane", "Tom", "Kevin") }
+        it { expect(Company.includes(:employees).find(company.id).each_association(**opt).count).to eq 3 }
+        it { expect(Company.includes(:employees).find(company.id).each_association(**opt).map(&:name)).to contain_exactly("Jane", "Tom", "Kevin") }
       end
 
       context "not preloading" do
-        it { expect(company.each_association(opt).count).to eq 3 }
-        it { expect(company.each_association(opt).map(&:name)).to contain_exactly("Jane", "Tom", "Kevin") }
+        it { expect(company.each_association(**opt).count).to eq 3 }
+        it { expect(company.each_association(**opt).map(&:name)).to contain_exactly("Jane", "Tom", "Kevin") }
 
-        it { expect(Company.find(company.id).each_association(opt).count).to eq 0 }
-        it { expect(Company.find(company.id).each_association(opt).map(&:name)).to be_empty }
+        it { expect(Company.find(company.id).each_association(**opt).count).to eq 0 }
+        it { expect(Company.find(company.id).each_association(**opt).map(&:name)).to be_empty }
       end
 
       context "with option `deep: true`" do
@@ -1439,21 +1439,21 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
 
         context "preloading" do
-          it { expect(company.employees.includes(:address).first.each_association(opt).count).to eq 1 }
+          it { expect(company.employees.includes(:address).first.each_association(**opt).count).to eq 1 }
 
-          it { expect(Company.includes(:employees).find(company.id).each_association(opt).count).to eq 3 }
-          it { expect(Company.includes(:employees).find(company.id).employees.first.each_association(opt).count).to eq 0 }
+          it { expect(Company.includes(:employees).find(company.id).each_association(**opt).count).to eq 3 }
+          it { expect(Company.includes(:employees).find(company.id).employees.first.each_association(**opt).count).to eq 0 }
 
-          it { expect(Company.includes(:employees, employees: :address).find(company.id).each_association(opt).count).to eq 6 }
-          it { expect(Company.includes(:employees, employees: :address).find(company.id).employees.first.each_association(opt).count).to eq 1 }
-          it { expect(Company.includes(:employees, employees: :company).find(company.id).each_association(opt).count).to eq 4 }
+          it { expect(Company.includes(:employees, employees: :address).find(company.id).each_association(**opt).count).to eq 6 }
+          it { expect(Company.includes(:employees, employees: :address).find(company.id).employees.first.each_association(**opt).count).to eq 1 }
+          it { expect(Company.includes(:employees, employees: :company).find(company.id).each_association(**opt).count).to eq 4 }
         end
 
         context "not preloading" do
-          it { expect(company.employees.first.each_association(opt).count).to eq 0 }
+          it { expect(company.employees.first.each_association(**opt).count).to eq 0 }
 
-          it { expect(Company.find(company.id).each_association(opt).count).to eq 0 }
-          it { expect(Company.find(company.id).employees.first.each_association(opt).count).to eq 0 }
+          it { expect(Company.find(company.id).each_association(**opt).count).to eq 0 }
+          it { expect(Company.find(company.id).employees.first.each_association(**opt).count).to eq 0 }
         end
       end
     end
