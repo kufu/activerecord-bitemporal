@@ -160,7 +160,7 @@ module ActiveRecord
       def load
         return super if loaded?
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        records = ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) { super }
+        records = ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) { super }
 
         return records if records.empty? || bitemporal_option[:ignore_valid_datetime]
         records.each do |record|
@@ -169,7 +169,7 @@ module ActiveRecord
       end
 
       def build_arel(args = nil)
-        ActiveRecord::Bitemporal.with_bitemporal_option(bitemporal_option) {
+        ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
           super.tap { |arel|
             bitemporal_clause.ast(table: table)&.tap { |clause|
               arel.ast.cores.each do |node|
@@ -352,14 +352,14 @@ module ActiveRecord
         super()
       end
 
-      def save(*)
+      def save(**)
         ActiveRecord::Base.transaction(requires_new: true) do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
         end
       end
 
-      def save!(*)
+      def save!(**)
         ActiveRecord::Base.transaction(requires_new: true) do
           self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
           super
