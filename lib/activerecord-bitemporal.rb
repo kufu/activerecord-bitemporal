@@ -35,7 +35,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     DEFAULT_ATTRIBUTES = {
       valid_from:       ActiveRecord::Bitemporal::DEFAULT_VALID_FROM,
       valid_to:         ActiveRecord::Bitemporal::DEFAULT_VALID_TO,
-      transaction_from: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM,
+      transaction_from: -> { Time.current },
       transaction_to:   ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
     }.freeze
 
