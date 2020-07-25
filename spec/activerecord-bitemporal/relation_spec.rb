@@ -24,7 +24,8 @@ RSpec.describe "Relation" do
     it { is_expected.to have_attributes count: 5 }
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
-        expect(subject.to_sql).to match /"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
+        expect(subject.to_sql).to match %r/"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
+        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$1 AND "employees"."valid_to" > \$2/
       }
     end
 
@@ -77,7 +78,8 @@ RSpec.describe "Relation" do
     it { is_expected.to have_attributes count: 2 }
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
-        expect(subject.to_sql).to match /"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
+        expect(subject.to_sql).to match %r/"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
+        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$1 AND "employees"."valid_to" > \$2/
       }
     end
 
@@ -149,7 +151,7 @@ RSpec.describe "Relation" do
 
   describe ".ignore_valid_datetime" do
     subject { Company.ignore_valid_datetime.to_sql }
-    it { is_expected.to match /"companies"."deleted_at" IS NULL/ }
+    it { is_expected.to match %r/"companies"."deleted_at" IS NULL/ }
   end
 
   describe "preload" do
