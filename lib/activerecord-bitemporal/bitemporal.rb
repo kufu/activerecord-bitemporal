@@ -253,7 +253,7 @@ module ActiveRecord
             .tap { |relation| break relation.where_bind("valid_to", :lteq, to.in_time_zone.to_datetime) if to }
         }
         scope :where_bind, -> (attr_name, operator, value) {
-          where(arel_attribute(attr_name).public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
+          where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
         }
       end
 
