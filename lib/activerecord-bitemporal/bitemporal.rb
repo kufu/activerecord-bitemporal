@@ -244,15 +244,15 @@ module ActiveRecord
         }
         scope :valid_in, -> (from: nil, to: nil) {
           ignore_valid_datetime
-            .tap { |relation| break relation.where_bind("valid_to", :gteq, from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.where_bind("valid_from", :lteq, to.in_time_zone.to_datetime) if to }
+            .tap { |relation| break relation.bitemporal_where_bind("valid_to", :gteq, from.in_time_zone.to_datetime) if from }
+            .tap { |relation| break relation.bitemporal_where_bind("valid_from", :lteq, to.in_time_zone.to_datetime) if to }
         }
         scope :valid_allin, -> (from: nil, to: nil) {
           ignore_valid_datetime
-            .tap { |relation| break relation.where_bind("valid_from", :gteq, from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.where_bind("valid_to", :lteq, to.in_time_zone.to_datetime) if to }
+            .tap { |relation| break relation.bitemporal_where_bind("valid_from", :gteq, from.in_time_zone.to_datetime) if from }
+            .tap { |relation| break relation.bitemporal_where_bind("valid_to", :lteq, to.in_time_zone.to_datetime) if to }
         }
-        scope :where_bind, -> (attr_name, operator, value) {
+        scope :bitemporal_where_bind, -> (attr_name, operator, value) {
           where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
         }
       end
@@ -431,7 +431,7 @@ module ActiveRecord
           # 有効なレコードがない場合
           else
             # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
-            nearest_instance = self.class.where(bitemporal_id: bitemporal_id).where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
+            nearest_instance = self.class.where(bitemporal_id: bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
 
             # valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
@@ -532,14 +532,14 @@ module ActiveRecord
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record.valid_datetime && (record.valid_from..record.valid_to).include?(record.valid_datetime)) == false && (record.persisted?)
-            finder_class.where(bitemporal_id: record.bitemporal_id).where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
+            finder_class.where(bitemporal_id: record.bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
           else
             valid_to
           end
         }
 
         valid_at_scope = finder_class.unscoped.ignore_valid_datetime
-            .where_bind("valid_from", :lt, valid_to).where_bind("valid_to", :gt, valid_from)
+            .bitemporal_where_bind("valid_from", :lt, valid_to).bitemporal_where_bind("valid_to", :gt, valid_from)
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
@@ -554,9 +554,9 @@ module ActiveRecord
           .ignore_valid_datetime
           .within_deleted
           .yield_self { |scope|
-            scope.where(deleted_at: nil).or(scope.where_bind("deleted_at", :gt, created_at))
+            scope.where(deleted_at: nil).or(scope.bitemporal_where_bind("deleted_at", :gt, created_at))
           }
-          .where_bind("created_at", :lt, deleted_at)
+          .bitemporal_where_bind("created_at", :lt, deleted_at)
 
         relation.merge(valid_at_scope).merge(transaction_at_scope)
       end
