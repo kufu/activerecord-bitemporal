@@ -112,12 +112,18 @@ module ActiveRecord
       end
       include Finder
 
+      def build_arel(*)
+        ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
+          super
+        }
+      end
+
       def load
         return super if loaded?
         valid_datetime_ = valid_datetime
 
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
-        records = ActiveRecord::Bitemporal.valid_at(valid_datetime_) { super }
+        ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) { super }
 
         return records if records.empty?
         return records unless bitemporal_value[:with_valid_datetime] && valid_datetime_

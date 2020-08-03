@@ -66,7 +66,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
   describe "bitemporal_scope" do
     let(:time_current) { Time.current.round }
     let(:sql) { relation.to_sql }
-    define_method(:scan_once) { |x| satisfy { |sql| sql.scan(x).one? } }
+    define_method(:scan_once) { |x| satisfy("sql scan `#{x}` one?") { |sql| sql.scan(x).one? } }
     RSpec::Matchers.define_negated_matcher :not_scan, :scan_once
 
     define_method(:have_valid_at) { |datetime = Time.current, table:|
@@ -672,6 +672,199 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let(:relation) { Blog.where(Arel.sql("valid_from").lteq(Time.current)) }
       subject { relation }
       it { is_expected.to have_attributes(first: blog) }
+    end
+
+    describe "preloading" do
+      def sql_log(&block)
+        old_logger = ActiveRecord::Base.logger
+        old_colorize_logging = ActiveSupport::LogSubscriber.colorize_logging
+        ActiveSupport::LogSubscriber.colorize_logging = false
+        output = StringIO.new
+        ActiveRecord::Base.logger = Logger.new(output, formatter: -> (severity, time, progname, msg) {
+          "#{msg&.[](/(SELECT.*)$/)}\n"
+        })
+        block.call
+        ActiveRecord::Base.logger
+        output.string
+      end
+      define_method(:blogs_sql) { |matcher| satisfy { |sql, _| expect(sql).to matcher } }
+      define_method(:articles_sql) { |matcher| satisfy { |_, sql| expect(sql).to matcher } }
+
+      let(:sql) { Array(sql_log { relation.to_a.first.articles.load }.split("\n")) }
+      before { Blog.create(valid_from: "2000/01/01").articles.create(valid_from: "2000/01/01") }
+
+      context ".joins" do
+        let(:relation) { Blog.joins(:articles) }
+
+        # INNER JOIN
+        it { is_expected.to blogs_sql scan_once 'INNER JOIN "articles"' }
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+        # WHERE
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+        # load association
+        it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+        it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+
+        context "with `ignore_valid_datetime`" do
+          let(:relation) { Blog.ignore_valid_datetime.joins(:articles) }
+
+          # INNER JOIN
+          it { is_expected.to blogs_sql scan_once 'INNER JOIN "articles"' }
+          it { is_expected.to blogs_sql not_have_valid_at(table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql not_have_valid_at(table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `valid_at`" do
+          let(:valid_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.valid_at(valid_datetime).joins(:articles) }
+
+          # INNER JOIN
+          it { is_expected.to blogs_sql scan_once 'INNER JOIN "articles"' }
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+      end
+
+      context ".left_joins" do
+        let(:relation) { Blog.left_joins(:articles) }
+
+        # LEFT OUTER JOIN
+        it { is_expected.to blogs_sql scan_once 'LEFT OUTER JOIN "articles"' }
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+        # WHERE
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+        # load association
+        it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+        it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+
+        context "with `ignore_valid_datetime`" do
+          let(:relation) { Blog.ignore_valid_datetime.left_joins(:articles) }
+
+          # LEFT OUTER JOIN
+          it { is_expected.to blogs_sql scan_once 'LEFT OUTER JOIN "articles"' }
+          it { is_expected.to blogs_sql not_have_valid_at(table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql not_have_valid_at(table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `valid_at`" do
+          let(:valid_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.valid_at(valid_datetime).left_joins(:articles) }
+
+          # INNER JOIN
+          it { is_expected.to blogs_sql scan_once 'LEFT OUTER JOIN "articles"' }
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+      end
+
+      context ".preload" do
+        let(:relation) { Blog.preload(:articles) }
+
+        # WHERE
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+        # load association
+        it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+        it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+
+        context "with `ignore_valid_datetime`" do
+          let(:relation) { Blog.ignore_valid_datetime.preload(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql not_have_valid_at(table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql not_have_valid_at(table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `valid_at`" do
+          let(:valid_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.valid_at(valid_datetime).preload(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+      end
+
+      context ".eager_load" do
+        define_method(:have_valid_at) { |datetime = Time.current, table:|
+               include(%{"#{table}"."valid_from" <= '#{datetime.to_s(:db)}'})
+          .and include(%{"#{table}"."valid_to" > '#{datetime.to_s(:db)}'})
+        }
+        define_method(:have_transaction_at) { |datetime, table:|
+               include(%{"#{table}"."transaction_from" <= '#{datetime.to_s(:db)}'})
+          .and include(%{"#{table}"."transaction_to" > '#{datetime.to_s(:db)}'})
+        }
+        let(:relation) { Blog.eager_load(:articles) }
+
+        # WHERE
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+        # load association
+        it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+        it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+
+        context "with `ignore_valid_datetime`" do
+          define_method(:not_have_valid_at) { |datetime = Time.current, table:|
+                 not_scan(%{"#{table}"."valid_from" <= '#{datetime.to_s(:db)}'})
+            .and not_scan(%{"#{table}"."valid_to" > '#{datetime.to_s(:db)}'})
+          }
+
+          let(:relation) { Blog.ignore_valid_datetime.eager_load(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql not_have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to blogs_sql not_have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `valid_at`" do
+          let(:valid_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.valid_at(valid_datetime).eager_load(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+        end
+      end
     end
   end
 
