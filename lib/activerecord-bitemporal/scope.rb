@@ -40,13 +40,21 @@ module ActiveRecord::Bitemporal
           end
         }
 
-        def bitemporal_query_hash
-          predicates.select { |node|
+        def select_operatable_node(nodes = predicates)
+          nodes.flat_map { |node|
             case node
             when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
-              node && node.left.respond_to?(:relation)
+              node && node.left.respond_to?(:relation) ? node : nil
+            when Arel::Nodes::Or
+              select_operatable_node(node.left) + select_operatable_node(node.right)
+            when Arel::Nodes::Grouping
+              select_operatable_node(node.expr)
             end
-          }.inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
+          }.compact
+        end
+
+        def bitemporal_query_hash
+          select_operatable_node.inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
             result[node.left.relation.name][node.left.name] = [node.operator, node.right.try(:val)]
             result
           }
