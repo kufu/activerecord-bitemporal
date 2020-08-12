@@ -41,7 +41,7 @@ module ActiveRecord::Bitemporal
         }
 
         def select_operatable_node(nodes = predicates)
-          nodes.flat_map { |node|
+          Array(nodes).flat_map { |node|
             case node
             when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
               node && node.left.respond_to?(:relation) ? node : nil

@@ -1099,7 +1099,6 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         let(:datetime1) { "2019/05/1".in_time_zone }
         let(:datetime2) { "2019/01/1".in_time_zone }
         let(:relation) { Blog.transaction_at(datetime1).where(name: "Homu").or(Blog.transaction_at(datetime2).where(name: "Mami")) }
-        it { is_expected.to include(transaction_datetime: datetime2) }
       end
 
       context ".ignore_valid_datetime.or(...)" do
@@ -1115,6 +1114,11 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       context ".ignore_valid_datetime.or(ignore_valid_datetime)" do
         let(:relation) { Blog.ignore_valid_datetime.where(name: "Homu").or(Blog.ignore_valid_datetime.where(name: "Mami")) }
         it { is_expected.to include(valid_datetime: nil, ignore_valid_datetime: true) }
+      end
+
+      context "where with String" do
+        let(:relation) { Blog.where('name = "Homu"').or(Blog.where('name = "Mami"')) }
+        it { is_expected.to include(valid_datetime: time_current, ignore_valid_datetime: false) }
       end
     end
   end
