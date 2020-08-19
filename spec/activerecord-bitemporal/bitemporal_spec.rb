@@ -601,12 +601,21 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { expect { ActiveRecord::Bitemporal.valid_at("2020/01/01") { employee.reload } }.to change { employee.valid_datetime }.from(nil).to("2020/01/01".in_time_zone) }
     end
 
+    context "within #valid_at" do
+      let(:employee) { Employee.create!(valid_from: "2019/01/01") }
+      it do
+        employee.valid_at("2019/04/01") { |record|
+          expect(record.reload.valid_datetime).to eq "2019/04/01".in_time_zone
+        }
+      end
+    end
+
     context "without ActiveRecord::Bitemporal.valid_at" do
       let(:employee) {
         employee = Employee.create!(valid_from: "2019/01/01")
         Employee.find_at_time("2020/01/01", employee.id)
       }
-      it { expect { employee.reload }.to change { employee.bitemporal_option }.to be_empty }
+      it { expect { employee.reload }.not_to change { employee.bitemporal_option } }
     end
 
     # TODO:
