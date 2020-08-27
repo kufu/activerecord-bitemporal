@@ -436,7 +436,7 @@ RSpec.describe "transaction_at" do
     end
   end
 
-  describe "without created_at deleted_at" do
+  xdescribe "without created_at deleted_at" do
     ActiveRecord::Schema.define(version: 1) do
       create_table :without_created_at_deleted_ats, force: true do |t|
         t.string :name
