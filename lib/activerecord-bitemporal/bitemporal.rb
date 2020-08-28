@@ -366,8 +366,12 @@ module ActiveRecord
       using EachAssociation
 
       def _create_record(attribute_names = self.attribute_names)
+        current_time = Time.current
+
         # 自身の `valid_from` を設定
-        self.valid_from = valid_datetime || Time.current if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+        self.valid_from = valid_datetime || current_time if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+
+        self.transaction_from = current_time if self.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
 
          # Assign only if defined created_at and deleted_at
         if has_column?(:created_at)

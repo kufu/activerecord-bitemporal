@@ -44,13 +44,14 @@ RSpec.describe "transaction_at" do
     let(:_08_01) { "2020/08/01".to_time }
     let(:_12_01) { "2020/12/01".to_time }
     let(:time_current) { Time.current.round(6) }
-    subject { Timecop.freeze(time_current) { Company.create(params) } }
+    subject { Company.create(params) }
 
     context "params is empty" do
       let(:params) { {} }
       it { is_expected.to have_attributes(
-        created_at: time_current,
-        transaction_from: time_current,
+        created_at: subject.transaction_from,
+        transaction_from: subject.created_at,
+        valid_from: subject.transaction_from,
         deleted_at: nil,
         transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
       ) }
@@ -84,11 +85,42 @@ RSpec.describe "transaction_at" do
       ) }
     end
 
+    context "set `valid_from`" do
+      let(:params) { { valid_from: _01_01 } }
+      it { is_expected.to have_attributes(
+        created_at: subject.transaction_from,
+        transaction_from: subject.created_at,
+        valid_from: _01_01,
+        deleted_at: nil,
+        transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
+      ) }
+    end
+    context "set `valid_from` and `transaction_from`" do
+      let(:params) { { valid_from: _01_01, transaction_from: _04_01 } }
+      it { is_expected.to have_attributes(
+        created_at: _04_01,
+        transaction_from: _04_01,
+        valid_from: _01_01,
+        deleted_at: nil,
+        transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
+      ) }
+    end
+    context "set `valid_from`, `created_at` and `transaction_from`" do
+      let(:params) { { valid_from: _01_01, created_at: _08_01, transaction_from: _04_01 } }
+      it { is_expected.to have_attributes(
+        created_at: _08_01,
+        transaction_from: _08_01,
+        valid_from: _01_01,
+        deleted_at: nil,
+        transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
+      ) }
+    end
+
     context "set `deleted_at`" do
       let(:params) { { deleted_at: _01_01 } }
       it { is_expected.to have_attributes(
-        created_at: time_current,
-        transaction_from: time_current,
+        created_at: subject.transaction_from,
+        transaction_from: subject.created_at,
         deleted_at: _01_01,
         transaction_to: _01_01
       ) }
@@ -96,18 +128,20 @@ RSpec.describe "transaction_at" do
       context "to `nil`" do
         let(:params) { { deleted_at: nil } }
         it { is_expected.to have_attributes(
-          created_at: time_current,
-          transaction_from: time_current,
+          created_at: subject.transaction_from,
+          transaction_from: subject.created_at,
           deleted_at: nil,
           transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
         ) }
       end
+
+      context
     end
     context "set `transaction_to`" do
       let(:params) { { transaction_to: _01_01 } }
       it { is_expected.to have_attributes(
-        created_at: time_current,
-        transaction_from: time_current,
+        created_at: subject.transaction_from,
+        transaction_from: subject.created_at,
         deleted_at: _01_01,
         transaction_to: _01_01
       ) }
@@ -115,8 +149,8 @@ RSpec.describe "transaction_at" do
     context "set `deleted_at` and `transaction_to`" do
       let(:params) { { deleted_at: _01_01, transaction_to: _04_01 } }
       it { is_expected.to have_attributes(
-        created_at: time_current,
-        transaction_from: time_current,
+        created_at: subject.transaction_from,
+        transaction_from: subject.created_at,
         deleted_at: _01_01,
         transaction_to: _01_01
       ) }
@@ -124,8 +158,8 @@ RSpec.describe "transaction_at" do
       context "`deleted_at` to `nil`" do
         let(:params) { { deleted_at: nil, transaction_to: _04_01  } }
         it { is_expected.to have_attributes(
-          created_at: time_current,
-          transaction_from: time_current,
+        created_at: subject.transaction_from,
+        transaction_from: subject.created_at,
           deleted_at: _04_01,
           transaction_to: _04_01
         ) }
