@@ -374,8 +374,9 @@ module ActiveRecord
           self.transaction_from = self.created_at if changes.key?("created_at")
           self.created_at = self.transaction_from
         end
-        if has_column?(:deleted_at) && self.transaction_to != ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
-          self.deleted_at = self.transaction_to
+        if has_column?(:deleted_at)
+          self.transaction_to = self.deleted_at if changes.key?("deleted_at")
+          self.deleted_at = self.transaction_to == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO ? nil : self.transaction_to
         end
 
         # アソシエーションの子に対して `valid_from` を設定

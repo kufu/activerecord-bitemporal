@@ -38,6 +38,57 @@ RSpec.describe "transaction_at" do
     end
   end
 
+  describe "#create" do
+    let(:_01_01) { "2020/01/01".to_time }
+    let(:_04_01) { "2020/04/01".to_time }
+    let(:_08_01) { "2020/08/01".to_time }
+    let(:_12_01) { "2020/12/01".to_time }
+    subject { Company.create(params) }
+
+    context "params is empty" do
+      let(:params) { {} }
+      it { expect(subject.created_at.iso8601(6)).to eq subject.transaction_from.iso8601(6) }
+      it { expect(subject.deleted_at).to eq nil }
+      it { expect(subject.transaction_to).to eq ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO }
+    end
+
+    context "set `created_at`" do
+      let(:params) { { created_at: _01_01 } }
+      it { is_expected.to have_attributes(created_at: _01_01, transaction_from: _01_01) }
+    end
+    context "set `transaction_from`" do
+      let(:params) { { transaction_from: _01_01 } }
+      it { is_expected.to have_attributes(created_at: _01_01, transaction_from: _01_01) }
+    end
+    context "set `created_at` and `transaction_from`" do
+      let(:params) { { created_at: _01_01, transaction_from: _04_01 } }
+      it { is_expected.to have_attributes(created_at: _01_01, transaction_from: _01_01) }
+    end
+
+    context "set `deleted_at`" do
+      let(:params) { { deleted_at: _01_01 } }
+      it { is_expected.to have_attributes(deleted_at: _01_01, transaction_to: _01_01) }
+
+      context "to `nil`" do
+        let(:params) { { deleted_at: nil } }
+        it { is_expected.to have_attributes(deleted_at: nil, transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO) }
+      end
+    end
+    context "set `transaction_to`" do
+      let(:params) { { transaction_to: _01_01 } }
+      it { is_expected.to have_attributes(deleted_at: _01_01, transaction_to: _01_01) }
+    end
+    context "set `deleted_at` and `transaction_to`" do
+      let(:params) { { deleted_at: _01_01, transaction_to: _04_01 } }
+      it { is_expected.to have_attributes(deleted_at: _01_01, transaction_to: _01_01) }
+
+      context "`deleted_at` to `nil`" do
+        let(:params) { { deleted_at: nil, transaction_to: _04_01  } }
+        it { is_expected.to have_attributes(deleted_at: _04_01, transaction_to: _04_01) }
+      end
+    end
+  end
+
   describe "#update" do
     let(:company) { Company.create(name: "Company1") }
     define_method(:company_all) { Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.id).order(:transaction_from) }
