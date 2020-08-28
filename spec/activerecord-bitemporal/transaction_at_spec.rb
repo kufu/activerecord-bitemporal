@@ -38,7 +38,7 @@ RSpec.describe "transaction_at" do
     end
   end
 
-  describe "#create" do
+  describe ".create" do
     let(:_01_01) { "2020/01/01".to_time }
     let(:_04_01) { "2020/04/01".to_time }
     let(:_08_01) { "2020/08/01".to_time }
