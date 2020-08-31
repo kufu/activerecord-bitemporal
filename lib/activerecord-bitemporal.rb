@@ -10,7 +10,8 @@ require "activerecord-bitemporal/version"
 module ActiveRecord::Bitemporal
   DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
   DEFAULT_VALID_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
-  DEFAULT_TRANSACTION_TO = Time.utc(9999, 12, 31).in_time_zone.freeze
+  DEFAULT_TRANSACTION_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
+  DEFAULT_TRANSACTION_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
 
   extend ActiveSupport::Concern
   included do

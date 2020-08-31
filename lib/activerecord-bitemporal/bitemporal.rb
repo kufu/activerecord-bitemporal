@@ -533,7 +533,13 @@ module ActiveRecord
 
         # MEMO: Must refer Time.current, when not new record
         #       Because you don't want transaction_from to be rewritten
-        transaction_from = record.new_record? ? (record.transaction_from || Time.current) : Time.current
+        transaction_from = if record.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
+                             Time.current
+                           elsif !record.new_record?
+                             Time.current
+                           else
+                             record.transaction_from
+                           end
         transaction_to = record.transaction_to || ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
         transaction_at_scope = finder_class.unscoped
           .ignore_bitemporal_datetime
