@@ -469,7 +469,7 @@ module ActiveRecord
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
 
-          return 1
+          1
         # MEMO: Must return false instead of nil, if `#_update_row` failure.
         end || false
       end
