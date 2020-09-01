@@ -546,7 +546,6 @@ module ActiveRecord
           .bitemporal_where_bind("transaction_to", :gt, transaction_from)
           .bitemporal_where_bind("transaction_from", :lt, transaction_to)
 
-        puts relation.merge(valid_at_scope).merge(transaction_at_scope).to_sql if $debug
         relation.merge(valid_at_scope).merge(transaction_at_scope)
       end
     end
