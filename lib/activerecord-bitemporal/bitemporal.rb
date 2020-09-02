@@ -389,12 +389,6 @@ module ActiveRecord
         each_association(deep: true, only_cached: true)
           .select { |asso| asso.class.bi_temporal_model? && asso.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM && asso.new_record? }
           .each   { |asso| asso.valid_from = self.valid_from }
-
-        each_association(deep: true, only_cached: true)
-          .select { |asso| asso.class.bi_temporal_model? && asso.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM && asso.new_record? }
-          .reject { |asso| asso.changes.key?("created_at") }
-          .each   { |asso| asso.transaction_from = self.transaction_from }
-          .each   { |asso| asso.created_at = self.created_at }
         super()
       end
 
