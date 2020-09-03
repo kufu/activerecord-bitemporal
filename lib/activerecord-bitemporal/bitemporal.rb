@@ -336,7 +336,6 @@ module ActiveRecord
             @previously_new_record = false
             # NOTE: Hook to copying swapped_id
             @_swapped_id = fresh_object.swapped_id
-            bitemporal_option_storage[:relation_valid_datetime] = fresh_object.relation_valid_datetime
             self
           end
         elsif Gem::Version.new("6.1.0") <= ActiveRecord.version
@@ -359,11 +358,6 @@ module ActiveRecord
             @previously_new_record = false
             # NOTE: Hook to copying swapped_id
             @_swapped_id = fresh_object.swapped_id
-            if fresh_object.valid_datetime
-              bitemporal_option_storage[:valid_datetime] = fresh_object.valid_datetime
-            else
-              bitemporal_option_storage.delete(:valid_datetime)
-            end
             self
           end
         else
@@ -385,11 +379,6 @@ module ActiveRecord
             @new_record = false
             # NOTE: Hook to copying swapped_id
             @_swapped_id = fresh_object.swapped_id
-            if fresh_object.valid_datetime
-              bitemporal_option_storage[:valid_datetime] = fresh_object.valid_datetime
-            else
-              bitemporal_option_storage.delete(:valid_datetime)
-            end
             self
           end
         end

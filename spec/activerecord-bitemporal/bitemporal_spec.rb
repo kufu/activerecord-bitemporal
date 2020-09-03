@@ -596,7 +596,8 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { is_expected.to change { employee.reload.swapped_id } }
     end
 
-    context "with ActiveRecord::Bitemporal.valid_at" do
+    # TODO: Not yet supported
+    xcontext "with ActiveRecord::Bitemporal.valid_at" do
       let(:employee) { Employee.create!(valid_from: "2019/01/01") }
       it { expect { ActiveRecord::Bitemporal.valid_at("2020/01/01") { employee.reload } }.to change { employee.valid_datetime }.from(nil).to("2020/01/01".in_time_zone) }
     end
