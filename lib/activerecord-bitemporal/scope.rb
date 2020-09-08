@@ -53,9 +53,12 @@ module ActiveRecord::Bitemporal
           }.compact
         end
 
-        def bitemporal_query_hash
-          select_operatable_node.inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
-            result[node.left.relation.name][node.left.name] = [node.operator, node.right.try(:val)]
+        def bitemporal_query_hash(*names)
+          select_operatable_node
+            .select { |node| names.include? node.left.name }
+            .inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
+            value = node.right.try(:val) || node.right.try(:value).try(:value_before_type_cast)
+            result[node.left.relation.name][node.left.name] = [node.operator, value]
             result
           }
         end
@@ -63,7 +66,7 @@ module ActiveRecord::Bitemporal
 
       refine Relation do
         def bitemporal_clause(table_name = klass.table_name)
-          node_hash = where_clause.bitemporal_query_hash
+          node_hash = where_clause.bitemporal_query_hash(:valid_from, :valid_to, :transaction_from, :transaction_to)
           valid_from = node_hash.dig(table_name, :valid_from, 1)
           valid_to   = node_hash.dig(table_name, :valid_to, 1)
           transaction_from = node_hash.dig(table_name, :transaction_from, 1)
@@ -136,7 +139,8 @@ module ActiveRecord::Bitemporal
         ].each { |op|
           scope :"#{column}_#{op}", -> (datetime) {
             target_datetime = datetime&.in_time_zone || Time.current
-            public_send(:"ignore_#{column}").where(table[column].public_send(op, target_datetime))
+#             public_send(:"ignore_#{column}").where(table[column].public_send(op, target_datetime))
+            public_send(:"ignore_#{column}").bitemporal_where_bind(column, op, target_datetime)
               .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"#{column}_#{op}", target_datetime)) if bitemporal_value[:through] }
           }
         }
@@ -188,13 +192,11 @@ module ActiveRecord::Bitemporal
         relation = spawn
         relation.unscope_values += [{ where: ["#{table.name}.valid_from", "#{table.name}.valid_to", "#{table.name}.transaction_from", "#{table.name}.transaction_to"] }]
 
-        relation.where!(table[:transaction_from].lteq(datetime))
-                .where!(table[:transaction_to].gt(datetime))
+        relation = relation.transaction_at(datetime)
 
         if !ActiveRecord::Bitemporal.ignore_valid_datetime?
           datetime = ActiveRecord::Bitemporal.valid_datetime || datetime
-          relation.where!(table[:valid_from].lteq(datetime))
-                  .where!(table[:valid_to].gt(datetime))
+          relation = relation.valid_at(datetime)
         end
 
         if ActiveRecord::Bitemporal.valid_datetime

@@ -27,7 +27,8 @@ RSpec.describe "Relation" do
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
         expect(subject.to_sql).to match %r/"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
-        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$1 AND "employees"."valid_to" > \$2/
+        expect(subject.arel.to_sql).to match %r/"employees"."transaction_from" <= \$1 AND "employees"."transaction_to" > \$2/
+        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$3 AND "employees"."valid_to" > \$4/
       }
     end
 
@@ -81,7 +82,7 @@ RSpec.describe "Relation" do
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
         expect(subject.to_sql).to match %r/"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
-        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$1 AND "employees"."valid_to" > \$2/
+        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$3 AND "employees"."valid_to" > \$4/
       }
     end
 
@@ -142,6 +143,11 @@ RSpec.describe "Relation" do
     subject { relation.bitemporal_option }
     it { is_expected.to include(valid_datetime: "2019/2/2".in_time_zone) }
     it { expect(relation.loaded?).to be_falsey }
+    it do
+      puts relation.to_sql
+      puts relation.arel.to_sql
+      pp subject
+    end
   end
 
   describe "preload" do

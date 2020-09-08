@@ -683,7 +683,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         ActiveRecord::Base.logger = Logger.new(output, formatter: -> (severity, time, progname, msg) {
           "#{msg&.[](/(SELECT.*)$/)}\n"
         })
-        block.call
+        ActiveRecord::Base.connection.unprepared_statement(&block)
         ActiveRecord::Base.logger
         output.string
       end
@@ -864,6 +864,66 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "articles") }
           it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
         end
+      end
+    end
+
+    describe "with `prepared_statements`" do
+      let(:sql) { relation.arel.to_sql }
+
+      context "default_scope" do
+        let(:relation) { Blog.all }
+        it { is_expected.to match %r/"blogs"."transaction_from" <= \$1/ }
+        it { is_expected.to match %r/"blogs"."transaction_to" > \$2/ }
+        it { is_expected.to match %r/"blogs"."valid_from" <= \$3/ }
+        it { is_expected.to match %r/"blogs"."valid_to" > \$4/ }
+      end
+
+      context ".valid_at" do
+        let(:relation) { Blog.valid_at("2020/01/01") }
+        it { is_expected.to match %r/"blogs"."transaction_from" <= \$1/ }
+        it { is_expected.to match %r/"blogs"."transaction_to" > \$2/ }
+        it { is_expected.to match %r/"blogs"."valid_from" <= \$3/ }
+        it { is_expected.to match %r/"blogs"."valid_to" > \$4/ }
+      end
+
+      context ".ignore_valid_datetime" do
+        let(:relation) { Blog.ignore_valid_datetime }
+        it { is_expected.to match %r/"blogs"."transaction_from" <= \$1/ }
+        it { is_expected.to match %r/"blogs"."transaction_to" > \$2/ }
+        it { is_expected.not_to match %r/"blogs"."valid_from" <= \$3/ }
+        it { is_expected.not_to match %r/"blogs"."valid_to" > \$4/ }
+      end
+
+      context ".transaction_at" do
+        let(:relation) { Blog.transaction_at("2020/01/01") }
+        it { is_expected.to match %r/"blogs"."valid_from" <= \$1/ }
+        it { is_expected.to match %r/"blogs"."valid_to" > \$2/ }
+        it { is_expected.to match %r/"blogs"."transaction_from" <= \$3/ }
+        it { is_expected.to match %r/"blogs"."transaction_to" > \$4/ }
+      end
+
+      context ".ignore_transaction_datetime" do
+        let(:relation) { Blog.ignore_transaction_datetime }
+        it { is_expected.not_to match %r/"blogs"."transaction_from" <= \$1/ }
+        it { is_expected.not_to match %r/"blogs"."transaction_to" > \$2/ }
+        it { is_expected.to match %r/"blogs"."valid_from" <= \$1/ }
+        it { is_expected.to match %r/"blogs"."valid_to" > \$2/ }
+      end
+
+      context ".bitemporal_at" do
+        let(:relation) { Blog.bitemporal_at("2020/01/01") }
+        it { is_expected.to match %r/"blogs"."transaction_from" <= \$1/ }
+        it { is_expected.to match %r/"blogs"."transaction_to" > \$2/ }
+        it { is_expected.to match %r/"blogs"."valid_from" <= \$3/ }
+        it { is_expected.to match %r/"blogs"."valid_to" > \$4/ }
+      end
+
+      context ".ignore_transaction_datetime" do
+        let(:relation) { Blog.ignore_transaction_datetime }
+        it { is_expected.not_to match %r/"blogs"."transaction_from" <= \$1/ }
+        it { is_expected.not_to match %r/"blogs"."transaction_to" > \$2/ }
+        it { is_expected.not_to match %r/"blogs"."valid_from" <= \$3/ }
+        it { is_expected.not_to match %r/"blogs"."valid_to" > \$4/ }
       end
     end
   end
