@@ -143,11 +143,6 @@ RSpec.describe "Relation" do
     subject { relation.bitemporal_option }
     it { is_expected.to include(valid_datetime: "2019/2/2".in_time_zone) }
     it { expect(relation.loaded?).to be_falsey }
-    it do
-      puts relation.to_sql
-      puts relation.arel.to_sql
-      pp subject
-    end
   end
 
   describe "preload" do
