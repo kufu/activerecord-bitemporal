@@ -1,27 +1,29 @@
 module ActiveRecord::Bitemporal
   module Relation
-    class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
-      private
+    if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+      class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
+        private
 
-      def except_predicates(columns)
-        columns = Array(columns)
-        predicates.reject do |node|
-          case node
-          when Arel::Nodes::Between, Arel::Nodes::In, Arel::Nodes::NotIn, Arel::Nodes::Equality, Arel::Nodes::NotEqual, Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
-            subrelation = (node.left.kind_of?(Arel::Attributes::Attribute) ? node.left : node.right)
-            # Add check table name
-            columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
+        def except_predicates(columns)
+          columns = Array(columns)
+          predicates.reject do |node|
+            case node
+            when Arel::Nodes::Between, Arel::Nodes::In, Arel::Nodes::NotIn, Arel::Nodes::Equality, Arel::Nodes::NotEqual, Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
+              subrelation = (node.left.kind_of?(Arel::Attributes::Attribute) ? node.left : node.right)
+              # Add check table name
+              columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
+            end
           end
         end
       end
-    end
 
-    def where_clause
-      WhereClauseWithCheckTable.new(super.send(:predicates))
+      def where_clause
+        WhereClauseWithCheckTable.new(super.send(:predicates))
+      end
     end
 
     using Module.new {
-      refine WhereClauseWithCheckTable do
+      refine ActiveRecord::Relation::WhereClause do
         using Module.new {
           refine Arel::Nodes::LessThan do
             def operator; :< ; end
@@ -47,6 +49,8 @@ module ActiveRecord::Bitemporal
               node && node.left.respond_to?(:relation) ? node : nil
             when Arel::Nodes::Or
               select_operatable_node(node.left) + select_operatable_node(node.right)
+            when Arel::Nodes::And
+              select_operatable_node(node.left) + select_operatable_node(node.right)
             when Arel::Nodes::Grouping
               select_operatable_node(node.expr)
             end
@@ -55,10 +59,10 @@ module ActiveRecord::Bitemporal
 
         def bitemporal_query_hash(*names)
           select_operatable_node
-            .select { |node| names.include? node.left.name }
+            .select { |node| names.include? node.left.name.to_s }
             .inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
             value = node.right.try(:val) || node.right.try(:value).try(:value_before_type_cast)
-            result[node.left.relation.name][node.left.name] = [node.operator, value]
+            result[node.left.relation.name][node.left.name.to_s] = [node.operator, value]
             result
           }
         end
@@ -66,11 +70,11 @@ module ActiveRecord::Bitemporal
 
       refine Relation do
         def bitemporal_clause(table_name = klass.table_name)
-          node_hash = where_clause.bitemporal_query_hash(:valid_from, :valid_to, :transaction_from, :transaction_to)
-          valid_from = node_hash.dig(table_name, :valid_from, 1)
-          valid_to   = node_hash.dig(table_name, :valid_to, 1)
-          transaction_from = node_hash.dig(table_name, :transaction_from, 1)
-          transaction_to   = node_hash.dig(table_name, :transaction_to, 1)
+          node_hash = where_clause.bitemporal_query_hash("valid_from", "valid_to", "transaction_from", "transaction_to")
+          valid_from = node_hash.dig(table_name, "valid_from", 1)
+          valid_to   = node_hash.dig(table_name, "valid_to", 1)
+          transaction_from = node_hash.dig(table_name, "transaction_from", 1)
+          transaction_to   = node_hash.dig(table_name, "transaction_to", 1)
           {
             valid_from: valid_from,
             valid_to: valid_to,
@@ -125,25 +129,47 @@ module ActiveRecord::Bitemporal
         end
       }
 
-      %i(valid_from valid_to transaction_from transaction_to).each { |column|
-        scope :"ignore_#{column}", -> {
-          unscope(where: "#{table.name}.#{column}")
-            .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"ignore_#{column}")) if bitemporal_value[:through] }
-        }
+      if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+        %i(valid_from valid_to transaction_from transaction_to).each { |column|
+          scope :"ignore_#{column}", -> {
+            unscope(where: "#{table.name}.#{column}")
+              .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"ignore_#{column}")) if bitemporal_value[:through] }
+          }
 
-        [
-          :lt,    # column <  datetime
-          :lteq,  # column <= datetime
-          :gt,    # column >  datetime
-          :gteq   # column >= datetime
-        ].each { |op|
-          scope :"#{column}_#{op}", -> (datetime) {
-            target_datetime = datetime&.in_time_zone || Time.current
-            public_send(:"ignore_#{column}").bitemporal_where_bind(column, op, target_datetime)
-              .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"#{column}_#{op}", target_datetime)) if bitemporal_value[:through] }
+          [
+            :lt,    # column <  datetime
+            :lteq,  # column <= datetime
+            :gt,    # column >  datetime
+            :gteq   # column >= datetime
+          ].each { |op|
+            scope :"#{column}_#{op}", -> (datetime) {
+              target_datetime = datetime&.in_time_zone || Time.current
+              public_send(:"ignore_#{column}").bitemporal_where_bind(column, op, target_datetime)
+                .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"#{column}_#{op}", target_datetime)) if bitemporal_value[:through] }
+            }
           }
         }
-      }
+      else
+        %w(valid_from valid_to transaction_from transaction_to).each { |column|
+          scope :"ignore_#{column}", -> {
+            unscope(where: :"#{table.name}.#{column}")
+              .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table[column]) if bitemporal_value[:through] }
+          }
+
+          [
+            :lt,    # column <  datetime
+            :lteq,  # column <= datetime
+            :gt,    # column >  datetime
+            :gteq   # column >= datetime
+          ].each { |op|
+            scope :"#{column}_#{op}", -> (datetime) {
+              target_datetime = datetime&.in_time_zone || Time.current
+              bitemporal_rewhere_bind(column, op, target_datetime)
+                .tap { |relation| break relation.bitemporal_rewhere_bind(column, op, target_datetime, bitemporal_value[:through].arel_table) if bitemporal_value[:through] }
+            }
+          }
+        }
+      end
 
       scope :with_valid_datetime, -> {
         tap { |relation| relation.bitemporal_value[:with_valid_datetime] = true }
@@ -235,6 +261,13 @@ module ActiveRecord::Bitemporal
       scope :bitemporal_where_bind, -> (attr_name, operator, value) {
         where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
       }
+
+      if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+      else
+        scope :bitemporal_rewhere_bind, -> (attr_name, operator, value, table = self.table) {
+          rewhere(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
+        }
+      end
     end
 
     module Extension
