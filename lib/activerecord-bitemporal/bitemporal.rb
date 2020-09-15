@@ -450,7 +450,7 @@ module ActiveRecord
         # 有効なレコードがない場合
         else
           # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
-          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
+          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).valid_from_gt(target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
           if nearest_instance.nil?
             message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and 'valid_from' < #{target_datetime}"
             raise ActiveRecord::RecordNotFound.new(message, self.class, "bitemporal_id", self.bitemporal_id)
@@ -506,14 +506,14 @@ module ActiveRecord
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record.valid_datetime && (record.valid_from..record.valid_to).cover?(record.valid_datetime)) == false && (record.persisted?)
-            finder_class.where(bitemporal_id: record.bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
+            finder_class.where(bitemporal_id: record.bitemporal_id).valid_from_gt(target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
           else
             valid_to
           end
         }
 
         valid_at_scope = finder_class.unscoped.ignore_valid_datetime
-            .bitemporal_where_bind("valid_from", :lt, valid_to).bitemporal_where_bind("valid_to", :gt, valid_from)
+            .valid_from_lt(valid_to).valid_to_gt(valid_from)
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
@@ -531,8 +531,8 @@ module ActiveRecord
                            end
         transaction_to = record.transaction_to || ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
         transaction_at_scope = finder_class.unscoped
-          .bitemporal_where_bind("transaction_to", :gt, transaction_from)
-          .bitemporal_where_bind("transaction_from", :lt, transaction_to)
+          .transaction_to_gt(transaction_from)
+          .transaction_from_lt(transaction_to)
 
         relation.merge(valid_at_scope).merge(transaction_at_scope)
       end
