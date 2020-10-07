@@ -135,6 +135,13 @@ module ActiveRecord::Bitemporal
             unscope(where: "#{table.name}.#{column}")
               .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"ignore_#{column}")) if bitemporal_value[:through] }
           }
+          scope :"except_#{column}", -> {
+            public_send(:"ignore_#{column}").tap { |itself|
+              itself.unscope_values.reject! { |query|
+                query == { where: "#{table.name}.#{column}" }
+              }
+            }
+          }
 
           [
             :lt,    # column <  datetime
@@ -150,10 +157,49 @@ module ActiveRecord::Bitemporal
           }
         }
       else
+        using Module.new {
+          refine ::Object do
+            def equal_attribute_name(*)
+              false
+            end
+          end
+          refine ::Hash do
+            def equal_attribute_name(other)
+              self[:where].equal_attribute_name(other)
+            end
+          end
+          refine ::Array do
+            def equal_attribute_name(other)
+              first.equal_attribute_name(other)
+            end
+          end
+          refine ::String do
+            def equal_attribute_name(other)
+              self == other.to_s
+            end
+          end
+          refine ::Symbol do
+            def equal_attribute_name(other)
+              self.to_s == other.to_s
+            end
+          end
+          refine ::Arel::Attributes::Attribute do
+            def equal_attribute_name(other)
+              "#{relation.name}.#{name}" == other.to_s
+            end
+          end
+        }
         %w(valid_from valid_to transaction_from transaction_to).each { |column|
           scope :"ignore_#{column}", -> {
             unscope(where: :"#{table.name}.#{column}")
               .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table[column]) if bitemporal_value[:through] }
+          }
+          scope :"except_#{column}", -> {
+            public_send(:"ignore_#{column}").tap { |itself|
+              itself.unscope_values.reject! { |query|
+                query.equal_attribute_name("#{table.name}.#{column}")
+              }
+            }
           }
 
           [
@@ -171,13 +217,21 @@ module ActiveRecord::Bitemporal
         }
       end
 
+      # -------------------------------
+      # NOTE: with_valid_datetime ~ without_transaction_datetime is private API
       scope :with_valid_datetime, -> {
         tap { |relation| relation.bitemporal_value[:with_valid_datetime] = true }
       }
-
       scope :without_valid_datetime, -> {
         tap { |relation| relation.bitemporal_value[:with_valid_datetime] = false }
       }
+      scope :with_transaction_datetime, -> {
+        tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = true }
+      }
+      scope :without_transaction_datetime, -> {
+        tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = false }
+      }
+      # -------------------------------
 
       # valid_from <= datetime && datetime < valid_to
       scope :valid_at, -> (datetime) {
@@ -190,14 +244,20 @@ module ActiveRecord::Bitemporal
       scope :ignore_valid_datetime, -> {
         ignore_valid_from.ignore_valid_to
       }
+      scope :except_valid_datetime, -> {
+        except_valid_from.except_valid_to
+      }
 
       # transaction_from <= datetime && datetime < transaction_to
       scope :transaction_at, -> (datetime) {
         datetime = Time.current if datetime.nil?
-        transaction_from_lteq(datetime).transaction_to_gt(datetime)
+        transaction_from_lteq(datetime).transaction_to_gt(datetime).with_transaction_datetime
       }
       scope :ignore_transaction_datetime, -> {
         ignore_transaction_from.ignore_transaction_to
+      }
+      scope :except_transaction_datetime, -> {
+        except_transaction_from.except_transaction_to
       }
 
       scope :bitemporal_at, -> (datetime) {
@@ -211,13 +271,15 @@ module ActiveRecord::Bitemporal
       scope :ignore_bitemporal_datetime, -> {
         ignore_transaction_datetime.ignore_valid_datetime
       }
+      scope :except_bitemporal_datetime, -> {
+        except_transaction_datetime.except_valid_datetime
+      }
 
       scope :bitemporal_default_scope, -> {
         datetime = Time.current
         relation = spawn
-        relation.unscope_values += [{ where: ["#{table.name}.valid_from", "#{table.name}.valid_to", "#{table.name}.transaction_from", "#{table.name}.transaction_to"] }]
 
-        relation = relation.transaction_at(datetime)
+        relation = relation.transaction_at(datetime).without_transaction_datetime
 
         if !ActiveRecord::Bitemporal.ignore_valid_datetime?
           datetime = ActiveRecord::Bitemporal.valid_datetime || datetime
@@ -229,12 +291,13 @@ module ActiveRecord::Bitemporal
         else
           relation.without_valid_datetime
         end
+      }
 
-#         if ActiveRecord::Bitemporal.valid_datetime
-#           bitemporal_at(Time.current).with_valid_datetime
-#         else
-#           bitemporal_at(Time.current).without_valid_datetime
-#         end
+      scope :except_bitemporal_default_scope, -> {
+        scope = all
+        scope = scope.except_valid_datetime unless bitemporal_value[:with_valid_datetime]
+        scope = scope.except_transaction_datetime unless bitemporal_value[:with_transaction_datetime]
+        scope
       }
 
       scope :within_deleted, -> {
