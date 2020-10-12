@@ -317,9 +317,6 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         context ".merge(.except_valid_datetime)" do
           let(:relation) { User.merge(User.except_valid_datetime) }
           it { is_expected.to have_bitemporal_at(time_current, table: "users") }
-          it do
-            puts sql
-          end
         end
 
         context ".merge(.bitemporal_at).bitemporal_at" do
