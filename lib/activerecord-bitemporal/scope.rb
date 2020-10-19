@@ -129,8 +129,8 @@ module ActiveRecord::Bitemporal
         end
 
         refine Array do
-          def delete_once(other)
-            index(other).yield_self { |i| delete_at(i) if i }
+          def delete_once(*other, &block)
+            index(*other, &block).yield_self { |i| delete_at(i) if i }
           end
         end
       }
@@ -163,15 +163,50 @@ module ActiveRecord::Bitemporal
           }
         }
       else
+        using Module.new {
+          refine ::Object do
+            def equal_attribute_name(*)
+              false
+            end
+          end
+          refine ::Hash do
+            def equal_attribute_name(other)
+              self[:where].equal_attribute_name(other)
+            end
+          end
+          refine ::Array do
+            def equal_attribute_name(other)
+              first.equal_attribute_name(other)
+            end
+          end
+          refine ::String do
+            def equal_attribute_name(other)
+              self == other.to_s
+            end
+          end
+          refine ::Symbol do
+            def equal_attribute_name(other)
+              self.to_s == other.to_s
+            end
+          end
+          refine ::Arel::Attributes::Attribute do
+            def equal_attribute_name(other)
+              "#{relation.name}.#{name}" == other.to_s
+            end
+          end
+        }
         %w(valid_from valid_to transaction_from transaction_to).each { |column|
           scope :"ignore_#{column}", -> {
             unscope(where: :"#{table.name}.#{column}")
               .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table[column]) if bitemporal_value[:through] }
           }
           scope :"except_#{column}", -> {
-            all.tap { |relation|
-              relation.where_clause = where_clause.except("#{table.name}.#{column}")
-              relation.unscope_values.delete_once({ where: "#{table.name}.#{column}" })
+            public_send(:"ignore_#{column}").tap { |relation|
+              # MEMO: must be except two unscope object
+              #       first object is unscope value added by `default_scope`
+              #       second object is unscope value added by `public_send(:"ignore_#{column}")`
+              relation.unscope_values.delete_once { |query| query.equal_attribute_name("#{table.name}.#{column}") }
+              relation.unscope_values.delete_once { |query| query.equal_attribute_name("#{table.name}.#{column}") }
             }
           }
 
