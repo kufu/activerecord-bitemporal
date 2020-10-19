@@ -130,7 +130,7 @@ module ActiveRecord::Bitemporal
 
         refine Array do
           def delete_once(other)
-            index(other).then { |i| delete_at(i) if i }
+            index(other).yield_self { |i| delete_at(i) if i }
           end
         end
       }
