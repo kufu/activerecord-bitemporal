@@ -304,9 +304,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
     describe ".merge" do
       context "bitemporal_datetime" do
-        context ".merge(.valid_at)" do
+        context ".merge(.bitemporal_at)" do
           let(:relation) { User.merge(User.bitemporal_at(_01_01)) }
           it { is_expected.to have_bitemporal_at(_01_01, table: "users") }
+        end
+
+        context ".merge(.bitemporal_at.except_bitemporal_datetime)" do
+          let(:relation) { User.merge(User.bitemporal_at(_01_01).except_bitemporal_datetime) }
+          it { is_expected.to not_have_bitemporal_at(table: "users") }
         end
 
         context ".merge(.ignore_bitemporal_datetime)" do
@@ -314,9 +319,29 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to not_have_bitemporal_at(table: "users") }
         end
 
+        context ".merge(.ignore_bitemporal_datetime.except_bitemporal_datetime)" do
+          let(:relation) { User.merge(User.ignore_bitemporal_datetime.except_bitemporal_datetime) }
+          it { is_expected.to not_have_bitemporal_at(table: "users") }
+        end
+
+        context ".merge(.ignore_bitemporal_datetime.bitepmoral_at.except_bitemporal_datetime)" do
+          let(:relation) { User.merge(User.ignore_bitemporal_datetime.bitemporal_at(_01_01).except_bitemporal_datetime) }
+          it { is_expected.to not_have_bitemporal_at(table: "users") }
+        end
+
+        context ".merge(.ignore_bitemporal_datetime.bitepmoral_at.except_bitemporal_datetime.bitemporal_at)" do
+          let(:relation) { User.merge(User.ignore_bitemporal_datetime.bitemporal_at(_01_01).except_bitemporal_datetime.bitemporal_at(_01_01)) }
+          it { is_expected.to have_bitemporal_at(_01_01, table: "users") }
+        end
+
         context ".merge(.except_valid_datetime)" do
           let(:relation) { User.merge(User.except_valid_datetime) }
           it { is_expected.to have_bitemporal_at(time_current, table: "users") }
+        end
+
+        context ".merge(.except_valid_datetime.bitemporal_at)" do
+          let(:relation) { User.merge(User.except_valid_datetime.bitemporal_at(_01_01)) }
+          it { is_expected.to have_bitemporal_at(_01_01, table: "users") }
         end
 
         context ".merge(.bitemporal_at).bitemporal_at" do
@@ -341,6 +366,11 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         context ".bitemporal_at.merge(.ignore_bitemporal_datetime)" do
           let(:relation) { User.bitemporal_at(_01_01).merge(User.ignore_bitemporal_datetime) }
+          it { is_expected.to not_have_bitemporal_at(table: "users") }
+        end
+
+        context ".bitemporal_at.merge(.ignore_bitemporal_datetime.except_bitemporal_datetime)" do
+          let(:relation) { User.bitemporal_at(_01_01).merge(User.ignore_bitemporal_datetime.except_bitemporal_datetime) }
           it { is_expected.to not_have_bitemporal_at(table: "users") }
         end
 
@@ -372,8 +402,32 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to have_transaction_at(time_current, table: "users") }
         end
 
+        context ".merge(.valid_at)" do
+          let(:relation) { User.merge(User.valid_at(_01_01).except_valid_datetime) }
+          it { is_expected.to not_have_valid_at(table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
         context ".merge(.ignore_valid_datetime)" do
           let(:relation) { User.merge(User.ignore_valid_datetime) }
+          it { is_expected.to not_have_valid_at(table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
+        context ".merge(.ignore_valid_datetime.except_valid_datetime)" do
+          let(:relation) { User.merge(User.ignore_valid_datetime.except_valid_datetime) }
+          it { is_expected.to not_have_valid_at(table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
+        context ".merge(.ignore_valid_datetime.valid_at)" do
+          let(:relation) { User.merge(User.ignore_valid_datetime.valid_at(_01_01)) }
+          it { is_expected.to have_valid_at(_01_01, table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
+        context ".merge(.ignore_valid_datetime.valid_at.except_valid_datetime)" do
+          let(:relation) { User.merge(User.ignore_valid_datetime.valid_at(_01_01).except_valid_datetime) }
           it { is_expected.to not_have_valid_at(table: "users") }
           it { is_expected.to have_transaction_at(time_current, table: "users") }
         end
@@ -381,6 +435,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         context ".merge(.except_valid_datetime)" do
           let(:relation) { User.merge(User.except_valid_datetime) }
           it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
+        context ".merge(.except_valid_datetime" do
+          let(:relation) { User.merge(User.except_valid_datetime.valid_at(_01_01)) }
+          it { is_expected.to have_valid_at(_01_01, table: "users") }
           it { is_expected.to have_transaction_at(time_current, table: "users") }
         end
 
@@ -410,6 +470,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         context ".valid_at.merge(.ignore_valid_datetime)" do
           let(:relation) { User.valid_at(_01_01).merge(User.ignore_valid_datetime) }
+          it { is_expected.to not_have_valid_at(table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
+        context ".valid_at.merge(.ignore_valid_datetime.except_valid_datetime)" do
+          let(:relation) { User.valid_at(_01_01).merge(User.ignore_valid_datetime.except_valid_datetime) }
           it { is_expected.to not_have_valid_at(table: "users") }
           it { is_expected.to have_transaction_at(time_current, table: "users") }
         end
@@ -446,16 +512,46 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to have_transaction_at(_01_01, table: "users") }
         end
 
+        context ".merge(.transaction_at.except_transaction_datetime)" do
+          let(:relation) { User.merge(User.transaction_at(_01_01).except_transaction_datetime) }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to not_have_transaction_at(table: "users") }
+        end
+
         context ".merge(.ignore_transaction_datetime)" do
           let(:relation) { User.merge(User.ignore_transaction_datetime) }
           it { is_expected.to have_valid_at(time_current, table: "users") }
           it { is_expected.to not_have_transaction_at(table: "users") }
         end
 
-        context ".merge(.except_valid_datetime)" do
-          let(:relation) { User.merge(User.except_valid_datetime) }
+        context ".merge(.ignore_transaction_datetime.except_transaction_datetime)" do
+          let(:relation) { User.merge(User.ignore_transaction_datetime.except_transaction_datetime) }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to not_have_transaction_at(table: "users") }
+        end
+
+        context ".merge(.ignore_transaction_datetime.transaction_at.except_transaction_datetime)" do
+          let(:relation) { User.merge(User.ignore_transaction_datetime.transaction_at(_01_01).except_transaction_datetime) }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to not_have_transaction_at(table: "users") }
+        end
+
+        context ".merge(.ignore_transaction_datetime.transaction_at.except_transaction_datetime.transaction_at)" do
+          let(:relation) { User.merge(User.ignore_transaction_datetime.transaction_at(_01_01).except_transaction_datetime.transaction_at(_01_01)) }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to have_transaction_at(_01_01, table: "users") }
+        end
+
+        context ".merge(.except_transaction_datetime)" do
+          let(:relation) { User.merge(User.except_transaction_datetime) }
           it { is_expected.to have_valid_at(time_current, table: "users") }
           it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+
+        context ".merge(.except_transaction_datetime.transaction_at)" do
+          let(:relation) { User.merge(User.except_transaction_datetime.transaction_at(_01_01)) }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to have_transaction_at(_01_01, table: "users") }
         end
 
         context ".merge(.transaction_at).transaction_at" do
@@ -484,6 +580,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         context ".transaction_at.merge(.ignore_transaction_datetime)" do
           let(:relation) { User.transaction_at(_01_01).merge(User.ignore_transaction_datetime) }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to not_have_transaction_at(table: "users") }
+        end
+
+        context ".transaction_at.merge(.ignore_transaction_datetime.except_transaction_datetime)" do
+          let(:relation) { User.transaction_at(_01_01).merge(User.ignore_transaction_datetime.except_transaction_datetime) }
           it { is_expected.to have_valid_at(time_current, table: "users") }
           it { is_expected.to not_have_transaction_at(table: "users") }
         end

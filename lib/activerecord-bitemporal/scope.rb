@@ -127,6 +127,12 @@ module ActiveRecord::Bitemporal
             bitemporal_option_storage[:ignore_valid_datetime]
           end
         end
+
+        refine Array do
+          def delete_once(other)
+            index(other).then { |i| delete_at(i) if i }
+          end
+        end
       }
 
       if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
@@ -135,11 +141,11 @@ module ActiveRecord::Bitemporal
             unscope(where: "#{table.name}.#{column}")
               .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"ignore_#{column}")) if bitemporal_value[:through] }
           }
+
           scope :"except_#{column}", -> {
-            public_send(:"ignore_#{column}").tap { |itself|
-              itself.unscope_values.reject! { |query|
-                query == { where: "#{table.name}.#{column}" }
-              }
+            all.tap { |relation|
+              relation.where_clause = where_clause.except("#{table.name}.#{column}")
+              relation.unscope_values.delete_once({ where: "#{table.name}.#{column}" })
             }
           }
 
@@ -157,48 +163,15 @@ module ActiveRecord::Bitemporal
           }
         }
       else
-        using Module.new {
-          refine ::Object do
-            def equal_attribute_name(*)
-              false
-            end
-          end
-          refine ::Hash do
-            def equal_attribute_name(other)
-              self[:where].equal_attribute_name(other)
-            end
-          end
-          refine ::Array do
-            def equal_attribute_name(other)
-              first.equal_attribute_name(other)
-            end
-          end
-          refine ::String do
-            def equal_attribute_name(other)
-              self == other.to_s
-            end
-          end
-          refine ::Symbol do
-            def equal_attribute_name(other)
-              self.to_s == other.to_s
-            end
-          end
-          refine ::Arel::Attributes::Attribute do
-            def equal_attribute_name(other)
-              "#{relation.name}.#{name}" == other.to_s
-            end
-          end
-        }
         %w(valid_from valid_to transaction_from transaction_to).each { |column|
           scope :"ignore_#{column}", -> {
             unscope(where: :"#{table.name}.#{column}")
               .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table[column]) if bitemporal_value[:through] }
           }
           scope :"except_#{column}", -> {
-            public_send(:"ignore_#{column}").tap { |itself|
-              itself.unscope_values.reject! { |query|
-                query.equal_attribute_name("#{table.name}.#{column}")
-              }
+            all.tap { |relation|
+              relation.where_clause = where_clause.except("#{table.name}.#{column}")
+              relation.unscope_values.delete_once({ where: "#{table.name}.#{column}" })
             }
           }
 
