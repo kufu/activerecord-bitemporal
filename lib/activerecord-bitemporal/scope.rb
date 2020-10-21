@@ -1,27 +1,20 @@
 module ActiveRecord::Bitemporal
-  module Relation
-    if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
-      class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
-        private
-
-        def except_predicates(columns)
-          columns = Array(columns)
-          predicates.reject do |node|
-            case node
-            when Arel::Nodes::Between, Arel::Nodes::In, Arel::Nodes::NotIn, Arel::Nodes::Equality, Arel::Nodes::NotEqual, Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
-              subrelation = (node.left.kind_of?(Arel::Attributes::Attribute) ? node.left : node.right)
-              # Add check table name
-              columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
-            end
-          end
+  using Module.new {
+    refine ::Arel::Nodes::Node do
+      def bitemporal_include?(*columns)
+        case self
+        when Arel::Nodes::Between, Arel::Nodes::In, Arel::Nodes::NotIn, Arel::Nodes::Equality, Arel::Nodes::NotEqual, Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
+          subrelation = (self.left.kind_of?(Arel::Attributes::Attribute) ? self.left : self.right)
+          # Add check table name
+          columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
+        else
+          false
         end
       end
-
-      def where_clause
-        WhereClauseWithCheckTable.new(super.send(:predicates))
-      end
     end
+  }
 
+  module Relation
     using Module.new {
       refine ActiveRecord::Relation::WhereClause do
         using Module.new {
@@ -88,6 +81,29 @@ module ActiveRecord::Bitemporal
       end
     }
 
+    if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+      class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
+        def bitemporal_include?(column)
+          !!predicates.find do |node|
+            node.bitemporal_include?(column)
+          end
+        end
+
+        private
+
+        def except_predicates(columns)
+          columns = Array(columns)
+          predicates.reject do |node|
+            node.bitemporal_include?(*columns)
+          end
+        end
+      end
+
+      def where_clause
+        WhereClauseWithCheckTable.new(super.send(:predicates))
+      end
+    end
+
     def valid_datetime
       bitemporal_clause[:valid_datetime]&.in_time_zone
     end
@@ -127,12 +143,6 @@ module ActiveRecord::Bitemporal
             bitemporal_option_storage[:ignore_valid_datetime]
           end
         end
-
-        refine Array do
-          def delete_once(*other, &block)
-            index(*other, &block).yield_self { |i| delete_at(i) if i }
-          end
-        end
       }
 
       if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
@@ -143,9 +153,9 @@ module ActiveRecord::Bitemporal
           }
 
           scope :"except_#{column}", -> {
-            all.tap { |relation|
-              relation.where_clause = where_clause.except("#{table.name}.#{column}")
-              relation.unscope_values.delete_once({ where: "#{table.name}.#{column}" })
+            break self unless where_clause.bitemporal_include?("#{table.name}.#{column}")
+            all.public_send(:"ignore_#{column}").tap { |relation|
+              relation.unscope_values.delete({ where: "#{table.name}.#{column}" })
             }
           }
 
@@ -200,13 +210,11 @@ module ActiveRecord::Bitemporal
             unscope(where: :"#{table.name}.#{column}")
               .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table[column]) if bitemporal_value[:through] }
           }
+
           scope :"except_#{column}", -> {
+            break self unless where_clause.send(:predicates).find { |node| node.bitemporal_include?("#{table.name}.#{column}") }
             public_send(:"ignore_#{column}").tap { |relation|
-              # MEMO: must be except two unscope object
-              #       first object is unscope value added by `default_scope`
-              #       second object is unscope value added by `public_send(:"ignore_#{column}")`
-              relation.unscope_values.delete_once { |query| query.equal_attribute_name("#{table.name}.#{column}") }
-              relation.unscope_values.delete_once { |query| query.equal_attribute_name("#{table.name}.#{column}") }
+              relation.unscope_values.reject! { |query| query.equal_attribute_name("#{table.name}.#{column}") }
             }
           }
 
