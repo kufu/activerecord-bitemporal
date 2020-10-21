@@ -104,6 +104,17 @@ module ActiveRecord::Bitemporal
       end
     end
 
+    module MergeWithExceptBitemporalDefaultScope
+      using BitemporalChecker
+      def merge!(other)
+        if klass.bi_temporal_model? && other.klass.bi_temporal_model?
+          super(other.except_bitemporal_default_scope)
+        else
+          super
+        end
+      end
+    end
+
     def valid_datetime
       bitemporal_clause[:valid_datetime]&.in_time_zone
     end

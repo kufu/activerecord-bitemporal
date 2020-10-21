@@ -534,7 +534,7 @@ module ActiveRecord
           .transaction_to_gt(transaction_from)
           .transaction_from_lt(transaction_to)
 
-        relation.merge(valid_at_scope).merge(transaction_at_scope)
+        relation.merge(valid_at_scope.with_valid_datetime).merge(transaction_at_scope.with_transaction_datetime)
       end
     end
   end
