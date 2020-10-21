@@ -107,7 +107,7 @@ module ActiveRecord::Bitemporal
     module MergeWithExceptBitemporalDefaultScope
       using BitemporalChecker
       def merge!(other)
-        if klass.bi_temporal_model? && other.klass.bi_temporal_model?
+        if other.is_a?(Relation) && klass.bi_temporal_model? && other.klass.bi_temporal_model?
           super(other.except_bitemporal_default_scope)
         else
           super
