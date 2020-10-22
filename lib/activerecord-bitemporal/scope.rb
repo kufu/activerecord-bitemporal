@@ -84,7 +84,7 @@ module ActiveRecord::Bitemporal
     if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
       class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
         def bitemporal_include?(column)
-          !!predicates.find do |node|
+          !!predicates.grep(::Arel::Nodes::Node).find do |node|
             node.bitemporal_include?(column)
           end
         end
@@ -94,7 +94,7 @@ module ActiveRecord::Bitemporal
         def except_predicates(columns)
           columns = Array(columns)
           predicates.reject do |node|
-            node.bitemporal_include?(*columns)
+            ::Arel::Nodes::Node === node && node.bitemporal_include?(*columns)
           end
         end
       end

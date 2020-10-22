@@ -150,6 +150,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to have_valid_at(time_current, table: "users") }
         it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
       end
+
+      context ".where(String).ignore_bitemporal_datetime" do
+        let(:relation) { User.where("age < 20").ignore_bitemporal_datetime }
+        it { is_expected.to not_have_bitemporal_at(table: "users") }
+        it { is_expected.to scan_once "age < 20" }
+      end
     end
 
     describe ".except_valid_datetime" do
