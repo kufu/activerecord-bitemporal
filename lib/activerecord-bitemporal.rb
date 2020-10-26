@@ -55,6 +55,9 @@ module ActiveRecord::Bitemporal::Bitemporalize
     def inherited(klass)
       super
       klass.prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
+      if relation_delegate_class(ActiveRecord::Relation).ancestors.include? ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
+        klass.relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
+      end
     end
 
   private
