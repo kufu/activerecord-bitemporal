@@ -112,7 +112,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
   def bitemporalize(
     enable_strict_by_validates_bitemporal_id: false,
     enable_default_scope: true,
-    enable_merge_with_except_bitemporal_default_scope: true
+    enable_merge_with_except_bitemporal_default_scope: false
   )
     extend ClassMethods
     include InstanceMethods
