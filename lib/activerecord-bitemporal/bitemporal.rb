@@ -445,14 +445,14 @@ module ActiveRecord
 
             # 以前の履歴データは valid_to を詰めて保存
             before_instance.valid_to = target_datetime
-            raise ActiveRecord::Rollback if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
+            raise ActiveRecord::RecordInvalid.new(before_instance) if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
             before_instance.transaction_from = current_time
             before_instance.save!(validate: false)
 
             # 以降の履歴データは valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
             after_instance.valid_to = current_valid_record.valid_to
-            raise ActiveRecord::Rollback if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
+            raise ActiveRecord::RecordInvalid.new(after_instance) if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
             after_instance.transaction_from = current_time
             after_instance.save!(validate: false)
 
@@ -460,6 +460,10 @@ module ActiveRecord
           else
             # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
             nearest_instance = self.class.where(bitemporal_id: bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
+            if nearest_instance.nil?
+              message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and 'valid_from' < #{target_datetime}"
+              raise ActiveRecord::RecordNotFound.new(message, self.class, "bitemporal_id", self.bitemporal_id)
+            end
 
             # valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
