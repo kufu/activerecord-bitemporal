@@ -313,6 +313,18 @@ module ActiveRecord
               }
             }
           end
+
+          def has_column?(name)
+            self.class.column_names.include? name.to_s
+          end
+
+          def update_transaction_to(value)
+            if has_column?(:deleted_at)
+              update_columns(transaction_to: value, deleted_at: value)
+            else
+              update_columns(transaction_to: value)
+            end
+          end
         end
 
         refine Object do
@@ -356,8 +368,22 @@ module ActiveRecord
       using EachAssociation
 
       def _create_record(attribute_names = self.attribute_names)
+        current_time = Time.current
+
         # 自身の `valid_from` を設定
-        self.valid_from = valid_datetime || Time.current if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+        self.valid_from = valid_datetime || current_time if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+
+        self.transaction_from = current_time if self.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
+
+         # Assign only if defined created_at and deleted_at
+        if has_column?(:created_at)
+          self.transaction_from = self.created_at if changes.key?("created_at")
+          self.created_at = self.transaction_from
+        end
+        if has_column?(:deleted_at)
+          self.transaction_to = self.deleted_at if changes.key?("deleted_at")
+          self.deleted_at = self.transaction_to == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO ? nil : self.transaction_to
+        end
 
         # アソシエーションの子に対して `valid_from` を設定
         # MEMO: cache が存在しない場合、 public_send(reflection.name) のタイミングで新しくアソシエーションオブジェクトが生成されるが
@@ -407,27 +433,27 @@ module ActiveRecord
           # force_update の場合は既存のレコードを論理削除した上で新しいレコードを生成する
           if current_valid_record.present? && force_update?
             # 有効なレコードは論理削除する
-            current_valid_record.update_columns(deleted_at: current_time)
+            current_valid_record.update_transaction_to(current_time)
             # 以降の履歴データはそのまま保存
-            after_instance.created_at = current_time
+            after_instance.transaction_from = current_time
             after_instance.save!(validate: false)
 
           # 有効なレコードがある場合
           elsif current_valid_record.present?
             # 有効なレコードは論理削除する
-            current_valid_record.update_columns(deleted_at: current_time)
+            current_valid_record.update_transaction_to(current_time)
 
             # 以前の履歴データは valid_to を詰めて保存
             before_instance.valid_to = target_datetime
             raise ActiveRecord::Rollback if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            before_instance.created_at = current_time
+            before_instance.transaction_from = current_time
             before_instance.save!(validate: false)
 
             # 以降の履歴データは valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
             after_instance.valid_to = current_valid_record.valid_to
             raise ActiveRecord::Rollback if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            after_instance.created_at = current_time
+            after_instance.transaction_from = current_time
             after_instance.save!(validate: false)
 
           # 有効なレコードがない場合
@@ -438,13 +464,14 @@ module ActiveRecord
             # valid_from と valid_to を調整して保存する
             after_instance.valid_from = target_datetime
             after_instance.valid_to = nearest_instance.valid_from
+            after_instance.transaction_from = current_time
             after_instance.save!(validate: false)
           end
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
 
-          return 1
+          1
         # MEMO: Must return false instead of nil, if `#_update_row` failure.
         end || false
       end
@@ -460,11 +487,11 @@ module ActiveRecord
 
           @destroyed = false
           _run_destroy_callbacks {
-            @destroyed = update_columns(deleted_at: current_time)
+            @destroyed = update_transaction_to(current_time)
 
             # 削除時の状態を履歴レコードとして保存する
             duplicated_instance.valid_to = target_datetime
-            duplicated_instance.created_at = current_time
+            duplicated_instance.transaction_from = current_time
             duplicated_instance.save!(validate: false)
           }
           raise ActiveRecord::Rollback unless @destroyed
@@ -533,7 +560,7 @@ module ActiveRecord
           # レコードを更新する時に valid_datetime が valid_from ~ valid_to の範囲外だった場合、
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
-          if (record.valid_datetime && (record.valid_from..record.valid_to).include?(record.valid_datetime)) == false && (record.persisted?)
+          if (record.valid_datetime && (record.valid_from..record.valid_to).cover?(record.valid_datetime)) == false && (record.persisted?)
             finder_class.where(bitemporal_id: record.bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
           else
             valid_to

@@ -5,9 +5,11 @@ ActiveRecord::Schema.define(version: 1) do
     t.string :name
 
     t.integer :bitemporal_id
-    t.datetime :valid_from
-    t.datetime :valid_to
-    t.datetime :deleted_at
+    t.datetime :valid_from, precision: 6
+    t.datetime :valid_to, precision: 6
+    t.datetime :deleted_at, precision: 6
+    t.datetime :transaction_from, precision: 6
+    t.datetime :transaction_to, precision: 6
 
     t.timestamps
   end
@@ -27,9 +29,11 @@ ActiveRecord::Schema.define(version: 1) do
     t.integer :companies_id
 
     t.integer :bitemporal_id
-    t.datetime :valid_from
-    t.datetime :valid_to
-    t.datetime :deleted_at
+    t.datetime :valid_from, precision: 6
+    t.datetime :valid_to, precision: 6
+    t.datetime :deleted_at, precision: 6
+    t.datetime :transaction_from, precision: 6
+    t.datetime :transaction_to, precision: 6
 
     t.timestamps
   end
@@ -51,9 +55,11 @@ ActiveRecord::Schema.define(version: 1) do
     t.string :name
 
     t.integer :bitemporal_id
-    t.datetime :valid_from
-    t.datetime :valid_to
-    t.datetime :deleted_at
+    t.datetime :valid_from, precision: 6
+    t.datetime :valid_to, precision: 6
+    t.datetime :deleted_at, precision: 6
+    t.datetime :transaction_from, precision: 6
+    t.datetime :transaction_to, precision: 6
 
     t.timestamps
   end

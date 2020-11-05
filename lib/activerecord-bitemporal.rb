@@ -9,6 +9,8 @@ require "activerecord-bitemporal/version"
 module ActiveRecord::Bitemporal
   DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
   DEFAULT_VALID_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
+  DEFAULT_TRANSACTION_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
+  DEFAULT_TRANSACTION_TO   = Time.utc(9999, 12, 31).in_time_zone.freeze
 
   extend ActiveSupport::Concern
   included do
@@ -33,8 +35,10 @@ module ActiveRecord::Bitemporal::Bitemporalize
     include ActiveRecord::Bitemporal::Relation::Finder
 
     DEFAULT_ATTRIBUTES = {
-      valid_from: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM,
-      valid_to: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+      valid_from:       ActiveRecord::Bitemporal::DEFAULT_VALID_FROM,
+      valid_to:         ActiveRecord::Bitemporal::DEFAULT_VALID_TO,
+      transaction_from: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM,
+      transaction_to:   ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
     }.freeze
 
     def bitemporal_id_key
@@ -124,6 +128,8 @@ module ActiveRecord::Bitemporal::Bitemporalize
     # validations
     validates :valid_from, presence: true
     validates :valid_to, presence: true
+    validates :transaction_from, presence: true
+    validates :transaction_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
     validate :created_at_cannot_be_greater_equal_than_deleted_at
 
