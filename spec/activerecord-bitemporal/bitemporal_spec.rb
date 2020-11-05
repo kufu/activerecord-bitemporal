@@ -784,13 +784,12 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
 
     context "failure" do
-      let(:company) { Company.create!(valid_from: "2019/2/1") }
-      let(:company_count) { -> { Company.ignore_valid_datetime.bitemporal_for(company.id).count } }
-      let(:company_deleted_at) { -> { Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.id).first.deleted_at } }
-      subject { -> { company.valid_at(valid_datetime) { |c| c.update(name: "Company") } } }
-
       context "`valid_datetime` is `company.valid_from`" do
+        let(:company) { Company.create!(valid_from: "2019/2/1") }
+        let(:company_count) { -> { Company.ignore_valid_datetime.bitemporal_for(company.id).count } }
+        let(:company_deleted_at) { -> { Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.id).first.deleted_at } }
         let(:valid_datetime) { company.valid_from }
+        subject { -> { company.valid_at(valid_datetime) { |c| c.update(name: "Company") } } }
 
         it { expect(subject.call).to be_falsey }
         it { is_expected.not_to change(&company_count) }
@@ -798,8 +797,22 @@ RSpec.describe ActiveRecord::Bitemporal do
 
         context "call `update!`" do
           subject { -> { company.valid_at(valid_datetime) { |c| c.update!(name: "Company") } } }
-          it { is_expected.to raise_error(ActiveRecord::RecordNotSaved) }
+          it { is_expected.to raise_error(ActiveRecord::RecordInvalid) }
+          it { is_expected.to raise_error { |e|
+            expect(e.message).to eq "Validation failed: Valid from can't be greater equal than valid_to"
+          } }
         end
+      end
+
+      context "update for deleted record" do
+        let(:datetime) { "2020/01/01".in_time_zone }
+        let(:company) { Company.create!(valid_from: "2019/02/01", valid_to: "2019/04/01") }
+        subject { -> { Timecop.freeze(datetime) { company.update!(name: "Company2") } } }
+        before { company.destroy }
+        it { is_expected.to raise_error(ActiveRecord::RecordNotFound) }
+        it { is_expected.to raise_error { |e|
+          expect(e.message).to eq "Update failed: Couldn't find Company with 'bitemporal_id'=#{company.bitemporal_id} and 'valid_from' is greater than #{datetime}"
+        } }
       end
     end
   end
