@@ -831,7 +831,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     context "failure" do
       context "`valid_datetime` is `company.valid_from`" do
-        let(:company) { Company.create!(valid_from: "2019/2/1") }
+        let!(:company) { Company.create!(valid_from: "2019/2/1") }
         let(:company_count) { -> { Company.ignore_valid_datetime.bitemporal_for(company.id).count } }
         let(:company_transaction_to) { -> { Company.ignore_valid_datetime.within_deleted.bitemporal_for(company.id).first.transaction_to } }
         let(:valid_datetime) { company.valid_from }
