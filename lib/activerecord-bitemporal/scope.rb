@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveRecord::Bitemporal
   using Module.new {
     refine ::Arel::Nodes::Node do
