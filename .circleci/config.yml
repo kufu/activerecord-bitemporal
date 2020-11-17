@@ -13,7 +13,7 @@ executors:
 
   ruby_2_7:
     docker:
-      - image: ruby:2.7.1
+      - image: ruby:2.7.2
       - image: circleci/postgres:11-alpine
 
 commands:
