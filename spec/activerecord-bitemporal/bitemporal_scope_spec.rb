@@ -1416,6 +1416,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to not_have_transaction_at(table: "blogs") }
       end
 
+      context "ActiveRecord::Bitemporal.valid_at" do
+        let(:relation) { ActiveRecord::Bitemporal.valid_at(_01_01) { Blog.all } }
+        it { is_expected.to not_have_valid_at(table: "blogs") }
+        it { is_expected.to not_have_transaction_at(table: "blogs") }
+      end
+
       context ".transaction_at" do
         let(:relation) { Blog.transaction_at(_01_01) }
         it { is_expected.to not_have_valid_at(table: "blogs") }
@@ -1439,6 +1445,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to not_have_valid_at(table: "blogs") }
         it { is_expected.to have_transaction_at(_01_01, table: "blogs") }
       end
+
     end
   end
 
@@ -1702,7 +1709,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
     context "default scope" do
       let(:relation) { Blog.all }
-      it { is_expected.to be_falsey }
+      it { is_expected.to eq :default_scope }
     end
 
     context "with .valid_at" do
@@ -1717,11 +1724,41 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
     context "with valid_at.ignore_valid_datetime" do
       let(:relation) { Blog.valid_at("04/01").ignore_valid_datetime }
-      it { is_expected.to be_truthy }
+      it { is_expected.to be_falsey }
     end
 
     context "with ignore_valid_datetime.valid_at" do
       let(:relation) { Blog.ignore_valid_datetime.valid_at("04/01") }
+      it { is_expected.to be_truthy }
+    end
+
+    context "with ActiveRecord::Bitemporal.valid_at" do
+      let(:relation) { ActiveRecord::Bitemporal.valid_at("04/01") { Blog.all } }
+      it { is_expected.to eq :default_scope_with_valid_datetime }
+    end
+
+    context "with ActiveRecord::Bitemporal.ignore_valid_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_valid_datetime { Blog.all } }
+      it { is_expected.to be_falsey }
+    end
+
+    context "with ActiveRecord::Bitemporal.valid_at -> .ignore_valid_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.valid_at("04/01") { Blog.ignore_valid_datetime } }
+      it { is_expected.to be_falsey }
+    end
+
+    context "with ActiveRecord::Bitemporal.valid_at -> ActiveRecord::Bitemporal.ignore_valid_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.valid_at("04/01") { ActiveRecord::Bitemporal.ignore_valid_datetime { Blog.all } } }
+      it { is_expected.to be_falsey }
+    end
+
+    context "with ActiveRecord::Bitemporal.ignore_valid_datetime -> .valid_at" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_valid_datetime { Blog.valid_at("04/01") } }
+      it { is_expected.to be_truthy }
+    end
+
+    context "with ActiveRecord::Bitemporal.ignore_valid_datetime -> ActiveRecord::Bitemporal.valid_at" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_valid_datetime { ActiveRecord::Bitemporal.valid_at("04/01") { Blog.all } } }
       it { is_expected.to be_truthy }
     end
 
@@ -1751,7 +1788,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
     context "with transaction_at.ignore_transaction_datetime" do
       let(:relation) { Blog.transaction_at("04/01").ignore_transaction_datetime }
-      it { is_expected.to be_truthy }
+      it { is_expected.to be_falsey }
     end
 
     context "with ignore_transaction_datetime.transaction_at" do

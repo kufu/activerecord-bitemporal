@@ -126,7 +126,7 @@ module ActiveRecord
         records = ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) { super }
 
         return records if records.empty?
-        return records unless bitemporal_value[:with_valid_datetime] && valid_datetime_
+        return records unless ActiveRecord::Bitemporal.valid_datetime || bitemporal_value[:with_valid_datetime] && bitemporal_value[:with_valid_datetime] != :default_scope && valid_datetime_
 
         records.each do |record|
           record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime_

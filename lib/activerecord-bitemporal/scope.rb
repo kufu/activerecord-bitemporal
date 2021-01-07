@@ -271,10 +271,10 @@ module ActiveRecord::Bitemporal
         valid_from_lteq(datetime).valid_to_gt(datetime).with_valid_datetime
       }
       scope :ignore_valid_datetime, -> {
-        ignore_valid_from.ignore_valid_to
+        ignore_valid_from.ignore_valid_to.without_valid_datetime
       }
       scope :except_valid_datetime, -> {
-        except_valid_from.except_valid_to
+        except_valid_from.except_valid_to.without_valid_datetime
       }
 
       # transaction_from <= datetime && datetime < transaction_to
@@ -283,10 +283,10 @@ module ActiveRecord::Bitemporal
         transaction_from_lteq(datetime).transaction_to_gt(datetime).with_transaction_datetime
       }
       scope :ignore_transaction_datetime, -> {
-        ignore_transaction_from.ignore_transaction_to
+        ignore_transaction_from.ignore_transaction_to.without_transaction_datetime
       }
       scope :except_transaction_datetime, -> {
-        except_transaction_from.except_transaction_to
+        except_transaction_from.except_transaction_to.without_transaction_datetime
       }
 
       scope :bitemporal_at, -> (datetime) {
@@ -311,20 +311,21 @@ module ActiveRecord::Bitemporal
         relation = relation.transaction_at(datetime).without_transaction_datetime
 
         if !ActiveRecord::Bitemporal.ignore_valid_datetime?
-          datetime = ActiveRecord::Bitemporal.valid_datetime || datetime
-          relation = relation.valid_at(datetime)
-        end
-
-        if ActiveRecord::Bitemporal.valid_datetime
-          relation.with_valid_datetime
+          if ActiveRecord::Bitemporal.valid_datetime
+            relation = relation.valid_at(ActiveRecord::Bitemporal.valid_datetime)
+            relation.tap { |relation| relation.bitemporal_value[:with_valid_datetime] = :default_scope_with_valid_datetime }
+          else
+            relation = relation.valid_at(datetime)
+            relation.tap { |relation| relation.bitemporal_value[:with_valid_datetime] = :default_scope }
+          end
         else
-          relation.without_valid_datetime
+          relation.tap { |relation| relation.without_valid_datetime unless ActiveRecord::Bitemporal.valid_datetime }
         end
       }
 
       scope :except_bitemporal_default_scope, -> {
         scope = all
-        scope = scope.except_valid_datetime unless bitemporal_value[:with_valid_datetime]
+        scope = scope.except_valid_datetime if bitemporal_value[:with_valid_datetime] == :default_scope || bitemporal_value[:with_valid_datetime] == :default_scope_with_valid_datetime
         scope = scope.except_transaction_datetime unless bitemporal_value[:with_transaction_datetime]
         scope
       }
