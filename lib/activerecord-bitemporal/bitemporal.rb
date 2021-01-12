@@ -385,13 +385,9 @@ module ActiveRecord
           self.deleted_at = self.transaction_to == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO ? nil : self.transaction_to
         end
 
-        # アソシエーションの子に対して `valid_from` を設定
-        # MEMO: cache が存在しない場合、 public_send(reflection.name) のタイミングで新しくアソシエーションオブジェクトが生成されるが
-        # この時に何故か生成できずに落ちるケースがあるので cache しているアソシエーションに対してのみイテレーションする
-        each_association(deep: true, only_cached: true)
-          .select { |asso| asso.class.bi_temporal_model? && asso.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM && asso.new_record? }
-          .each   { |asso| asso.valid_from = self.valid_from }
-        super()
+        ActiveRecord::Bitemporal.valid_at!(self.valid_from) {
+          super()
+        }
       end
 
       def save(**)
