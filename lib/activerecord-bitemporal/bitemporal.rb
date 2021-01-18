@@ -396,14 +396,14 @@ module ActiveRecord
 
       def save(**)
         ActiveRecord::Base.transaction(requires_new: true) do
-          self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
+          self.class.where(bitemporal_id: self.id).lock!.pluck(:id) if self.id
           super
         end
       end
 
       def save!(**)
         ActiveRecord::Base.transaction(requires_new: true) do
-          self.class.where(bitemporal_id: self.id).lock!.pluck(:id)
+          self.class.where(bitemporal_id: self.id).lock!.pluck(:id) if self.id
           super
         end
       end
