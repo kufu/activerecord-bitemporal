@@ -5,6 +5,6 @@
 source "https://rubygems.org"
 
 gem "appraisal"
-gem "rails", git: "https://github.com/rails/rails.git"
+gem "rails", git: "https://github.com/rails/rails.git", branch: "main"
 
 gemspec path: "../"
