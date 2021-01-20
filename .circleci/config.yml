@@ -47,11 +47,11 @@ jobs:
       - run_rspec:
           gemfile: rails-6.1
 
-  ruby_2_5_rails_master:
+  ruby_2_5_rails_main:
     executor: ruby_2_5
     steps:
       - run_rspec:
-          gemfile: rails-master
+          gemfile: rails-main
 
   ruby_2_6_rails_5_2:
     executor: ruby_2_6
@@ -71,11 +71,11 @@ jobs:
       - run_rspec:
           gemfile: rails-6.1
 
-  ruby_2_6_rails_master:
+  ruby_2_6_rails_main:
     executor: ruby_2_6
     steps:
       - run_rspec:
-          gemfile: rails-master
+          gemfile: rails-main
 
   ruby_2_7_rails_5_2:
     executor: ruby_2_7
@@ -95,11 +95,11 @@ jobs:
       - run_rspec:
           gemfile: rails-6.1
 
-  ruby_2_7_rails_master:
+  ruby_2_7_rails_main:
     executor: ruby_2_7
     steps:
       - run_rspec:
-          gemfile: rails-master
+          gemfile: rails-main
 
 workflows:
   version: 2
@@ -109,15 +109,15 @@ workflows:
       - ruby_2_5_rails_5_2
       - ruby_2_5_rails_6_0
       - ruby_2_5_rails_6_1
-      - ruby_2_5_rails_master
+      - ruby_2_5_rails_main
       - ruby_2_6_rails_5_2
       - ruby_2_6_rails_6_0
       - ruby_2_6_rails_6_1
-      - ruby_2_6_rails_master
+      - ruby_2_6_rails_main
       - ruby_2_7_rails_5_2
       - ruby_2_7_rails_6_0
       - ruby_2_7_rails_6_1
-      - ruby_2_7_rails_master
+      - ruby_2_7_rails_main
 
   daily_test:
     triggers:
