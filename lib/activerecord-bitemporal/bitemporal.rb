@@ -327,7 +327,7 @@ module ActiveRecord
           end
         end
 
-        refine Object do
+        refine ActiveRecord::Base do
           # MEMO: Do not copy `swapped_id`
           def dup(*)
             super.tap { |itself|
