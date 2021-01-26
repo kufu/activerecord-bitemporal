@@ -16,6 +16,11 @@ executors:
       - image: ruby:2.7.2
       - image: circleci/postgres:11-alpine
 
+  ruby_3_0:
+    docker:
+      - image: ruby:3.0.0
+      - image: circleci/postgres:11-alpine
+
 commands:
   run_rspec:
     parameters:
@@ -101,6 +106,18 @@ jobs:
       - run_rspec:
           gemfile: rails-main
 
+  ruby_3_0_rails_6_1:
+    executor: ruby_3_0
+    steps:
+      - run_rspec:
+          gemfile: rails-6.1
+
+  ruby_3_0_rails_main:
+    executor: ruby_3_0
+    steps:
+      - run_rspec:
+          gemfile: rails-main
+
 workflows:
   version: 2
 
@@ -118,6 +135,8 @@ workflows:
       - ruby_2_7_rails_6_0
       - ruby_2_7_rails_6_1
       - ruby_2_7_rails_main
+      - ruby_3_0_rails_6_1
+      - ruby_3_0_rails_main
 
   daily_test:
     triggers:
