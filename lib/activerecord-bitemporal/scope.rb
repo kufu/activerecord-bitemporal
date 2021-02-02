@@ -87,7 +87,7 @@ module ActiveRecord::Bitemporal
       end
     }
 
-    if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+    if ActiveRecord.version < Gem::Version.new("6.1.0")
       class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
         def bitemporal_include?(column)
           !!predicates.grep(::Arel::Nodes::Node).find do |node|
@@ -162,7 +162,7 @@ module ActiveRecord::Bitemporal
         end
       }
 
-      if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+      if ActiveRecord.version < Gem::Version.new("6.1.0")
         %i(valid_from valid_to transaction_from transaction_to).each { |column|
           scope :"ignore_#{column}", -> {
             unscope(where: "#{table.name}.#{column}")
@@ -359,7 +359,7 @@ module ActiveRecord::Bitemporal
         where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
       }
 
-      if ActiveRecord.version < Gem::Version.new("6.1.0.alpha")
+      if ActiveRecord.version < Gem::Version.new("6.1.0")
       else
         scope :bitemporal_rewhere_bind, -> (attr_name, operator, value, table = self.table) {
           rewhere(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
