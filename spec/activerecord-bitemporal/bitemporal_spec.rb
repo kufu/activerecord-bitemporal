@@ -2062,4 +2062,10 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
   end
+
+  describe "ActiveRecord" do
+    context "[Bug fix] https://github.com/rails/rails/pull/38583 in Rails 5.x" do
+      it { expect { Employee.where(Arel.sql("name").eq("Tom")).except_bitemporal_default_scope.to_sql }.not_to raise_error }
+    end
+  end
 end

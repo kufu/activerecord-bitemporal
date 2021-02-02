@@ -6,9 +6,13 @@ module ActiveRecord::Bitemporal
       def bitemporal_include?(*columns)
         case self
         when Arel::Nodes::Between, Arel::Nodes::In, Arel::Nodes::NotIn, Arel::Nodes::Equality, Arel::Nodes::NotEqual, Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
-          subrelation = (self.left.kind_of?(Arel::Attributes::Attribute) ? self.left : self.right)
-          # Add check table name
-          columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
+          if self.left.kind_of?(Arel::Attributes::Attribute)
+            subrelation = self.left
+            columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
+          elsif self.right.kind_of?(Arel::Attributes::Attribute)
+            subrelation = self.right
+            columns.include?(subrelation.name.to_s) || columns.include?("#{subrelation.relation.name}.#{subrelation.name}")
+          end
         else
           false
         end
