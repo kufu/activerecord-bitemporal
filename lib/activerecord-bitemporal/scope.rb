@@ -41,23 +41,28 @@ module ActiveRecord::Bitemporal
           end
         }
 
-        def select_operatable_node(nodes = predicates)
-          Array(nodes).flat_map { |node|
-            case node
-            when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
-              node && node.left.respond_to?(:relation) ? node : nil
-            when Arel::Nodes::Or
-              select_operatable_node(node.left) + select_operatable_node(node.right)
-            when Arel::Nodes::And
-              select_operatable_node(node.left) + select_operatable_node(node.right)
-            when Arel::Nodes::Grouping
-              select_operatable_node(node.expr)
-            end
-          }.compact
+        def each_operatable_node(nodes = predicates, &block)
+          if block
+            each_operatable_node(nodes).each(&block)
+          else
+            Enumerator.new { |y|
+              Array(nodes).each { |node|
+                case node
+                when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
+                  y << node if node && node.left.respond_to?(:relation)
+                when Arel::Nodes::Or, Arel::Nodes::And
+                  each_operatable_node(node.left) { |node| y << node }
+                  each_operatable_node(node.right) { |node| y << node }
+                when Arel::Nodes::Grouping
+                  each_operatable_node(node.expr) { |node| y << node }
+                end
+              }
+            }
+          end
         end
 
         def bitemporal_query_hash(*names)
-          select_operatable_node
+          each_operatable_node
             .select { |node| names.include? node.left.name.to_s }
             .inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
             value = node.right.try(:val) || node.right.try(:value).try(:value_before_type_cast)
