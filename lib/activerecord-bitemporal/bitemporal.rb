@@ -368,22 +368,7 @@ module ActiveRecord
       using EachAssociation
 
       def _create_record(attribute_names = self.attribute_names)
-        current_time = Time.current
-
-        # 自身の `valid_from` を設定
-        self.valid_from = valid_datetime || current_time if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
-
-        self.transaction_from = current_time if self.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
-
-         # Assign only if defined created_at and deleted_at
-        if has_column?(:created_at)
-          self.transaction_from = self.created_at if changes.key?("created_at")
-          self.created_at = self.transaction_from
-        end
-        if has_column?(:deleted_at)
-          self.transaction_to = self.deleted_at if changes.key?("deleted_at")
-          self.deleted_at = self.transaction_to == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO ? nil : self.transaction_to
-        end
+        bitemporal_assign_initialize_value(valid_datetime: self.valid_datetime)
 
         ActiveRecord::Bitemporal.valid_at!(self.valid_from) {
           super()
@@ -523,6 +508,25 @@ module ActiveRecord
           # NOTE: Hook to copying swapped_id
           @_swapped_id = fresh_object.swapped_id
           self
+        end
+      end
+
+      private
+
+      def bitemporal_assign_initialize_value(valid_datetime:, current_time: Time.current)
+        # 自身の `valid_from` を設定
+        self.valid_from = valid_datetime || current_time if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+
+        self.transaction_from = current_time if self.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
+
+         # Assign only if defined created_at and deleted_at
+        if has_column?(:created_at)
+          self.transaction_from = self.created_at if changes.key?("created_at")
+          self.created_at = self.transaction_from
+        end
+        if has_column?(:deleted_at)
+          self.transaction_to = self.deleted_at if changes.key?("deleted_at")
+          self.deleted_at = self.transaction_to == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO ? nil : self.transaction_to
         end
       end
     end
