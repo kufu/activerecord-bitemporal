@@ -1163,6 +1163,121 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
   end
 
+  describe "bitemporal_option_merge_with_association!" do
+    let(:valid_datetime) { 1.day.since }
+    let(:company) { Company.create(name: "Company") }
+    before do
+      company.employees.create(name: "Jane", address: Address.create(city: "Tokyo"))
+      company.employees.create(name: "Tom", address: Address.create(city: "Kyoto"))
+      company.employees.create(name: "Kevin", address: Address.create(city: "Saitama"))
+    end
+
+    context "preloading" do
+      context "[Company] --has_many--> Employee --has_one--> Address" do
+        it "merges options into company with associations" do
+          company_id = company.id
+          company = Company.includes(:employees, employees: :address).find(company_id)
+
+          company.bitemporal_option_merge_with_association!(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          employee = company.employees.first
+          address = employee.address
+
+          aggregate_failures do
+            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          end
+        end
+      end
+
+      context "Company <--belongs_to-- [Employee] --has_one--> Address" do
+        it "merges options into employee with associations" do
+          employee = Employee.includes(:company, :address).find(company.employees.first.id)
+
+          employee.bitemporal_option_merge_with_association!(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          company = employee.company
+          address = employee.address
+
+          aggregate_failures do
+            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          end
+        end
+      end
+
+      context "Company <--belongs_to-- Employee <--belongs_to-- [Address]" do
+        it "merges options into address with associations" do
+          address = Address.includes(employee: :company).find(company.employees.first.address.id)
+
+          address.bitemporal_option_merge_with_association!(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          employee = address.employee
+          company = employee.company
+
+          aggregate_failures do
+            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          end
+        end
+      end
+    end
+
+    context "not preloading" do
+      context "[Company] --has_many--> Employee --has_one--> Address" do
+        it "merges options into only company" do
+          company.reload
+
+          company.bitemporal_option_merge_with_association!(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          employee = company.employees.first
+          address = employee.address
+
+          aggregate_failures do
+            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            # NOTE: If the association is not preloaded, the owner's valid_datetime is inherited when loading.
+            #       @see https://github.com/kufu/activerecord-bitemporal/blob/36267a95b8a971106511a4716bc5f923faea90d3/lib/activerecord-bitemporal/patches.rb#L62
+            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime)
+            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime)
+          end
+        end
+      end
+
+      context "Company <--belongs_to-- [Employee] --has_one--> Address" do
+        it "merges options into only employee" do
+          employee = company.employees.first
+          employee.reload
+
+          employee.bitemporal_option_merge_with_association!(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          company = employee.company
+          address = employee.address
+
+          aggregate_failures do
+            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime)
+            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime)
+          end
+        end
+      end
+
+      context "Company <--belongs_to-- Employee <--belongs_to-- [Address]" do
+        it "merges options into only address" do
+          address = company.employees.first.address
+          address.reload
+
+          address.bitemporal_option_merge_with_association!(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+          employee = address.employee
+          company = employee.company
+
+          aggregate_failures do
+            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime)
+            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime)
+          end
+        end
+      end
+    end
+  end
+
   describe "Optionable" do
     describe "#bitemporal_option" do
       context "after query method" do
@@ -1233,6 +1348,20 @@ RSpec.describe ActiveRecord::Bitemporal do
           expect(ActiveRecord::Bitemporal.bitemporal_option).to be_empty
           expect(Employee.all.bitemporal_option).to be_empty
         end
+      end
+    end
+
+    describe "#bitemporal_option_merge!" do
+      let!(:employee) { Employee.create(emp_code: "001", name: "Tom") }
+
+      it 'merges options into an employee instance' do
+        expect(employee.bitemporal_option).to be_empty
+
+        employee.bitemporal_option_merge!(valid_datetime: '2021/03/01', ignore_valid_datetime: false)
+        expect(employee.bitemporal_option).to eq(valid_datetime: '2021/03/01', ignore_valid_datetime: false)
+
+        employee.bitemporal_option_merge!(valid_datetime: '2021/01/01', force_valid_datetime: true)
+        expect(employee.bitemporal_option).to eq(valid_datetime: '2021/01/01', ignore_valid_datetime: false, force_valid_datetime: true)
       end
     end
 
