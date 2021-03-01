@@ -1773,4 +1773,206 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
   end
+
+  describe "#bitemporal_build_update_records" do
+    let(:from) { time_current }
+    let(:to) { from + 10.days }
+    let(:finish) { Time.utc(9999, 12, 31).in_time_zone }
+    let(:created_at) { 1.day.ago.round(6) }
+    let!(:employee) do
+      Employee.create!(name: "Jone", valid_from: from, valid_to: to, transaction_from: created_at)
+    end
+    let(:now) { time_current }
+    let(:valid_datetime) { time_current }
+    let(:force_update) { false }
+
+    subject do
+      employee.name = "Tom"
+      employee.__send__(:bitemporal_build_update_records, valid_datetime: valid_datetime, current_time: now, force_update: force_update)
+    end
+
+    # before: |-----------------------|
+    # update:             *
+    # after:  |-----------|
+    #                     |-----------|
+    context "valid_datetime is in" do
+      let(:valid_datetime) { from + 5.days }
+
+      it "returns the current valid record and before/after records" do
+        current, before, after = subject
+
+        aggregate_failures do
+          expect(current).to have_attributes(
+            name: "Jone",
+            valid_from: from,
+            valid_to: to,
+            transaction_from: created_at,
+            transaction_to: now,
+            deleted_at: now,
+          )
+          expect(before).to have_attributes(
+            name: "Jone",
+            valid_from: from,
+            valid_to: valid_datetime,
+            transaction_from: now,
+            transaction_to: finish,
+            deleted_at: nil,
+          )
+          expect(after).to have_attributes(
+            name: "Tom",
+            valid_from: valid_datetime,
+            valid_to: to,
+            transaction_from: now,
+            transaction_to: finish,
+            deleted_at: nil,
+          )
+        end
+      end
+
+      context "with force_update" do
+        let(:force_update) { true }
+
+        it "returns the current valid record and an after record" do
+          current, before, after = subject
+
+          aggregate_failures do
+            expect(current).to have_attributes(
+              name: "Jone",
+              valid_from: from,
+              valid_to: to,
+              transaction_from: created_at,
+              transaction_to: now,
+              deleted_at: now,
+            )
+            expect(before).to be_nil
+            expect(after).to have_attributes(
+              name: "Tom",
+              valid_from: from,
+              valid_to: to,
+              transaction_from: now,
+              transaction_to: finish,
+              deleted_at: nil,
+            )
+          end
+        end
+      end
+    end
+
+    # before:          |-----------|     |-----------|
+    # update:  *
+    # after:   |-------|
+    #                  |-----------|     |-----------|
+    context "valid_datetime is before" do
+      before do
+        Employee.create!(bitemporal_id: employee.bitemporal_id, valid_from: to + 5.days, valid_to: to + 10.days)
+      end
+      let(:valid_datetime) { from - 5.days }
+
+      it "returns only an after record" do
+        current, before, after = subject
+
+        aggregate_failures do
+          expect(current).to be_nil
+          expect(before).to be_nil
+          expect(after).to have_attributes(
+            name: "Tom",
+            valid_from: valid_datetime,
+            valid_to: from,
+            transaction_from: now,
+            transaction_to: finish,
+            deleted_at: nil,
+          )
+        end
+      end
+
+      context "with force_update" do
+        let(:force_update) { true }
+
+        it "returns the current valid record and an after record" do
+          current, before, after = subject
+
+          aggregate_failures do
+            expect(current).to have_attributes(
+              name: "Jone",
+              valid_from: from,
+              valid_to: to,
+              transaction_from: created_at,
+              transaction_to: now,
+              deleted_at: now,
+            )
+            expect(before).to be_nil
+            expect(after).to have_attributes(
+              name: "Tom",
+              valid_from: from,
+              valid_to: to,
+              transaction_from: now,
+              transaction_to: finish,
+              deleted_at: nil,
+            )
+          end
+        end
+      end
+    end
+
+    # TODO
+    # before |-----------|
+    #                        *
+    # after  |-----------|
+    #                        |----------->
+    xcontext "valid_datetime is after" do
+      let(:valid_datetime) { to + 5.days }
+
+      it "returns before/after records" do
+        current, before, after = subject
+
+        aggregate_failures do
+          expect(current).to be_nil
+          expect(before).to have_attributes(
+            name: "Jone",
+            valid_from: from,
+            valid_to: to,
+            transaction_from: now,
+            transaction_to: finish,
+            deleted_at: nil,
+          )
+          expect(after).to have_attributes(
+            name: "Tom",
+            valid_from: valid_datetime,
+            valid_to: finish,
+            transaction_from: now,
+            transaction_to: finish,
+            deleted_at: nil,
+          )
+        end
+      end
+
+      context "with force_update" do
+        let(:force_update) { true }
+
+        it "returns the current valid record and an after record" do
+          current, before, after = subject
+
+          aggregate_failures do
+            expect(current).to have_attributes(
+              name: "Jone",
+              valid_from: from,
+              valid_to: to,
+              transaction_from: created_at,
+              transaction_to: now,
+              deleted_at: now,
+            )
+            expect(before).to be_nil
+            expect(after).to have_attributes(
+              name: "Tom",
+              valid_from: from,
+              valid_to: to,
+              transaction_from: now,
+              transaction_to: finish,
+              deleted_at: nil,
+            )
+          end
+        end
+      end
+    end
+  end
 end
