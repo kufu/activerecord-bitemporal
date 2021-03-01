@@ -282,6 +282,36 @@ module ActiveRecord
 
     # create, update, destroy に処理をフックする
     module Persistence
+      module EachAssociation
+        refine ActiveRecord::Persistence do
+          def each_association(
+            deep: false,
+            ignore_associations: [],
+            only_cached: false,
+            &block
+          )
+            klass = self.class
+            enum = Enumerator.new { |y|
+              reflections = klass.reflect_on_all_associations
+              reflections.each { |reflection|
+                next if only_cached && !association_cached?(reflection.name)
+
+                associations = reflection.collection? ? public_send(reflection.name) : [public_send(reflection.name)]
+                associations.compact.each { |asso|
+                  next if ignore_associations.include? asso
+                  ignore_associations << asso
+                  y << asso
+                  asso.each_association(deep: deep, ignore_associations: ignore_associations, only_cached: only_cached) { |it| y << it } if deep
+                }
+              }
+              self
+            }
+            enum.each(&block)
+          end
+        end
+      end
+      using EachAssociation
+
       module PersistenceOptionable
         include Optionable
 
@@ -299,6 +329,16 @@ module ActiveRecord
 
         def valid_datetime
           bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+        end
+
+        def bitemporal_option_merge_with_association!(other)
+          bitemporal_option_merge!(other)
+
+          # Only cached associations will be walked for performance issues
+          each_association(deep: true, only_cached: true).each do |association|
+            next unless association.respond_to?(:bitemporal_option_merge!)
+            association.bitemporal_option_merge!(other)
+          end
         end
       end
       include PersistenceOptionable
@@ -336,36 +376,6 @@ module ActiveRecord
           end
         end
       }
-
-      module EachAssociation
-        refine ActiveRecord::Persistence do
-          def each_association(
-            deep: false,
-            ignore_associations: [],
-            only_cached: false,
-            &block
-          )
-            klass = self.class
-            enum = Enumerator.new { |y|
-              reflections = klass.reflect_on_all_associations
-              reflections.each { |reflection|
-                next if only_cached && !association_cached?(reflection.name)
-
-                associations = reflection.collection? ? public_send(reflection.name) : [public_send(reflection.name)]
-                associations.compact.each { |asso|
-                  next if ignore_associations.include? asso
-                  ignore_associations << asso
-                  y << asso
-                  asso.each_association(deep: deep, ignore_associations: ignore_associations, only_cached: only_cached) { |it| y << it } if deep
-                }
-              }
-              self
-            }
-            enum.each(&block)
-          end
-        end
-      end
-      using EachAssociation
 
       def _create_record(attribute_names = self.attribute_names)
         bitemporal_assign_initialize_value(valid_datetime: self.valid_datetime)
