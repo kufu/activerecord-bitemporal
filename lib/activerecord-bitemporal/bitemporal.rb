@@ -432,9 +432,9 @@ module ActiveRecord
         current_time = Time.current
         target_datetime = valid_datetime || current_time
 
-        with_transaction_returning_status do
-          duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
+        duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
 
+        ActiveRecord::Base.transaction(requires_new: true) do
           @destroyed = false
           _run_destroy_callbacks {
             @destroyed = update_transaction_to(current_time)
@@ -444,13 +444,13 @@ module ActiveRecord
             duplicated_instance.transaction_from = current_time
             duplicated_instance.save!(validate: false)
           }
-          raise ActiveRecord::Rollback unless @destroyed
+          raise ActiveRecord::RecordInvalid unless @destroyed
 
           self
-        rescue
-          @destroyed = false
-          false
         end
+      rescue
+        @destroyed = false
+        false
       end
 
       module ::ActiveRecord::Persistence
