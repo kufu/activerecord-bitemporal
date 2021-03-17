@@ -434,7 +434,7 @@ module ActiveRecord
 
         duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
 
-        ActiveRecord::Base.transaction(requires_new: true) do
+        ActiveRecord::Base.transaction(requires_new: true, joinable: false) do
           @destroyed = false
           _run_destroy_callbacks {
             @destroyed = update_transaction_to(current_time)
