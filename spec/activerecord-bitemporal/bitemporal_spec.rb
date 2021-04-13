@@ -1013,6 +1013,15 @@ RSpec.describe ActiveRecord::Bitemporal do
         before { allow_any_instance_of(Employee).to receive('save!').and_raise(ActiveRecord::RecordNotSaved) }
 
         it_behaves_like "return false and #destroyed? to be false"
+
+        context "with transaction" do
+          subject { -> {
+            ActiveRecord::Base.transaction {
+              Timecop.freeze(destroyed_time) { employee.destroy }
+            }
+          } }
+          it_behaves_like "return false and #destroyed? to be false"
+        end
       end
 
       context "at `before_destroy`" do
@@ -1035,6 +1044,12 @@ RSpec.describe ActiveRecord::Bitemporal do
 
           it_behaves_like "return false and #destroyed? to be false"
         end
+      end
+
+      context "`destroyed_time` is earlier than `created_time`" do
+        let(:destroyed_time) { created_time - 10.second }
+        subject { -> { ActiveRecord::Bitemporal.valid_at(destroyed_time) { employee.destroy } } }
+        it_behaves_like "return false and #destroyed? to be false"
       end
     end
 
