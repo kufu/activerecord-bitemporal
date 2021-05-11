@@ -448,8 +448,9 @@ module ActiveRecord
 
           self
         end
-      rescue
+      rescue => e
         @destroyed = false
+        @_association_destroy_exception = ActiveRecord::RecordNotDestroyed.new("Failed to destroy the record: class=#{e.class}, message=#{e.message}", self)
         false
       end
 
