@@ -456,23 +456,65 @@ module ActiveRecord
       module ::ActiveRecord::Persistence
         # MEMO: Must be override ActiveRecord::Persistence#reload
         alias_method :active_record_bitemporal_original_reload, :reload unless method_defined? :active_record_bitemporal_original_reload
-        def reload(options = nil)
-          return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
+        if Gem::Version.new("7.0.0.alpha") <= ActiveRecord.version
+          def reload(options = nil)
+            return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
 
-          self.class.connection.clear_query_cache
+            self.class.connection.clear_query_cache
 
-          fresh_object =
-            if options && options[:lock]
-              self.class.unscoped { self.class.lock(options[:lock]).find(id) }
+            fresh_object = if apply_scoping?(options)
+              _find_record(options)
             else
-              self.class.unscoped { self.class.find(id) }
+              self.class.unscoped { _find_record(options) }
             end
 
-          @attributes = fresh_object.instance_variable_get("@attributes")
-          @new_record = false
-          # NOTE: Hook to copying swapped_id
-          @_swapped_id = fresh_object.swapped_id
-          self
+            @association_cache = fresh_object.instance_variable_get(:@association_cache)
+            @attributes = fresh_object.instance_variable_get(:@attributes)
+            @new_record = false
+            @previously_new_record = false
+            # NOTE: Hook to copying swapped_id
+            @_swapped_id = fresh_object.swapped_id
+            self
+          end
+        elsif Gem::Version.new("6.1.0") <= ActiveRecord.version
+          def reload(options = nil)
+            return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
+
+            self.class.connection.clear_query_cache
+
+            fresh_object =
+              if options && options[:lock]
+                self.class.unscoped { self.class.lock(options[:lock]).find(id) }
+              else
+                self.class.unscoped { self.class.find(id) }
+              end
+
+            @attributes = fresh_object.instance_variable_get(:@attributes)
+            @new_record = false
+            @previously_new_record = false
+            # NOTE: Hook to copying swapped_id
+            @_swapped_id = fresh_object.swapped_id
+            self
+          end
+        else
+          def reload(options = nil)
+            return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
+
+            self.class.connection.clear_query_cache
+
+            fresh_object =
+              if options && options[:lock]
+                self.class.unscoped { self.class.lock(options[:lock]).find(id) }
+              else
+                self.class.unscoped { self.class.find(id) }
+              end
+
+            @attributes = fresh_object.instance_variable_get("@attributes")
+            @new_record = false
+            # NOTE: Hook to copying swapped_id
+            @_swapped_id = fresh_object.swapped_id
+            self
+          end
         end
       end
 
