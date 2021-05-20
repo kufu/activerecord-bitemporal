@@ -1051,6 +1051,14 @@ RSpec.describe ActiveRecord::Bitemporal do
         subject { -> { ActiveRecord::Bitemporal.valid_at(destroyed_time) { employee.destroy } } }
         it_behaves_like "return false and #destroyed? to be false"
       end
+
+      context "with `destory!`" do
+        subject { -> { Timecop.freeze(destroyed_time) { employee.destroy! } } }
+
+        before { allow_any_instance_of(Employee).to receive('save!').and_raise(ActiveRecord::RecordNotSaved.new("failed")) }
+
+        it { is_expected.to raise_error(ActiveRecord::RecordNotDestroyed, "Failed to destroy the record: class=ActiveRecord::RecordNotSaved, message=failed") }
+      end
     end
 
     context "with callback" do
