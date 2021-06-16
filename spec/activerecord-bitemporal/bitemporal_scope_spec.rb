@@ -683,6 +683,11 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to have_transaction_at(_01_01, table: "users") }
         end
       end
+
+      context "default_scope" do
+        let(:relation) { User.where(name: "mami").merge(Timecop.freeze(_01_01) { User.where(name: "homu") }) }
+        it { is_expected.to have_bitemporal_at(_01_01, table: "users") }
+      end
     end
 
     describe "ActiveRecord::Bitemporal.valid_at" do
