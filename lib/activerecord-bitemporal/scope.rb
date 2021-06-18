@@ -319,16 +319,23 @@ module ActiveRecord::Bitemporal
         datetime = Time.current
         relation = spawn
 
-        relation = relation.transaction_at(datetime).without_transaction_datetime
+        relation.unscope_values += [{ where: ["#{table.name}.transaction_from", "#{table.name}.transaction_to"] }]
+        relation
+          .where!(table[:transaction_from].public_send(:lteq, predicate_builder.build_bind_attribute(:transaction_from, datetime)))
+          .where!(table[:transaction_to].public_send(:gt, predicate_builder.build_bind_attribute(:transaction_to, datetime)))
 
         if !ActiveRecord::Bitemporal.ignore_valid_datetime?
           if ActiveRecord::Bitemporal.valid_datetime
-            relation = relation.valid_at(ActiveRecord::Bitemporal.valid_datetime)
-            relation.tap { |relation| relation.bitemporal_value[:with_valid_datetime] = :default_scope_with_valid_datetime }
+            datetime = ActiveRecord::Bitemporal.valid_datetime
+            relation.bitemporal_value[:with_valid_datetime] = :default_scope_with_valid_datetime
           else
-            relation = relation.valid_at(datetime)
-            relation.tap { |relation| relation.bitemporal_value[:with_valid_datetime] = :default_scope }
+            relation.bitemporal_value[:with_valid_datetime] = :default_scope
           end
+
+          relation.unscope_values += [{ where: ["#{table.name}.valid_from", "#{table.name}.valid_to"] }]
+          relation
+            .where!(table[:valid_from].public_send(:lteq, predicate_builder.build_bind_attribute(:valid_from, datetime)))
+            .where!(table[:valid_to].public_send(:gt, predicate_builder.build_bind_attribute(:valid_to, datetime)))
         else
           relation.tap { |relation| relation.without_valid_datetime unless ActiveRecord::Bitemporal.valid_datetime }
         end
@@ -364,6 +371,10 @@ module ActiveRecord::Bitemporal
       }
       scope :bitemporal_where_bind, -> (attr_name, operator, value) {
         where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
+      }
+
+      scope :bitemporal_where_bind!, -> (attr_name, operator, value) {
+        where!(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
       }
 
       if ActiveRecord.version < Gem::Version.new("6.1.0")
