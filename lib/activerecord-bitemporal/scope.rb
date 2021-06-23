@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module ActiveRecord::Bitemporal
-  using Module.new {
+  module NodeBitemporalInclude
     refine ::Arel::Nodes::Node do
       def bitemporal_include?(*columns)
         case self
@@ -18,7 +18,7 @@ module ActiveRecord::Bitemporal
         end
       end
     end
-  }
+  end
 
   module Relation
     using Module.new {
@@ -96,6 +96,8 @@ module ActiveRecord::Bitemporal
 
     if ActiveRecord.version < Gem::Version.new("6.1.0")
       class WhereClauseWithCheckTable < ActiveRecord::Relation::WhereClause
+        using NodeBitemporalInclude
+
         def bitemporal_include?(column)
           !!predicates.grep(::Arel::Nodes::Node).find do |node|
             node.bitemporal_include?(column)
@@ -235,7 +237,7 @@ module ActiveRecord::Bitemporal
         end
       else
         module ActiveRecordRelationScope
-          using Module.new {
+          module EqualAttributeName
             refine ::Object do
               def equal_attribute_name(*)
                 false
@@ -266,9 +268,12 @@ module ActiveRecord::Bitemporal
                 "#{relation.name}.#{name}" == other.to_s
               end
             end
-          }
+          end
 
           refine ::ActiveRecord::Relation do
+            using EqualAttributeName
+            using NodeBitemporalInclude
+
             def bitemporal_rewhere_bind(attr_name, operator, value, table = self.table)
               rewhere(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
             end
@@ -281,7 +286,9 @@ module ActiveRecord::Bitemporal
                 end
 
                 def _except_#{column}
-                  return self unless where_clause.send(:predicates).find { |node| node.bitemporal_include?("\#{table.name}.#{column}") }
+                  return self unless where_clause.send(:predicates).find { |node|
+                    node.bitemporal_include?("\#{table.name}.#{column}")
+                  }
                   _ignore_#{column}.tap { |relation|
                     relation.unscope_values.reject! { |query| query.equal_attribute_name("\#{table.name}.#{column}") }
                   }
