@@ -67,10 +67,10 @@ module ActiveRecord::Bitemporal
           each_operatable_node
             .select { |node| names.include? node.left.name.to_s }
             .inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
-            value = node.right.try(:val) || node.right.try(:value).try(:value_before_type_cast)
-            result[node.left.relation.name][node.left.name.to_s] = [node.operator, value]
-            result
-          }
+              value = node.right.try(:val) || node.right.try(:value).try(:value_before_type_cast)
+              result[node.left.relation.name][node.left.name.to_s] = [node.operator, value]
+              result
+            }
         end
       end
 
@@ -156,6 +156,34 @@ module ActiveRecord::Bitemporal
   module Scope
     extend ActiveSupport::Concern
 
+    module ActiveRecordRelationScope
+      refine ::ActiveRecord::Relation do
+        def bitemporal_where_bind(attr_name, operator, value)
+          where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
+        end
+
+        def bitemporal_where_bind!(attr_name, operator, value)
+          where!(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
+        end
+
+        def with_valid_datetime
+          tap { |relation| relation.bitemporal_value[:with_valid_datetime] = true }
+        end
+
+        def without_valid_datetime
+          tap { |relation| relation.bitemporal_value[:with_valid_datetime] = false }
+        end
+
+        def with_transaction_datetime
+          tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = true }
+        end
+
+        def without_transaction_datetime
+          tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = false }
+        end
+      end
+    end
+
     included do
       using Module.new {
         refine ActiveRecord::Bitemporal::Optionable do
@@ -170,108 +198,136 @@ module ActiveRecord::Bitemporal
       }
 
       if ActiveRecord.version < Gem::Version.new("6.1.0")
-        %i(valid_from valid_to transaction_from transaction_to).each { |column|
-          scope :"ignore_#{column}", -> {
-            unscope(where: "#{table.name}.#{column}")
-              .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"ignore_#{column}")) if bitemporal_value[:through] }
-          }
+        module ActiveRecordRelationScope
+          refine ::ActiveRecord::Relation do
+            %i(valid_from valid_to transaction_from transaction_to).each { |column|
+              module_eval <<-STR, __FILE__, __LINE__ + 1
+                def _ignore_#{column}
+                  unscope(where: "\#{table.name}.#{column}")
+                    .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped._ignore_#{column}) if bitemporal_value[:through] }
+                end
 
-          scope :"except_#{column}", -> {
-            break self unless where_clause.bitemporal_include?("#{table.name}.#{column}")
-            all.public_send(:"ignore_#{column}").tap { |relation|
-              relation.unscope_values.delete({ where: "#{table.name}.#{column}" })
-            }
-          }
+                def _except_#{column}
+                  return self unless where_clause.bitemporal_include?("\#{table.name}.#{column}")
+                  all._ignore_#{column}.tap { |relation|
+                    relation.unscope_values.delete({ where: "\#{table.name}.#{column}" })
+                  }
+                end
+              STR
 
-          [
-            :lt,    # column <  datetime
-            :lteq,  # column <= datetime
-            :gt,    # column >  datetime
-            :gteq   # column >= datetime
-          ].each { |op|
-            scope :"#{column}_#{op}", -> (datetime) {
-              target_datetime = datetime&.in_time_zone || Time.current
-              public_send(:"ignore_#{column}").bitemporal_where_bind(column, op, target_datetime)
-                .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped.public_send(:"#{column}_#{op}", target_datetime)) if bitemporal_value[:through] }
+              [
+                :lt,    # column <  datetime
+                :lteq,  # column <= datetime
+                :gt,    # column >  datetime
+                :gteq   # column >= datetime
+              ].each { |op|
+                module_eval <<-STR, __FILE__, __LINE__ + 1
+                  def _#{column}_#{op}(datetime, without_ignore: false)
+                    target_datetime = datetime&.in_time_zone || Time.current
+                    relation = self.tap { |relation| break relation._ignore_#{column} unless without_ignore }
+                    relation.bitemporal_where_bind!(:#{column}, :#{op}, target_datetime)
+                      .tap { |relation| relation.merge!(bitemporal_value[:through].unscoped._#{column}_#{op}(target_datetime)) if bitemporal_value[:through] }
+                  end
+                STR
+              }
             }
-          }
-        }
+          end
+        end
       else
-        using Module.new {
-          refine ::Object do
-            def equal_attribute_name(*)
-              false
+        module ActiveRecordRelationScope
+          using Module.new {
+            refine ::Object do
+              def equal_attribute_name(*)
+                false
+              end
             end
-          end
-          refine ::Hash do
-            def equal_attribute_name(other)
-              self[:where].equal_attribute_name(other)
+            refine ::Hash do
+              def equal_attribute_name(other)
+                self[:where].equal_attribute_name(other)
+              end
             end
-          end
-          refine ::Array do
-            def equal_attribute_name(other)
-              first.equal_attribute_name(other)
+            refine ::Array do
+              def equal_attribute_name(other)
+                first.equal_attribute_name(other)
+              end
             end
-          end
-          refine ::String do
-            def equal_attribute_name(other)
-              self == other.to_s
+            refine ::String do
+              def equal_attribute_name(other)
+                self == other.to_s
+              end
             end
-          end
-          refine ::Symbol do
-            def equal_attribute_name(other)
-              self.to_s == other.to_s
+            refine ::Symbol do
+              def equal_attribute_name(other)
+                self.to_s == other.to_s
+              end
             end
-          end
-          refine ::Arel::Attributes::Attribute do
-            def equal_attribute_name(other)
-              "#{relation.name}.#{name}" == other.to_s
+            refine ::Arel::Attributes::Attribute do
+              def equal_attribute_name(other)
+                "#{relation.name}.#{name}" == other.to_s
+              end
             end
-          end
-        }
-        %w(valid_from valid_to transaction_from transaction_to).each { |column|
-          scope :"ignore_#{column}", -> {
-            unscope(where: :"#{table.name}.#{column}")
-              .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table[column]) if bitemporal_value[:through] }
           }
 
-          scope :"except_#{column}", -> {
-            break self unless where_clause.send(:predicates).find { |node| node.bitemporal_include?("#{table.name}.#{column}") }
-            public_send(:"ignore_#{column}").tap { |relation|
-              relation.unscope_values.reject! { |query| query.equal_attribute_name("#{table.name}.#{column}") }
-            }
-          }
+          refine ::ActiveRecord::Relation do
+            def bitemporal_rewhere_bind(attr_name, operator, value, table = self.table)
+              rewhere(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
+            end
 
-          [
-            :lt,    # column <  datetime
-            :lteq,  # column <= datetime
-            :gt,    # column >  datetime
-            :gteq   # column >= datetime
-          ].each { |op|
-            scope :"#{column}_#{op}", -> (datetime) {
-              target_datetime = datetime&.in_time_zone || Time.current
-              bitemporal_rewhere_bind(column, op, target_datetime)
-                .tap { |relation| break relation.bitemporal_rewhere_bind(column, op, target_datetime, bitemporal_value[:through].arel_table) if bitemporal_value[:through] }
+            %i(valid_from valid_to transaction_from transaction_to).each { |column|
+              module_eval <<-STR, __FILE__, __LINE__ + 1
+                def _ignore_#{column}
+                  unscope(where: :"\#{table.name}.#{column}")
+                    .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table["#{column}"]) if bitemporal_value[:through] }
+                end
+
+                def _except_#{column}
+                  return self unless where_clause.send(:predicates).find { |node| node.bitemporal_include?("\#{table.name}.#{column}") }
+                  _ignore_#{column}.tap { |relation|
+                    relation.unscope_values.reject! { |query| query.equal_attribute_name("\#{table.name}.#{column}") }
+                  }
+                end
+              STR
+
+              [
+                :lt,    # column <  datetime
+                :lteq,  # column <= datetime
+                :gt,    # column >  datetime
+                :gteq   # column >= datetime
+              ].each { |op|
+                module_eval <<-STR, __FILE__, __LINE__ + 1
+                  def _#{column}_#{op}(datetime,**)
+                    target_datetime = datetime&.in_time_zone || Time.current
+                    bitemporal_rewhere_bind("#{column}", :#{op}, target_datetime)
+                      .tap { |relation| break relation.bitemporal_rewhere_bind("#{column}", :#{op}, target_datetime, bitemporal_value[:through].arel_table) if bitemporal_value[:through] }
+                  end
+                STR
+              }
             }
-          }
-        }
+          end
+        end
       end
+      using ActiveRecordRelationScope
 
-      # -------------------------------
-      # NOTE: with_valid_datetime ~ without_transaction_datetime is private API
-      scope :with_valid_datetime, -> {
-        tap { |relation| relation.bitemporal_value[:with_valid_datetime] = true }
+      %i(valid_from valid_to transaction_from transaction_to).each { |column|
+        scope :"ignore_#{column}", -> {
+          public_send(:"_ignore_#{column}")
+        }
+
+        scope :"except_#{column}", -> {
+          public_send(:"_except_#{column}")
+        }
+
+        [
+          :lt,    # column <  datetime
+          :lteq,  # column <= datetime
+          :gt,    # column >  datetime
+          :gteq   # column >= datetime
+        ].each { |op|
+          scope :"#{column}_#{op}", -> (datetime) {
+            public_send(:"_#{column}_#{op}", datetime)
+          }
+        }
       }
-      scope :without_valid_datetime, -> {
-        tap { |relation| relation.bitemporal_value[:with_valid_datetime] = false }
-      }
-      scope :with_transaction_datetime, -> {
-        tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = true }
-      }
-      scope :without_transaction_datetime, -> {
-        tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = false }
-      }
-      # -------------------------------
 
       # valid_from <= datetime && datetime < valid_to
       scope :valid_at, -> (datetime) {
@@ -317,12 +373,17 @@ module ActiveRecord::Bitemporal
 
       scope :bitemporal_default_scope, -> {
         datetime = Time.current
-        relation = spawn
+        relation = self
 
-        relation.unscope_values += [{ where: ["#{table.name}.transaction_from", "#{table.name}.transaction_to"] }]
-        relation
-          .where!(table[:transaction_from].public_send(:lteq, predicate_builder.build_bind_attribute(:transaction_from, datetime)))
-          .where!(table[:transaction_to].public_send(:gt, predicate_builder.build_bind_attribute(:transaction_to, datetime)))
+        # Calling scope was slow, so don't call scope
+        relation.unscope_values += [
+          { where: "#{table.name}.transaction_from" },
+          { where: "#{table.name}.transaction_to" }
+        ]
+        relation = relation
+          ._transaction_from_lteq(datetime, without_ignore: true)
+          ._transaction_to_gt(datetime, without_ignore: true)
+          .without_transaction_datetime
 
         if !ActiveRecord::Bitemporal.ignore_valid_datetime?
           if ActiveRecord::Bitemporal.valid_datetime
@@ -332,13 +393,18 @@ module ActiveRecord::Bitemporal
             relation.bitemporal_value[:with_valid_datetime] = :default_scope
           end
 
-          relation.unscope_values += [{ where: ["#{table.name}.valid_from", "#{table.name}.valid_to"] }]
-          relation
-            .where!(table[:valid_from].public_send(:lteq, predicate_builder.build_bind_attribute(:valid_from, datetime)))
-            .where!(table[:valid_to].public_send(:gt, predicate_builder.build_bind_attribute(:valid_to, datetime)))
+          relation.unscope_values += [
+            { where: "#{table.name}.valid_from" },
+            { where: "#{table.name}.valid_to" }
+          ]
+          relation = relation
+            ._valid_from_lteq(datetime, without_ignore: true)
+            ._valid_to_gt(datetime, without_ignore: true)
         else
           relation.tap { |relation| relation.without_valid_datetime unless ActiveRecord::Bitemporal.valid_datetime }
         end
+
+        relation
       }
 
       scope :except_bitemporal_default_scope, -> {
@@ -369,20 +435,6 @@ module ActiveRecord::Bitemporal
           .tap { |relation| break relation.bitemporal_where_bind("valid_from", :gteq, from.in_time_zone.to_datetime) if from }
           .tap { |relation| break relation.bitemporal_where_bind("valid_to", :lteq, to.in_time_zone.to_datetime) if to }
       }
-      scope :bitemporal_where_bind, -> (attr_name, operator, value) {
-        where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
-      }
-
-      scope :bitemporal_where_bind!, -> (attr_name, operator, value) {
-        where!(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
-      }
-
-      if ActiveRecord.version < Gem::Version.new("6.1.0")
-      else
-        scope :bitemporal_rewhere_bind, -> (attr_name, operator, value, table = self.table) {
-          rewhere(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
-        }
-      end
     end
 
     module Extension

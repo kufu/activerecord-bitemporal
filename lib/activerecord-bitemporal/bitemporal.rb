@@ -476,7 +476,11 @@ module ActiveRecord
     end
 
     module Uniqueness
+      require_relative "./scope.rb"
+      using ::ActiveRecord::Bitemporal::Scope::ActiveRecordRelationScope
+
       private
+
       def scope_relation(record, relation)
         finder_class = find_finder_class_for(record)
         return super unless finder_class.bi_temporal_model?
