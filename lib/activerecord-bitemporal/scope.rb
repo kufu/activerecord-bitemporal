@@ -67,7 +67,7 @@ module ActiveRecord::Bitemporal
           each_operatable_node
             .select { |node| names.include? node.left.name.to_s }
             .inject(Hash.new { |hash, key| hash[key] = {} }) { |result, node|
-              value = node.right.try(:val) || node.right.try(:value).try(:value_before_type_cast)
+              value = node.right.try(:val) || node.right.try(:value).then { |it| it.try(:value_before_type_cast) || it }
               result[node.left.relation.name][node.left.name.to_s] = [node.operator, value]
               result
             }
