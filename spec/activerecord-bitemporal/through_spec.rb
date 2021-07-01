@@ -125,34 +125,34 @@ RSpec.describe "has_xxx with through" do
     let(:blog) { Blog.create!(name: "tabelog") }
     let(:user) { User.create!(name: "Jane") }
     let(:article) { user.articles.create!(title: "yakiniku", blog: blog) }
-    let(:created_at) { "2017/5/1" }
+    let(:transaction_from) { "2017/5/1" }
     let(:updated_at) { "2017/10/1" }
 
     before do
-      Timecop.freeze(created_at) { blog; user; article }
+      Timecop.freeze(transaction_from) { blog; user; article }
     end
 
     context "user.update" do
       before { Timecop.freeze(updated_at) { user.update(name: "Tom") } }
-      it { expect(blog.users.valid_at(created_at).first.name).to eq "Jane" }
+      it { expect(blog.users.valid_at(transaction_from).first.name).to eq "Jane" }
       it { expect(blog.users.valid_at(updated_at).first.name).to eq "Tom" }
 
-      it { expect(Blog.find_at_time(created_at, blog.id).users.first.name).to eq "Jane" }
+      it { expect(Blog.find_at_time(transaction_from, blog.id).users.first.name).to eq "Jane" }
       it { expect(Blog.find_at_time(updated_at, blog.id).users.first.name).to eq "Tom" }
 
-      it { expect(blog.valid_at(created_at) { |m| m.users.first.name }).to eq "Jane" }
+      it { expect(blog.valid_at(transaction_from) { |m| m.users.first.name }).to eq "Jane" }
       it { expect(blog.valid_at(updated_at) { |m| m.users.first.name }).to eq "Tom" }
     end
 
     context "article.update" do
       before { Timecop.freeze(updated_at) { article.update(title: "sushi") } }
-      it { expect(blog.users.valid_at(created_at).first.articles.first.title).to eq "yakiniku" }
+      it { expect(blog.users.valid_at(transaction_from).first.articles.first.title).to eq "yakiniku" }
       it { expect(blog.users.valid_at(updated_at).first.articles.first.title).to eq "sushi" }
 
-      it { expect(blog.users.first.articles.valid_at(created_at).first.title).to eq "yakiniku" }
+      it { expect(blog.users.first.articles.valid_at(transaction_from).first.title).to eq "yakiniku" }
       it { expect(blog.users.first.articles.valid_at(updated_at).first.title).to eq "sushi" }
 
-      it { expect(Blog.find_at_time(created_at, blog.id).users.first.articles.first.title).to eq "yakiniku" }
+      it { expect(Blog.find_at_time(transaction_from, blog.id).users.first.articles.first.title).to eq "yakiniku" }
       it { expect(Blog.find_at_time(updated_at, blog.id).users.first.articles.first.title).to eq "sushi" }
     end
 
@@ -160,19 +160,19 @@ RSpec.describe "has_xxx with through" do
       let(:user2) { User.create!(name: "Tom") }
       before { Timecop.freeze(updated_at) { article.update(user: user2) } }
 
-      it { expect(blog.users.valid_at(created_at).first.name).to eq "Jane" }
+      it { expect(blog.users.valid_at(transaction_from).first.name).to eq "Jane" }
       it { expect(blog.users.valid_at(updated_at).first.name).to eq "Tom" }
 
-      it { expect(Blog.find_at_time(created_at, blog.id).users.first.name).to eq "Jane" }
+      it { expect(Blog.find_at_time(transaction_from, blog.id).users.first.name).to eq "Jane" }
       it { expect(Blog.find_at_time(updated_at, blog.id).users.first.name).to eq "Tom" }
 
-      it { expect(blog.valid_at(created_at) { |m| m.users.first.name }).to eq "Jane" }
+      it { expect(blog.valid_at(transaction_from) { |m| m.users.first.name }).to eq "Jane" }
       it { expect(blog.valid_at(updated_at) { |m| m.users.first.name }).to eq "Tom" }
 
-      it { expect(blog.users.find_at_time(created_at, user.id).name).to eq "Jane" }
+      it { expect(blog.users.find_at_time(transaction_from, user.id).name).to eq "Jane" }
       it { expect(blog.users.find_at_time(updated_at, user.id)).to be_nil }
 
-      it { expect(blog.users.find_at_time(created_at, user2.id)).to be_nil }
+      it { expect(blog.users.find_at_time(transaction_from, user2.id)).to be_nil }
       it { expect(blog.users.find_at_time(updated_at, user2.id).name).to eq "Tom" }
     end
   end
@@ -198,8 +198,9 @@ RSpec.describe "has_xxx with through" do
 
     context "with valid_at" do
       let(:relation) { blog.users.valid_at("2019/2/2") }
-      it { is_expected.to match %r/articles"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
-      it { is_expected.to match %r/"users"."valid_from" <= '2019-02-01 15:00:00' AND "users"."valid_to" > '2019-02-01 15:00:00'/ }
+      it { is_expected.to match %r/"users"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_from" <= '2019-02-01 15:00:00'/ }
+      it { is_expected.to match %r/"users"."valid_to" > '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
+      it { is_expected.to match %r/"users"."valid_from" <= '2019-02-01 15:00:00' AND "articles"."valid_from" <= '2019-02-01 15:00:00' AND "users"."valid_to" > '2019-02-01 15:00:00' AND "articles"."valid_to" > '2019-02-01 15:00:00'/ }
     end
 
     context "with ignore_valid_datetime" do

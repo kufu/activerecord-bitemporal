@@ -99,7 +99,6 @@ RSpec.describe "Association" do
 
   describe "non BTDM has many BTDM" do
     let(:company) { CompanyWithoutBitemporal.create(name: "Company0").tap { |it| it.update(name: "Company1") } }
-    let(:employees) { company.employees }
 
     before do
       # Dummy data
@@ -111,53 +110,53 @@ RSpec.describe "Association" do
     end
 
     describe "#create" do
-      subject { -> { employees.create(name: "Employee1") } }
+      subject { -> { company.employees.create(name: "Employee1") } }
 
-      it { is_expected.to change(employees, :count).by(1) }
-      it { is_expected.to change(employees, :first).from(nil).to(have_attributes name: "Employee1") }
-      it { is_expected.to change { employees.ignore_valid_datetime.count }.by(1) }
-      it { is_expected.to change { employees.find_by(name: "Employee1") }.from(nil).to(have_attributes name: "Employee1") }
+      it { is_expected.to change(company.employees, :count).by(1) }
+      it { is_expected.to change(company.employees, :first).from(nil).to(have_attributes name: "Employee1") }
+      it { is_expected.to change { company.employees.ignore_valid_datetime.count }.by(1) }
+      it { is_expected.to change { company.employees.find_by(name: "Employee1") }.from(nil).to(have_attributes name: "Employee1") }
     end
 
     describe "#update" do
-      let!(:employee1) { employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
+      let!(:employee1) { company.employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
       subject { -> { employee1.update(name: "New") } }
 
-      it { is_expected.not_to change(employees, :count) }
-      it { is_expected.to change { employees.first.reload.name }.to("New") }
-      it { is_expected.to change { employees.ignore_valid_datetime.count }.by(1) }
+      it { is_expected.not_to change(company.employees, :count) }
+      it { is_expected.to change { company.employees.first.reload.name }.to("New") }
+      it { is_expected.to change { company.employees.ignore_valid_datetime.count }.by(1) }
     end
 
     describe "#force_update" do
-      let!(:employee1) { employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
+      let!(:employee1) { company.employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
       subject { -> { employee1.force_update { |m| m.update(name: "New") } } }
 
-      it { is_expected.not_to change(employees, :count) }
-      it { is_expected.to change { employees.first.reload.name }.to("New") }
-      it { is_expected.to change { employees.ignore_valid_datetime.within_deleted.count }.by(1) }
+      it { is_expected.not_to change(company.employees, :count) }
+      it { is_expected.to change { company.employees.first.reload.name }.to("New") }
+      it { is_expected.to change { company.employees.ignore_valid_datetime.within_deleted.count }.by(1) }
     end
 
     describe "#destroy" do
-      let!(:employee1) { employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
+      let!(:employee1) { company.employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
       subject { -> { employee1.destroy } }
 
-      it { is_expected.to change(employees, :count).by(-1) }
+      it { is_expected.to change { company.employees.count }.by(-1) }
       it { is_expected.to change(employee1, :destroyed?).from(false).to(true) }
-      it { is_expected.to change { employees.ignore_valid_datetime.within_deleted.count }.by(1) }
+      it { is_expected.to change { company.employees.ignore_valid_datetime.within_deleted.count }.by(1) }
     end
 
     describe "relations" do
       let(:company2) { CompanyWithoutBitemporal.create(name: "Company1").tap { |it| it.update(name: "Company2") } }
-      let!(:mado) { employees.create(name: "Mado") }
-      let!(:tom) { employees.create(name: "Tom") }
+      let!(:mado) { company.employees.create(name: "Mado") }
+      let!(:tom) { company.employees.create(name: "Tom") }
       before do
-        employees.create(name: "Tom").update(name: "Jane")
+        company.employees.create(name: "Tom").update(name: "Jane")
         @time = Time.current
-        employees.create(name: "Mami").tap { |m|
+        company.employees.create(name: "Mami").tap { |m|
           m.update(name: "Mado")
           m.update(name: "Homu")
         }
-        employees.create(name: "Jane")
+        company.employees.create(name: "Jane")
 
         company2.employees.create(name: "Jane")
         company2.employees.create(name: "Tom")
@@ -165,22 +164,22 @@ RSpec.describe "Association" do
       end
 
       describe ".find" do
-        it { expect(employees.find(mado.id)).to have_attributes(name: "Mado") }
-        it { expect(employees.find(mado.id, tom.id).pluck(:name)).to contain_exactly("Mado", "Tom") }
+        it { expect(company.employees.find(mado.id)).to have_attributes(name: "Mado") }
+        it { expect(company.employees.find(mado.id, tom.id).pluck(:name)).to contain_exactly("Mado", "Tom") }
       end
 
       describe ".find_by" do
-        it { expect(employees.find_by(name: "Mami")).to be_nil }
-        it { expect(employees.find_by(name: "Mado")).to have_attributes(name: "Mado") }
-        it { expect(employees.find_by(name: "Tom")).to have_attributes(name: "Tom") }
-        it { expect(employees.find_by(name: "Jane")).to have_attributes(name: "Jane") }
+        it { expect(company.employees.find_by(name: "Mami")).to be_nil }
+        it { expect(company.employees.find_by(name: "Mado")).to have_attributes(name: "Mado") }
+        it { expect(company.employees.find_by(name: "Tom")).to have_attributes(name: "Tom") }
+        it { expect(company.employees.find_by(name: "Jane")).to have_attributes(name: "Jane") }
       end
 
       describe ".where" do
-        it { expect(employees.where(name: "Tom").count).to eq 1 }
-        it { expect(employees.where(name: "Jane").count).to eq 2 }
-        it { expect(employees.where(name: "Mado").count).to eq 1 }
-        it { expect(employees.where(name: "Mami").count).to eq 0 }
+        it { expect(company.employees.where(name: "Tom").count).to eq 1 }
+        it { expect(company.employees.where(name: "Jane").count).to eq 2 }
+        it { expect(company.employees.where(name: "Mado").count).to eq 1 }
+        it { expect(company.employees.where(name: "Mami").count).to eq 0 }
         it do
           result = Employee.where(name: "Jane").pluck(:company_id, :bitemporal_id)
           expect(result).to contain_exactly(
@@ -218,8 +217,8 @@ RSpec.describe "Association" do
             accepts_nested_attributes_for :employees
           }.create(name: "Company")
         }
-        let!(:employee1) { company.employees.create(name: "Jane").tap { |m| m.update(name: "Tom") } }
-        let!(:employee2) { company.employees.create(name: "Homu").tap { |m| m.update(name: "Mami") } }
+        let!(:employee1) { company.employees.create(name: "Jane").tap { |m| m.update!(name: "Tom") } }
+        let!(:employee2) { company.employees.create(name: "Homu").tap { |m| m.update!(name: "Mami") } }
 
         subject {
           -> {
