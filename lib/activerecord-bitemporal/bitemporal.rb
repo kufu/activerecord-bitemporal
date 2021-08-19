@@ -513,7 +513,7 @@ module ActiveRecord
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record.valid_datetime && (record.valid_from..record.valid_to).cover?(record.valid_datetime)) == false && (record.persisted?)
-            finder_class.where(bitemporal_id: record.bitemporal_id).valid_from_gt(target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
+            finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gt(target_datetime).order(valid_from: :asc).first.valid_from
           else
             valid_to
           end
