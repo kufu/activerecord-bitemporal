@@ -1771,6 +1771,111 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let!(:blog) { Blog.create; Blog.first }
       it { expect { Article.create(blog_id: blog.id) }.to change { blog.articles.count }.by(1) }
     end
+
+    context ".except_valid_datetime" do
+      let(:relation) { Blog.all.except_valid_datetime }
+      it { expect(relation.bitemporal_value).not_to include(:with_valid_datetime) }
+    end
+
+    context ".ignore_valid_datetime.except_valid_datetime" do
+      let(:relation) { Blog.ignore_valid_datetime.except_valid_datetime }
+      it { expect(relation.bitemporal_value).not_to include(:with_valid_datetime) }
+    end
+
+    context ".except_valid_datetime.ignore_valid_datetime" do
+      let(:relation) { Blog.except_valid_datetime.ignore_valid_datetime }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: false) }
+    end
+
+    context ".valid_at" do
+      let(:relation) { Blog.valid_at("2020/10/01") }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    xcontext ".valid_at.except_valid_datetime" do
+      let(:relation) { Blog.valid_at("2020/10/01").except_valid_datetime }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    context ".merge(.)" do
+      let(:relation) { Blog.all.merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: :default_scope) }
+    end
+
+    context ".merge(.valid_at)" do
+      let(:relation) { Blog.all.merge(User.valid_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    context ".merge(.ignore_valid_datetime)" do
+      let(:relation) { Blog.all.merge(User.ignore_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: false) }
+    end
+
+    context ".merge(.except_valid_datetime)" do
+      let(:relation) { Blog.all.merge(User.except_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: :default_scope) }
+    end
+
+    context ".valid_at.merge(.)" do
+      let(:relation) { Blog.valid_at("2020/10/01").merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: :default_scope) }
+    end
+
+    context ".valid_at.merge(.valid_at)" do
+      let(:relation) { Blog.valid_at("2020/10/01").merge(User.valid_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    context ".valid_at.merge(.ignore_valid_datetime)" do
+      let(:relation) { Blog.valid_at("2020/10/01").merge(User.ignore_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: false) }
+    end
+
+    context ".valid_at.merge(.except_valid_datetime)" do
+      let(:relation) { Blog.valid_at("2020/10/01").merge(User.except_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    context ".ignore_valid_datetime.merge(.)" do
+      let(:relation) { Blog.ignore_valid_datetime.merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: :default_scope) }
+    end
+
+    context ".ignore_valid_datetime.merge(.valid_at)" do
+      let(:relation) { Blog.ignore_valid_datetime.merge(User.valid_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    context ".ignore_valid_datetime.merge(.ignore_valid_datetime)" do
+      let(:relation) { Blog.ignore_valid_datetime.merge(User.ignore_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: false) }
+    end
+
+    context ".ignore_valid_datetime.merge(.except_valid_datetime)" do
+      let(:relation) { Blog.ignore_valid_datetime.merge(User.except_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: false) }
+    end
+
+    context ".except_valid_datetime.merge(.)" do
+      let(:relation) { Blog.except_valid_datetime.merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: :default_scope) }
+    end
+
+    context ".except_valid_datetime.merge(.valid_at)" do
+      let(:relation) { Blog.except_valid_datetime.merge(User.valid_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: true) }
+    end
+
+    context ".except_valid_datetime.merge(.ignore_valid_datetime)" do
+      let(:relation) { Blog.except_valid_datetime.merge(User.ignore_valid_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_valid_datetime: false) }
+    end
+
+    context ".except_valid_datetime.merge(.except_valid_datetime)" do
+      let(:relation) { Blog.except_valid_datetime.merge(User.except_valid_datetime) }
+      it { expect(relation.bitemporal_value).not_to include(:with_valid_datetime) }
+    end
   end
 
   describe ".with_transaction_datetime" do

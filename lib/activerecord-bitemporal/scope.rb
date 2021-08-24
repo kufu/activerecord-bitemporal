@@ -348,7 +348,7 @@ module ActiveRecord::Bitemporal
         ignore_valid_from.ignore_valid_to.without_valid_datetime
       }
       scope :except_valid_datetime, -> {
-        except_valid_from.except_valid_to.without_valid_datetime
+        except_valid_from.except_valid_to.tap { |relation| relation.bitemporal_value.except! :with_valid_datetime }
       }
 
       # transaction_from <= datetime && datetime < transaction_to
