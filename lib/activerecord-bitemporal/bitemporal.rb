@@ -33,7 +33,6 @@ module ActiveRecord
       ensure
         self.bitemporal_option_storage = tmp_opt
       end
-
     private
       def bitemporal_option_storage
         @bitemporal_option_storage ||= {}
@@ -66,7 +65,7 @@ module ActiveRecord
         end
 
         def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone
         end
 
         def ignore_valid_datetime(&block)
@@ -80,7 +79,6 @@ module ActiveRecord
             bitemporal_option_storage.merge(option)
           end
         end
-
       private
         def bitemporal_option_storage
           Current.option ||= {}
@@ -92,56 +90,8 @@ module ActiveRecord
       end
     end
 
-    # Relation 拡張用
     module Relation
-      class BitemporalClause
-        attr_reader :predicates
-
-        def initialize(predicates = {})
-          @predicates = predicates
-        end
-
-        def [](klass)
-          @predicates[klass] ||= {}
-        end
-
-        def []=(klass, value)
-          @predicates[klass] = value
-        end
-
-        def ast(klass: nil, table: nil)
-          return predicates.keys.map { |klass| ast(klass: klass, table: table) }.select(&:present?).inject(&:and) unless klass
-
-          option = ::ActiveRecord::Bitemporal.merge_by(self[klass] || {})
-
-          table = klass.arel_table unless table
-          if option[:through].present?
-            klass = option[:through]
-            table = klass.arel_table
-          end
-
-          arels = []
-          if !option[:ignore_valid_datetime]
-            target_datetime = option[:valid_datetime]&.in_time_zone&.to_datetime || Time.current
-            arels << table["valid_from"].lteq(bind_attribute(klass, "valid_from", target_datetime))
-            arels << table["valid_to"].gt(bind_attribute(klass, "valid_to", target_datetime))
-          end
-          arels << table["deleted_at"].eq(nil) unless option[:within_deleted]
-          Arel::Nodes::And.new(arels) unless arels.empty?
-        end
-
-        private
-
-        def bind_attribute(klass, attr_name, value)
-          klass.predicate_builder.build_bind_attribute(attr_name, value)
-        end
-      end
-
       module Finder
-        def with_bitemporal_option(**opt)
-          all.tap { |relation| relation.bitemporal_option_merge!(**opt) }
-        end
-
         def find(*ids)
           return super if block_given?
           all.spawn.yield_self { |obj|
@@ -163,120 +113,31 @@ module ActiveRecord
           expects_array ? [] : nil
         end
       end
-      include Optionable
       include Finder
 
-      def valid_datetime
-        bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
+      def build_arel(*)
+        ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
+          super
+        }
       end
 
       def load
         return super if loaded?
+        valid_datetime_ = valid_datetime
+
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
         records = ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) { super }
 
-        return records if records.empty? || bitemporal_option[:ignore_valid_datetime]
+        return records if records.empty?
+        return records unless ActiveRecord::Bitemporal.valid_datetime || bitemporal_value[:with_valid_datetime] && bitemporal_value[:with_valid_datetime] != :default_scope && valid_datetime_
+
         records.each do |record|
-          record.bitemporal_option_merge! bitemporal_option.except(:ignore_valid_datetime)
+          record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime_
         end
-      end
-
-      def build_arel(args = nil)
-        ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
-          super.tap { |arel|
-            bitemporal_clause.ast(table: table)&.tap { |clause|
-              arel.ast.cores.each do |node|
-                next unless node.kind_of?(Arel::Nodes::SelectCore)
-                if node.wheres.empty?
-                  node.wheres = [clause]
-                else
-                  node.wheres[0] = clause.and(node.wheres[0])
-                end
-              end
-            }
-          }
-        }
-      end
-
-      def bitemporal_clause
-        @values[:bitemporal_clause].yield_self { |result|
-          next result if result
-          self.bitemporal_clause = Relation::BitemporalClause.new
-        }
-      end
-
-      def bitemporal_clause=(value)
-        @values[:bitemporal_clause] = value
       end
 
       def primary_key
         bitemporal_id_key
-      end
-
-      private
-
-      def bitemporal_option_storage(klass_ = self.klass)
-        bitemporal_clause[klass_]
-      end
-
-      def bitemporal_option_storage=(value)
-        bitemporal_clause[klass] = value
-      end
-    end
-
-    # リレーションのスコープ
-    module Scope
-      extend ActiveSupport::Concern
-
-      included do
-        scope :valid_at, -> (datetime) {
-          with_bitemporal_option(ignore_valid_datetime: false, valid_datetime: datetime)
-        }
-        scope :ignore_valid_datetime, -> {
-          with_bitemporal_option(ignore_valid_datetime: true, valid_datetime: nil)
-        }
-        scope :within_deleted, -> {
-          with_bitemporal_option(within_deleted: true)
-        }
-        scope :without_deleted, -> {
-          with_bitemporal_option(within_deleted: false)
-        }
-        scope :bitemporal_for, -> (id) {
-          where(bitemporal_id: id)
-        }
-        scope :valid_in, -> (from: nil, to: nil) {
-          ignore_valid_datetime
-            .tap { |relation| break relation.bitemporal_where_bind("valid_to", :gteq, from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.bitemporal_where_bind("valid_from", :lteq, to.in_time_zone.to_datetime) if to }
-        }
-        scope :valid_allin, -> (from: nil, to: nil) {
-          ignore_valid_datetime
-            .tap { |relation| break relation.bitemporal_where_bind("valid_from", :gteq, from.in_time_zone.to_datetime) if from }
-            .tap { |relation| break relation.bitemporal_where_bind("valid_to", :lteq, to.in_time_zone.to_datetime) if to }
-        }
-        scope :bitemporal_where_bind, -> (attr_name, operator, value) {
-          where(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
-        }
-      end
-
-      module Extension
-        extend ActiveSupport::Concern
-
-        included do
-          scope :bitemporal_histories, -> (*ids) {
-            ignore_valid_datetime.bitemporal_for(*ids)
-          }
-          def self.bitemporal_most_future(id)
-            bitemporal_histories(id).order(valid_from: :asc).last
-          end
-          def self.bitemporal_most_past(id)
-            bitemporal_histories(id).order(valid_from: :asc).first
-          end
-        end
-      end
-
-      module Experimental
-        extend ActiveSupport::Concern
       end
     end
 
@@ -327,10 +188,6 @@ module ActiveRecord
           with_bitemporal_option(valid_datetime: datetime, &block)
         end
 
-        def valid_datetime
-          bitemporal_option[:valid_datetime]&.in_time_zone&.to_datetime
-        end
-
         def bitemporal_option_merge_with_association!(other)
           bitemporal_option_merge!(other)
 
@@ -339,6 +196,10 @@ module ActiveRecord
             next unless association.respond_to?(:bitemporal_option_merge!)
             association.bitemporal_option_merge!(other)
           end
+        end
+
+        def valid_datetime
+          bitemporal_option[:valid_datetime]&.in_time_zone
         end
       end
       include PersistenceOptionable
@@ -463,11 +324,14 @@ module ActiveRecord
 
             self.class.connection.clear_query_cache
 
-            fresh_object = if apply_scoping?(options)
-              _find_record(options)
-            else
-              self.class.unscoped { _find_record(options) }
-            end
+            fresh_object =
+              ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
+                if apply_scoping?(options)
+                  _find_record(options)
+                else
+                  self.class.unscoped { self.class.bitemporal_default_scope.scoping { _find_record(options) } }
+                end
+              }
 
             @association_cache = fresh_object.instance_variable_get(:@association_cache)
             @attributes = fresh_object.instance_variable_get(:@attributes)
@@ -484,11 +348,13 @@ module ActiveRecord
             self.class.connection.clear_query_cache
 
             fresh_object =
-              if options && options[:lock]
-                self.class.unscoped { self.class.lock(options[:lock]).find(id) }
-              else
-                self.class.unscoped { self.class.find(id) }
-              end
+              ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
+                if options && options[:lock]
+                  self.class.unscoped { self.class.lock(options[:lock]).bitemporal_default_scope.find(id) }
+                else
+                  self.class.unscoped { self.class.bitemporal_default_scope.find(id) }
+                end
+              }
 
             @attributes = fresh_object.instance_variable_get(:@attributes)
             @new_record = false
@@ -504,11 +370,13 @@ module ActiveRecord
             self.class.connection.clear_query_cache
 
             fresh_object =
-              if options && options[:lock]
-                self.class.unscoped { self.class.lock(options[:lock]).find(id) }
-              else
-                self.class.unscoped { self.class.find(id) }
-              end
+              ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
+                if options && options[:lock]
+                  self.class.unscoped { self.class.lock(options[:lock]).bitemporal_default_scope.find(id) }
+                else
+                  self.class.unscoped { self.class.bitemporal_default_scope.find(id) }
+                end
+              }
 
             @attributes = fresh_object.instance_variable_get("@attributes")
             @new_record = false
@@ -585,7 +453,7 @@ module ActiveRecord
         # 有効なレコードがない場合
         else
           # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
-          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
+          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).valid_from_gt(target_datetime).ignore_valid_datetime.order(valid_from: :asc).first
           if nearest_instance.nil?
             message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and 'valid_from' < #{target_datetime}"
             raise ActiveRecord::RecordNotFound.new(message, self.class, "bitemporal_id", self.bitemporal_id)
@@ -608,7 +476,11 @@ module ActiveRecord
     end
 
     module Uniqueness
+      require_relative "./scope.rb"
+      using ::ActiveRecord::Bitemporal::Scope::ActiveRecordRelationScope
+
       private
+
       def scope_relation(record, relation)
         finder_class = find_finder_class_for(record)
         return super unless finder_class.bi_temporal_model?
@@ -641,14 +513,14 @@ module ActiveRecord
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record.valid_datetime && (record.valid_from..record.valid_to).cover?(record.valid_datetime)) == false && (record.persisted?)
-            finder_class.where(bitemporal_id: record.bitemporal_id).bitemporal_where_bind("valid_from", :gt, target_datetime).ignore_valid_datetime.order(valid_from: :asc).first.valid_from
+            finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gt(target_datetime).order(valid_from: :asc).first.valid_from
           else
             valid_to
           end
         }
 
         valid_at_scope = finder_class.unscoped.ignore_valid_datetime
-            .bitemporal_where_bind("valid_from", :lt, valid_to).bitemporal_where_bind("valid_to", :gt, valid_from)
+            .valid_from_lt(valid_to).valid_to_gt(valid_from)
             .yield_self { |scope|
               # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
               # id と swapped_id の両方が存在する場合のみクエリを追加する
@@ -656,18 +528,20 @@ module ActiveRecord
             }
 
         # MEMO: Must refer Time.current, when not new record
-        #       Because you don't want created_at to be rewritten
-        created_at = record.new_record? ? (record.created_at || Time.current) : Time.current
-        deleted_at = record.deleted_at || ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+        #       Because you don't want transaction_from to be rewritten
+        transaction_from = if record.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
+                             Time.current
+                           elsif !record.new_record?
+                             Time.current
+                           else
+                             record.transaction_from
+                           end
+        transaction_to = record.transaction_to || ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
         transaction_at_scope = finder_class.unscoped
-          .ignore_valid_datetime
-          .within_deleted
-          .yield_self { |scope|
-            scope.where(deleted_at: nil).or(scope.bitemporal_where_bind("deleted_at", :gt, created_at))
-          }
-          .bitemporal_where_bind("created_at", :lt, deleted_at)
+          .transaction_to_gt(transaction_from)
+          .transaction_from_lt(transaction_to)
 
-        relation.merge(valid_at_scope).merge(transaction_at_scope)
+        relation.merge(valid_at_scope.with_valid_datetime).merge(transaction_at_scope.with_transaction_datetime)
       end
     end
   end

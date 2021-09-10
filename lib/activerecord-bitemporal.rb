@@ -3,6 +3,7 @@
 require "active_record"
 require "active_support/core_ext/time/calculations"
 require "activerecord-bitemporal/bitemporal"
+require "activerecord-bitemporal/scope"
 require "activerecord-bitemporal/patches"
 require "activerecord-bitemporal/version"
 
@@ -54,6 +55,9 @@ module ActiveRecord::Bitemporal::Bitemporalize
     def inherited(klass)
       super
       klass.prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
+      if relation_delegate_class(ActiveRecord::Relation).ancestors.include? ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
+        klass.relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
+      end
     end
 
   private
@@ -73,7 +77,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     def swap_id!(without_clear_changes_information: false)
       @_swapped_id = self.id
       self.id = self.send(bitemporal_id_key)
-      clear_changes_information unless without_clear_changes_information
+      clear_attribute_changes([:id]) unless without_clear_changes_information
     end
 
     def swapped_id
@@ -98,17 +102,31 @@ module ActiveRecord::Bitemporal::Bitemporalize
       end
     end
 
-    def created_at_cannot_be_greater_equal_than_deleted_at
-      if created_at && deleted_at && created_at >= deleted_at
-        errors.add(:created_at, "can't be greater equal than deleted_at")
+    def transaction_from_cannot_be_greater_equal_than_transaction_to
+      if transaction_from && transaction_to && transaction_from >= transaction_to
+        errors.add(:transaction_from, "can't be greater equal than transaction_to")
       end
     end
   end
 
-  def bitemporalize(enable_strict_by_validates_bitemporal_id: false)
+  def bitemporalize(
+    enable_strict_by_validates_bitemporal_id: false,
+    enable_default_scope: true,
+    enable_merge_with_except_bitemporal_default_scope: false
+  )
     extend ClassMethods
     include InstanceMethods
     include ActiveRecord::Bitemporal::Scope
+
+    if enable_merge_with_except_bitemporal_default_scope
+      relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
+    end
+
+    if enable_default_scope
+      default_scope {
+        bitemporal_default_scope
+      }
+    end
 
     after_create do
       # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
@@ -131,7 +149,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     validates :transaction_from, presence: true
     validates :transaction_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
-    validate :created_at_cannot_be_greater_equal_than_deleted_at
+    validate :transaction_from_cannot_be_greater_equal_than_transaction_to
 
     validates bitemporal_id_key, uniqueness: true, allow_nil: true, strict: enable_strict_by_validates_bitemporal_id
 

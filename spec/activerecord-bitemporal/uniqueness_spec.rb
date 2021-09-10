@@ -325,6 +325,16 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
         it { is_expected.to be_truthy }
       end
     end
+
+    context "`valid_at` is duplicated in past history" do
+      let(:record) {
+        employee = EmployeeWithUniquness.create(name: "A", valid_from: "2000/01/01")
+        employee.update!(name: "B")
+        employee
+      }
+      subject { record.valid_at("2010/01/01", &:valid?) }
+      it { is_expected.to be_falsey }
+    end
   end
 
   describe EmployeeWithUniqunessAndScope do

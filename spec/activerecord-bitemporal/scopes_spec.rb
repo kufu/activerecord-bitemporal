@@ -94,8 +94,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let(:from) { "2019/1/20" }
       let(:to) { "2019/1/30" }
       subject { Employee.valid_in(from: from, to: to).arel.to_sql }
-      it { is_expected.to match %r/"employees"."valid_to" >= \$1/ }
-      it { is_expected.to match %r/"employees"."valid_from" <= \$2/ }
+      it { is_expected.to match %r/"employees"."valid_to" >= \$3/ }
+      it { is_expected.to match %r/"employees"."valid_from" <= \$4/ }
     end
   end
 
@@ -168,8 +168,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let(:from) { "2019/1/20" }
       let(:to) { "2019/1/30" }
       subject { Employee.valid_allin(from: from, to: to).arel.to_sql }
-      it { is_expected.to match %r/"employees"."valid_from" >= \$1/ }
-      it { is_expected.to match %r/"employees"."valid_to" <= \$2/ }
+      it { is_expected.to match %r/"employees"."valid_from" >= \$3/ }
+      it { is_expected.to match %r/"employees"."valid_to" <= \$4/ }
     end
   end
 
@@ -210,7 +210,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { expect(subject).to be_kind_of EmployeeWithScope }
         it { expect(subject.id).to eq employee.id }
         it { expect(subject.name).to eq "Jane" }
-        it { expect(subject.deleted_at).to be_nil }
+        it { expect(subject.transaction_to).to eq ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO }
       end
 
       context "invalid `id`" do
@@ -233,7 +233,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { expect(subject).to be_kind_of EmployeeWithScope }
         it { expect(subject.id).to eq employee.id }
         it { expect(subject.name).to eq "Jane" }
-        it { expect(subject.deleted_at).to be_nil }
+        it { expect(subject.transaction_to).to eq ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO }
       end
 
       context "invalid `id`" do

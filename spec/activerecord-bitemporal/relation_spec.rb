@@ -27,7 +27,8 @@ RSpec.describe "Relation" do
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
         expect(subject.to_sql).to match %r/"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
-        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$1 AND "employees"."valid_to" > \$2/
+        expect(subject.arel.to_sql).to match %r/"employees"."transaction_from" <= \$1 AND "employees"."transaction_to" > \$2/
+        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$3 AND "employees"."valid_to" > \$4/
       }
     end
 
@@ -81,7 +82,7 @@ RSpec.describe "Relation" do
     it do
       Timecop.freeze(Time.utc(2018, 12, 25).in_time_zone) {
         expect(subject.to_sql).to match %r/"employees"."valid_from" <= '2018-12-25 00:00:00' AND "employees"."valid_to" > '2018-12-25 00:00:00'/
-        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$1 AND "employees"."valid_to" > \$2/
+        expect(subject.arel.to_sql).to match %r/"employees"."valid_from" <= \$3 AND "employees"."valid_to" > \$4/
       }
     end
 
@@ -137,23 +138,11 @@ RSpec.describe "Relation" do
     end
   end
 
-  describe ".except" do
-    describe "relation `bitemporal_option`" do
-      subject { Company.with_bitemporal_option(hoge: 42).except(:where).bitemporal_option }
-      it { is_expected.to include(hoge: 42) }
-    end
-  end
-
   describe ".merge" do
     let(:relation) { Company.valid_at("2019/1/1").merge(Company.valid_at("2019/2/2")) }
     subject { relation.bitemporal_option }
-    it { is_expected.to include(valid_datetime: "2019/2/2") }
+    it { is_expected.to include(valid_datetime: "2019/2/2".in_time_zone) }
     it { expect(relation.loaded?).to be_falsey }
-  end
-
-  describe ".ignore_valid_datetime" do
-    subject { Company.ignore_valid_datetime.to_sql }
-    it { is_expected.to match %r/"companies"."deleted_at" IS NULL/ }
   end
 
   describe "preload" do
