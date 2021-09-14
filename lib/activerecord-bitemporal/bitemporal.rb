@@ -144,7 +144,6 @@ module ActiveRecord
 
       def load
         return super if loaded?
-        valid_datetime_ = valid_datetime
 
         # このタイミングで先読みしているアソシエーションが読み込まれるので時間を固定
         records = ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) { super }
