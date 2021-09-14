@@ -72,12 +72,33 @@ module ActiveRecord
           with_bitemporal_option(ignore_valid_datetime: true, valid_datetime: nil, &block)
         end
 
+        def transaction_at(datetime, &block)
+          with_bitemporal_option(ignore_transaction_datetime: false, transaction_datetime: datetime, &block)
+        end
+
+        def transaction_at!(datetime, &block)
+          with_bitemporal_option(ignore_transaction_datetime: false, transaction_datetime: datetime, force_transaction_datetime: true, &block)
+        end
+
+        def transaction_datetime
+          bitemporal_option[:transaction_datetime]&.in_time_zone
+        end
+
+        def ignore_transaction_datetime(&block)
+          with_bitemporal_option(ignore_transaction_datetime: true, transaction_datetime: nil, &block)
+        end
+
         def merge_by(option)
+          option_ = option.dup
           if bitemporal_option_storage[:force_valid_datetime]
-            bitemporal_option_storage.merge(option.merge(valid_datetime: bitemporal_option_storage[:valid_datetime]))
-          else
-            bitemporal_option_storage.merge(option)
+            option_.merge!(valid_datetime: bitemporal_option_storage[:valid_datetime])
           end
+
+          if bitemporal_option_storage[:force_transaction_datetime]
+            option_.merge!(transaction_datetime: bitemporal_option_storage[:transaction_datetime])
+          end
+
+          bitemporal_option_storage.merge(option_)
         end
       private
         def bitemporal_option_storage
@@ -129,10 +150,22 @@ module ActiveRecord
         records = ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) { super }
 
         return records if records.empty?
-        return records unless ActiveRecord::Bitemporal.valid_datetime || bitemporal_value[:with_valid_datetime] && bitemporal_value[:with_valid_datetime] != :default_scope && valid_datetime_
+
+        valid_datetime_ = valid_datetime
+        if ActiveRecord::Bitemporal.valid_datetime.nil? && (bitemporal_value[:with_valid_datetime].nil? || bitemporal_value[:with_valid_datetime] == :default_scope || valid_datetime_.nil?)
+          valid_datetime_ = nil
+        end
+
+        transaction_datetime_ = transaction_datetime
+        if ActiveRecord::Bitemporal.transaction_datetime.nil? && (bitemporal_value[:with_transaction_datetime].nil? || bitemporal_value[:with_transaction_datetime] == :default_scope || transaction_datetime_.nil?)
+          transaction_datetime_ = nil
+        end
+
+        return records if valid_datetime_.nil? && transaction_datetime_.nil?
 
         records.each do |record|
-          record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime_
+          record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime_ if valid_datetime_
+          record.send(:bitemporal_option_storage)[:transaction_datetime] = transaction_datetime_ if transaction_datetime_
         end
       end
 
@@ -188,6 +221,10 @@ module ActiveRecord
           with_bitemporal_option(valid_datetime: datetime, &block)
         end
 
+        def transaction_at(datetime, &block)
+          with_bitemporal_option(transaction_datetime: datetime, &block)
+        end
+
         def bitemporal_option_merge_with_association!(other)
           bitemporal_option_merge!(other)
 
@@ -200,6 +237,10 @@ module ActiveRecord
 
         def valid_datetime
           bitemporal_option[:valid_datetime]&.in_time_zone
+        end
+
+        def transaction_datetime
+          bitemporal_option[:transaction_datetime]&.in_time_zone
         end
       end
       include PersistenceOptionable

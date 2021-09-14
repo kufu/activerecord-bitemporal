@@ -57,12 +57,21 @@ module ActiveRecord::Bitemporal
         scope = super
         return scope unless scope.bi_temporal_model?
 
-        if owner.class&.bi_temporal_model? && owner.valid_datetime
-          valid_datetime = owner.valid_datetime
-          scope = scope.valid_at(valid_datetime)
-          scope.merge!(scope.bitemporal_value[:through].valid_at(valid_datetime)) if scope.bitemporal_value[:through]
+        scope_ = scope
+        if owner.class&.bi_temporal_model?
+          if owner.valid_datetime
+            valid_datetime = owner.valid_datetime
+            scope_ = scope_.valid_at(valid_datetime)
+            scope_.merge!(scope_.bitemporal_value[:through].valid_at(valid_datetime)) if scope_.bitemporal_value[:through]
+          end
+
+          if owner.transaction_datetime
+            transaction_datetime = owner.transaction_datetime
+            scope_ = scope_.transaction_at(transaction_datetime)
+            scope_.merge!(scope_.bitemporal_value[:through].transaction_at(transaction_datetime)) if scope_.bitemporal_value[:through]
+          end
         end
-        return scope
+        return scope_
       end
 
       private

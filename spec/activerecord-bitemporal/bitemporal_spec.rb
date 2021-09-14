@@ -1279,9 +1279,9 @@ RSpec.describe ActiveRecord::Bitemporal do
           address = employee.address
 
           aggregate_failures do
-            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
-            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
-            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(company.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(employee.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(address.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
           end
         end
       end
@@ -1295,9 +1295,9 @@ RSpec.describe ActiveRecord::Bitemporal do
           address = employee.address
 
           aggregate_failures do
-            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
-            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
-            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(employee.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(company.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(address.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
           end
         end
       end
@@ -1311,9 +1311,9 @@ RSpec.describe ActiveRecord::Bitemporal do
           company = employee.company
 
           aggregate_failures do
-            expect(address.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
-            expect(employee.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
-            expect(company.bitemporal_option).to eq(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(address.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(employee.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
+            expect(company.bitemporal_option).to include(valid_datetime: valid_datetime, ignore_valid_datetime: false)
           end
         end
       end
@@ -1433,6 +1433,464 @@ RSpec.describe ActiveRecord::Bitemporal do
             expect(Employee.all.bitemporal_option).to include(opt1)
           }
           expect(ActiveRecord::Bitemporal.bitemporal_option).to be_empty
+        end
+      end
+
+      describe "association" do
+        let(:valid_datetime) { 1.day.since }
+        let(:create_company) { Company.create(name: "Company") }
+        before do
+          create_company.employees.create(name: "Jane", address: Address.create(city: "Tokyo"))
+          create_company.employees.create(name: "Tom", address: Address.create(city: "Kyoto"))
+          create_company.employees.create(name: "Kevin", address: Address.create(city: "Saitama"))
+        end
+
+        context "preloading" do
+          context "[Company] --has_many--> Employee --has_one--> Address" do
+            let(:company_id) { create_company.id }
+            let(:company) { load_company }
+            let(:employee) { company.employees.first }
+            let(:address) { employee.address }
+
+            context "default_scope" do
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.includes(:employees, employees: :address).find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: time_current)
+                expect(address.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: time_current)
+              end
+            end
+
+            context ".valid_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.includes(:employees, employees: :address).valid_at(datetime).find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(valid_datetime: datetime, transaction_datetime: time_current)
+                expect(address.bitemporal_option).to eq(valid_datetime: datetime, transaction_datetime: time_current)
+              end
+            end
+
+            context ".ignore_valid_datetime" do
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.includes(:employees, employees: :address).ignore_valid_datetime.find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to eq(transaction_datetime: time_current)
+                expect(address.bitemporal_option).to eq(transaction_datetime: time_current)
+              end
+            end
+
+            context ".transaction_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.includes(:employees, employees: :address).transaction_at(datetime).find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: datetime)
+                expect(address.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: datetime)
+              end
+            end
+
+            context ".ignore_transaction_datetime" do
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.includes(:employees, employees: :address).ignore_transaction_datetime.find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to eq(valid_datetime: time_current)
+                expect(address.bitemporal_option).to eq(valid_datetime: time_current)
+              end
+            end
+          end
+
+          context "Company <--belongs_to-- [Employee] --has_one--> Address" do
+            let(:employee_id) { create_company.employees.first.id }
+            let(:company) { employee.company }
+            let(:employee) { load_employee }
+            let(:address) { employee.address }
+
+            context "default_scope" do
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.includes(:company, :address).find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: time_current)
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: time_current)
+              end
+            end
+
+            context ".valid_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.includes(:company, :address).valid_at(datetime).find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: datetime, transaction_datetime: time_current)
+                expect(employee.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(address.bitemporal_option).to eq(valid_datetime: datetime, transaction_datetime: time_current)
+              end
+            end
+
+            context ".ignore_valid_datetime" do
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.includes(:company, :address).ignore_valid_datetime.find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(transaction_datetime: time_current)
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to eq(transaction_datetime: time_current)
+              end
+            end
+
+            context ".transaction_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.includes(:company, :address).transaction_at(datetime).find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(address.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: datetime)
+              end
+            end
+
+            context ".ignore_transaction_datetime" do
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.includes(:company, :address).ignore_transaction_datetime.find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: time_current)
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to eq(valid_datetime: time_current)
+              end
+            end
+          end
+
+          context "Company <--belongs_to-- Employee <--belongs_to-- [Address]" do
+            let(:address_id) { create_company.employees.first.address.id }
+            let(:company) { employee.company }
+            let(:employee) { address.employee }
+            let(:address) { load_address }
+
+            context "default_scope" do
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.includes(employee: :company).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: time_current)
+                expect(employee.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: time_current)
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".valid_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.includes(employee: :company).valid_at(datetime).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: datetime, transaction_datetime: time_current)
+                expect(employee.bitemporal_option).to eq(valid_datetime: datetime, transaction_datetime: time_current)
+                expect(address.bitemporal_option).to eq(valid_datetime: datetime)
+              end
+            end
+
+            context ".ignore_valid_datetime" do
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.includes(employee: :company).ignore_valid_datetime.order(valid_from: :desc).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(transaction_datetime: time_current)
+                expect(employee.bitemporal_option).to eq(transaction_datetime: time_current)
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".transaction_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.includes(employee: :company).transaction_at(datetime).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(valid_datetime: time_current, transaction_datetime: datetime)
+                expect(address.bitemporal_option).to eq(transaction_datetime: datetime)
+              end
+            end
+
+            context ".ignore_transaction_datetime" do
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.includes(employee: :company).ignore_transaction_datetime.order(transaction_from: :desc).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: time_current)
+                expect(employee.bitemporal_option).to eq(valid_datetime: time_current)
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+          end
+        end
+
+        context "not preloading" do
+          context "[Company] --has_many--> Employee --has_one--> Address" do
+            let(:company_id) { create_company.id }
+            let(:company) { load_company }
+            let(:employee) { company.employees.first }
+            let(:address) { employee.address }
+
+            context "default_scope" do
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".valid_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.valid_at(datetime).find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(address.bitemporal_option).to eq(valid_datetime: datetime)
+              end
+            end
+
+            context ".ignore_valid_datetime" do
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.ignore_valid_datetime.find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".transaction_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.transaction_at(datetime).find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(address.bitemporal_option).to eq(transaction_datetime: datetime)
+              end
+            end
+
+            context ".ignore_transaction_datetime" do
+              let(:load_company) {
+                Timecop.freeze(time_current) {
+                  Company.ignore_transaction_datetime.find(company_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+          end
+
+          context "Company <--belongs_to-- [Employee] --has_one--> Address" do
+            let(:employee_id) { create_company.employees.first.id }
+            let(:company) { employee.company }
+            let(:employee) { load_employee }
+            let(:address) { employee.address }
+
+            context "default_scope" do
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".valid_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.valid_at(datetime).find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(address.bitemporal_option).to eq(valid_datetime: datetime)
+              end
+            end
+
+            context ".ignore_valid_datetime" do
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.ignore_valid_datetime.find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".transaction_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.transaction_at(datetime).find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(address.bitemporal_option).to eq(transaction_datetime: datetime)
+              end
+            end
+
+            context ".ignore_transaction_datetime" do
+              let(:load_employee) {
+                Timecop.freeze(time_current) {
+                  Employee.ignore_transaction_datetime.find(employee_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+          end
+
+          context "Company <--belongs_to-- Employee <--belongs_to-- [Address]" do
+            let(:address_id) { create_company.employees.first.address.id }
+            let(:company) { employee.company }
+            let(:employee) { address.employee }
+            let(:address) { load_address }
+
+            context "default_scope" do
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".valid_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.valid_at(datetime).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(valid_datetime: datetime)
+                expect(address.bitemporal_option).to eq(valid_datetime: datetime)
+              end
+            end
+
+            context ".ignore_valid_datetime" do
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.ignore_valid_datetime.order(valid_from: :desc).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+
+            context ".transaction_at" do
+              let(:datetime) { 3.days.since.in_time_zone }
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.transaction_at(datetime).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(employee.bitemporal_option).to eq(transaction_datetime: datetime)
+                expect(address.bitemporal_option).to eq(transaction_datetime: datetime)
+              end
+            end
+
+            context ".ignore_transaction_datetime" do
+              let(:load_address) {
+                Timecop.freeze(time_current) {
+                  Address.ignore_transaction_datetime.order(transaction_from: :desc).find(address_id)
+                }
+              }
+              it :aggregate_failures do
+                expect(company.bitemporal_option).to be_empty
+                expect(employee.bitemporal_option).to be_empty
+                expect(address.bitemporal_option).to be_empty
+              end
+            end
+          end
         end
       end
     end
@@ -1614,6 +2072,164 @@ RSpec.describe ActiveRecord::Bitemporal do
               expect(Employee.all.to_sql).to match %r/"valid_to" > '2019-02-01 00:00:00'/
               expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_from" <= /
               expect(Employee.ignore_valid_datetime.to_sql).not_to match %r/"valid_to" > /
+            }
+          }
+        end
+      end
+    end
+
+    describe ".ignore_valid_datetime" do
+      before { Employee.create(valid_from: "2000/1/1") }
+      it { expect(Employee.ignore_valid_datetime.bitemporal_option).to include(ignore_valid_datetime: true) }
+      it { expect(Employee.ignore_valid_datetime.first.bitemporal_option.keys).not_to include(:ignore_valid_datetime) }
+
+      context "call `.valid_at` before" do
+        it { expect(Employee.valid_at("2019/1/1").ignore_valid_datetime.bitemporal_option).to include(ignore_valid_datetime: true) }
+        it { expect(Employee.valid_at("2019/1/1").ignore_valid_datetime.first.valid_datetime).to be_nil }
+      end
+
+      context "call `.valid_at` later" do
+        it { expect(Employee.ignore_valid_datetime.valid_at("2019/1/1").bitemporal_option).to include(ignore_valid_datetime: false, valid_datetime: "2019/1/1".in_time_zone) }
+        it { expect(Employee.ignore_valid_datetime.valid_at("2019/1/1").first.bitemporal_option).to include(valid_datetime: "2019/1/1".in_time_zone) }
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.transaction_at" do
+      context "instance object" do
+        let!(:company) { Company.create(name: "Company") }
+        before do
+          emp = company.employees.create(name: "Jane")
+          emp.address = Address.create(name: "Address")
+        end
+        it do
+          Company.includes(:employees, employees: :address).transaction_at(time_current).find_by(bitemporal_id: company.id).tap { |c|
+            expect(c.transaction_datetime).to eq time_current
+            expect(c.employees.first.transaction_datetime).to eq time_current
+            expect(c.employees.first.address.transaction_datetime).to eq time_current
+            ActiveRecord::Bitemporal.transaction_at("2019/1/1") {
+              expect(c.transaction_datetime).to eq time_current
+              expect(c.employees.first.transaction_datetime).to eq time_current
+              expect(c.employees.first.address.transaction_datetime).to eq time_current
+            }
+          }
+        end
+
+        context "with ignore_transaction_datetime" do
+          it do
+            result = ActiveRecord::Bitemporal.transaction_at("2019/1/1") {
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
+              Employee.ignore_transaction_datetime.first
+            }
+            expect(result.transaction_datetime).to be_nil
+          end
+        end
+      end
+
+      context "relation object" do
+        it do
+          Company.transaction_at("2019/1/1").tap { |m|
+            expect(m.transaction_datetime).to eq "2019/1/1"
+            result = ActiveRecord::Bitemporal.transaction_at("2019/2/2") {
+              expect(m.transaction_datetime).to eq "2019/1/1"
+              expect(Employee.all.transaction_datetime).to eq "2019/2/2"
+              Employee.transaction_at("2019/3/3").tap { |m|
+                expect(m.transaction_datetime).to eq "2019/3/3"
+              }
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
+              Employee.ignore_transaction_datetime.first
+            }
+            expect(result.transaction_datetime).to be_nil
+          }
+        end
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.transaction_at!" do
+      context "instance object" do
+        let!(:company) { Company.create(name: "Company") }
+        before do
+          emp = company.employees.create(name: "Jane")
+          emp.address = Address.create(name: "Address")
+        end
+        it do
+          Company.includes(:employees, employees: :address).transaction_at(time_current).find_by(bitemporal_id: company.id).tap { |c|
+            expect(c.transaction_datetime).to eq time_current
+            expect(c.employees.first.transaction_datetime).to eq time_current
+            expect(c.employees.first.address.transaction_datetime).to eq time_current
+            ActiveRecord::Bitemporal.transaction_at!("2019/1/1") {
+              expect(c.transaction_datetime).to eq "2019/1/1"
+              expect(c.employees.first.transaction_datetime).to eq "2019/1/1"
+              expect(c.employees.first.address.transaction_datetime).to eq "2019/1/1"
+            }
+          }
+        end
+      end
+
+      context "with ignore_transaction_datetime" do
+        it do
+          result = ActiveRecord::Bitemporal.transaction_at!("2019/1/1") {
+            expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
+            expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
+            expect(Employee.ignore_transaction_datetime.first.transaction_datetime).to eq "2019/1/1"
+            Employee.ignore_transaction_datetime.first
+          }
+          expect(result.transaction_datetime).to be_nil
+        end
+      end
+
+      context "relation object" do
+        # TODO: Cannot overwrite transaction_datetime with transaction_at
+        xit do
+          Company.transaction_at("2019/1/1").tap { |m|
+            expect(m.transaction_datetime).to eq "2019/1/1"
+            ActiveRecord::Bitemporal.transaction_at!("2019/2/2") {
+              expect(m.transaction_datetime).to eq "2019/2/2"
+              expect(Employee.all.transaction_datetime).to eq "2019/2/2"
+              Employee.transaction_at("2019/3/3").tap { |m|
+                expect(m.transaction_datetime).to eq "2019/2/2"
+              }
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
+            }
+          }
+        end
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.ignore_transaction_datetime" do
+      it do
+        ActiveRecord::Bitemporal.ignore_transaction_datetime {
+          expect(Employee.all.bitemporal_option).to include(ignore_transaction_datetime: true)
+        }
+      end
+
+      context "nexted call `.transaction_at`" do
+        before { Employee.create(transaction_from: "2019/1/1") }
+        it do
+          ActiveRecord::Bitemporal.ignore_transaction_datetime {
+            ActiveRecord::Bitemporal.transaction_at("2019/2/1") {
+              expect(Employee.all.first.transaction_datetime).to eq "2019/2/1"
+              expect(Employee.all.to_sql).to match %r/"transaction_from" <= '2019-02-01 00:00:00'/
+              expect(Employee.all.to_sql).to match %r/"transaction_to" > '2019-02-01 00:00:00'/
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
+            }
+          }
+        end
+      end
+
+      context "nexted call `.transaction_at!`" do
+        before { Employee.create(transaction_from: "2019/1/1") }
+        it do
+          ActiveRecord::Bitemporal.ignore_transaction_datetime {
+            ActiveRecord::Bitemporal.transaction_at!("2019/2/1") {
+              expect(Employee.all.first.transaction_datetime).to eq "2019/2/1"
+              expect(Employee.all.to_sql).to match %r/"transaction_from" <= '2019-02-01 00:00:00'/
+              expect(Employee.all.to_sql).to match %r/"transaction_to" > '2019-02-01 00:00:00'/
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
             }
           }
         end
