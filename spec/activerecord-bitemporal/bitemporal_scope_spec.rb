@@ -278,12 +278,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       end
 
       describe ".ignore_bitemporal_datetime" do
-        let(:relation) { User.bitemporal_at("2019/01/01").ignore_bitemporal_datetime }
+        let(:relation) { User.bitemporal_at(bitemporal_datetime).ignore_bitemporal_datetime }
         it { is_expected.to not_have_transaction_at(table: "users") }
       end
 
       describe ".except_bitemporal_datetime" do
-        let(:relation) { User.bitemporal_at("2019/01/01").ignore_bitemporal_datetime }
+        let(:relation) { User.bitemporal_at(bitemporal_datetime).ignore_bitemporal_datetime }
         it { is_expected.to not_have_transaction_at(table: "users") }
       end
 
@@ -291,6 +291,32 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         let(:bitemporal_datetime) { "2019/01/01".in_time_zone }
         let(:relation) { User.bitemporal_at("2019/05/05").bitemporal_at(bitemporal_datetime) }
         it { is_expected.to have_bitemporal_at(bitemporal_datetime, table: "users") }
+      end
+
+      context "ActiveRecord::Bitemporal.valid_at" do
+        let(:valid_datetime) { "2017/04/01".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { User.bitemporal_at(bitemporal_datetime) } }
+        it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
+      end
+
+      context "ActiveRecord::Bitemporal.ignore_valid_datetime" do
+        let(:relation) { ActiveRecord::Bitemporal.ignore_valid_datetime { User.bitemporal_at(bitemporal_datetime) } }
+        it { is_expected.to not_have_valid_at(table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
+      end
+
+      context "ActiveRecord::Bitemporal.transaction_at" do
+        let(:transaction_datetime) { "2017/04/01".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { User.bitemporal_at(bitemporal_datetime) } }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+      end
+
+      context "ActiveRecord::Bitemporal.ignore_transaction_datetime" do
+        let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { User.bitemporal_at(bitemporal_datetime) } }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
+        it { is_expected.to not_have_transaction_at(table: "users") }
       end
     end
 
@@ -722,7 +748,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
       describe "ActiveRecord::Bitemporal.valid_at!" do
         let(:valid_datetime2) { "2019/06/06".in_time_zone }
-        let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { ActiveRecord::Bitemporal.valid_at(valid_datetime2) { User.all } } }
+        let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { ActiveRecord::Bitemporal.valid_at!(valid_datetime2) { User.all } } }
         it { is_expected.to have_valid_at(valid_datetime2, table: "users") }
         it { is_expected.to have_transaction_at(time_current, table: "users") }
       end
@@ -739,12 +765,15 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to have_bitemporal_at(time_current, table: "users") }
 
         context "with .valid_at" do
-          it { is_expected.to have_bitemporal_at(time_current, table: "users") }
+          let(:user_valid_datetime) { "2016/01/05".in_time_zone }
+          let(:relation) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { User.valid_at(user_valid_datetime) } }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
         end
       end
 
       describe ".valid_at" do
-        let(:user_valid_datetime) { "2019/05/05".in_time_zone }
+        let(:user_valid_datetime) { "2016/01/05".in_time_zone }
         let(:relation) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { User.valid_at(user_valid_datetime) } }
         it { is_expected.to have_valid_at(valid_datetime, table: "users") }
         it { is_expected.to have_transaction_at(time_current, table: "users") }
@@ -774,6 +803,96 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         let(:relation) { ActiveRecord::Bitemporal.ignore_valid_datetime { User.valid_at(valid_datetime) } }
         it { is_expected.to have_valid_at(valid_datetime, table: "users") }
         it { is_expected.to have_transaction_at(time_current, table: "users") }
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.transaction_at" do
+      let(:transaction_datetime) { "2019/05/05".in_time_zone }
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { User.all } }
+      it { is_expected.to have_valid_at(time_current, table: "users") }
+      it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+
+      context "transaction_datetime is nil" do
+        let(:transaction_datetime) { nil }
+        it { is_expected.to have_bitemporal_at(time_current, table: "users") }
+      end
+
+      describe ".transaction_at" do
+        let(:user_transaction_datetime) { "2019/05/05".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { User.transaction_at(user_transaction_datetime) } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to have_transaction_at(user_transaction_datetime, table: "users") }
+      end
+
+      context "with ActiveRecord::Bitemporal.ignore_transaction_datetime" do
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { ActiveRecord::Bitemporal.ignore_transaction_datetime { User.all } } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to not_have_transaction_at(table: "users") }
+      end
+
+      context ".ignore_transaction_datetime" do
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { User.ignore_transaction_datetime } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to not_have_transaction_at(table: "users") }
+      end
+
+      describe "ActiveRecord::Bitemporal.transaction_at!" do
+        let(:transaction_datetime2) { "2019/06/06".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime2) { User.all } } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime2, table: "users") }
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.transaction_at!" do
+      let(:transaction_datetime) { "2019/05/05".in_time_zone }
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { User.all } }
+      it { is_expected.to have_valid_at(time_current, table: "users") }
+      it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+
+      context "transaction_datetime is nil" do
+        let(:transaction_datetime) { nil }
+        it { is_expected.to have_bitemporal_at(time_current, table: "users") }
+
+        context "with .transaction_at" do
+          let(:user_transaction_datetime) { "2016/01/05".in_time_zone }
+          let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { User.transaction_at(user_transaction_datetime) } }
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to have_transaction_at(time_current, table: "users") }
+        end
+      end
+
+      describe ".transaction_at" do
+        let(:user_transaction_datetime) { "2016/01/05".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { User.transaction_at(user_transaction_datetime) } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+      end
+
+      context ".ignore_transaction_datetime" do
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { User.ignore_transaction_datetime } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to not_have_transaction_at(table: "users") }
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.ignore_transaction_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { User.all } }
+      it { is_expected.to have_valid_at(time_current, table: "users") }
+      it { is_expected.to not_have_transaction_at(table: "users") }
+
+      context "with ActiveRecord::Bitemporal.transaction_at" do
+        let(:transaction_datetime) { "2019/05/05".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { User.all } } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+      end
+
+      context "with .transaction_at" do
+        let(:transaction_datetime) { "2019/05/05".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { User.transaction_at(transaction_datetime) } }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
       end
     end
 
@@ -825,6 +944,29 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to have_transaction_at(time_current, table: "articles") }
         end
 
+        context "with call to_sql in `ActiveRecord::Bitemporal.transaction_at`" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:sql) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { Blog.joins(:articles).to_sql } }
+          it { is_expected.to have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "blogs") }
+          it { is_expected.to have_valid_at(time_current, table: "articles") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "articles") }
+        end
+
+        context "with call to_sql in `ActiveRecord::Bitemporal.valid_at` and `ActiveRecord::Bitemporal.transaction_at`" do
+          let(:valid_datetime) { "2019/01/01".in_time_zone }
+          let(:transaction_datetime) { "2019/02/01".in_time_zone }
+          let(:sql) {
+            ActiveRecord::Bitemporal.valid_at(valid_datetime) {
+              ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { Blog.joins(:articles).to_sql }
+            }
+          }
+          it { is_expected.to have_valid_at(valid_datetime, table: "blogs") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "blogs") }
+          it { is_expected.to have_valid_at(valid_datetime, table: "articles") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "articles") }
+        end
+
         describe ".merge" do
           context "with Article's relation in `Article.unscoped`" do
             let(:sql) { Article.unscoped { Blog.joins(:articles).merge(Article.valid_at("2019/01/01")).to_sql } }
@@ -873,6 +1015,17 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
             it { is_expected.to have_transaction_at(time_current, table: "blogs") }
             it { is_expected.to have_transaction_at(time_current, table: "articles") }
           end
+
+          context "with call to_sql in `ActiveRecord::Bitemporal.transaction_at`" do
+            let(:transaction_datetime) { "2019/01/01".in_time_zone }
+            let(:sql) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { relation.to_sql } }
+
+            it { is_expected.to have_valid_at(time_current, table: "blogs") }
+            it { is_expected.to have_valid_at(time_current, table: "articles") }
+
+            it { is_expected.to have_transaction_at(transaction_datetime, table: "blogs") }
+            it { is_expected.to have_transaction_at(transaction_datetime, table: "articles") }
+          end
         end
 
         # The behavior of `.josins.left_joins` has changed in Rails 6.0
@@ -892,6 +1045,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
               it { is_expected.to have_valid_at(valid_datetime, table: "articles_blogs") }
               it { is_expected.to have_transaction_at(time_current, table: "articles_blogs") }
             end
+
+            context "with call to_sql in `ActiveRecord::Bitemporal.transaction_at`" do
+              let(:transaction_datetime) { "2019/01/01".in_time_zone }
+              let(:sql) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { relation.to_sql } }
+
+              it { is_expected.to have_valid_at(time_current, table: "articles_blogs") }
+              it { is_expected.to have_transaction_at(transaction_datetime, table: "articles_blogs") }
+            end
           end
         end
       end
@@ -905,6 +1066,18 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           let(:relation) { Blog.create.articles.valid_at(valid_datetime) }
           it { is_expected.to have_valid_at(valid_datetime, table: "articles") }
           it { is_expected.to have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with .ignore_bitemporal_datetime" do
+          let(:relation) { Blog.create.articles.ignore_bitemporal_datetime }
+          it { is_expected.to not_have_bitemporal_at(table: "articles") }
+        end
+
+        context "with .transaction_at" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.create.articles.transaction_at(transaction_datetime) }
+          it { is_expected.to have_valid_at(time_current, table: "articles") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "articles") }
         end
 
         context "with .ignore_bitemporal_datetime" do
@@ -932,6 +1105,19 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         context "with .ignore_bitemporal_datetime" do
           let(:valid_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { association_scope.ignore_bitemporal_datetime }
+          it { is_expected.to not_have_bitemporal_at(table: "blogs") }
+        end
+
+        context "with .transaction_at" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { association_scope.transaction_at(transaction_datetime) }
+          it { is_expected.to have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "blogs") }
+        end
+
+        context "with .ignore_bitemporal_datetime" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
           let(:relation) { association_scope.ignore_bitemporal_datetime }
           it { is_expected.to not_have_bitemporal_at(table: "blogs") }
         end
@@ -973,6 +1159,15 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         it { is_expected.to have_transaction_at(time_current, table: "users") }
         it { is_expected.to have_transaction_at(time_current, table: "articles") }
+      end
+
+      context ".ignore_transaction_datetime" do
+        let(:relation) { blog.users.ignore_transaction_datetime }
+        it { is_expected.to have_valid_at(time_current, table: "users") }
+        it { is_expected.to have_valid_at(time_current, table: "articles") }
+
+        it { is_expected.to not_have_transaction_at(table: "users") }
+        it { is_expected.to not_have_transaction_at(table: "articles") }
       end
 
       context ".transaction_at" do
@@ -1036,6 +1231,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
             it { is_expected.to have_transaction_at(time_current, table: "users") }
           end
 
+          context "with .transaction_at" do
+            let(:transaction_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.transaction_at(transaction_datetime) }
+
+            it { is_expected.to have_valid_at(scoping_valid_datetime, table: "users") }
+            it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+          end
+
           context "other model query" do
             let(:relation) { Article.all }
 
@@ -1056,6 +1259,69 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
             it { is_expected.to have_valid_at(valid_datetime, table: "users") }
             it { is_expected.to have_transaction_at(time_current, table: "users") }
+          end
+
+          context "with .transaction_at" do
+            let(:transaction_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.transaction_at(transaction_datetime) }
+
+            it { is_expected.to not_have_valid_at(table: "users") }
+            it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+          end
+        end
+
+        describe "with .transaction_at" do
+          let(:relation) { User.all }
+          let(:scoping_transaction_datetime) { "2019/01/1".in_time_zone }
+          around { |e| User.transaction_at(scoping_transaction_datetime).scoping { e.run } }
+
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to have_transaction_at(scoping_transaction_datetime, table: "users") }
+
+          context "with .valid_at" do
+            let(:valid_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.valid_at(valid_datetime) }
+
+            it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+            it { is_expected.to have_transaction_at(scoping_transaction_datetime, table: "users") }
+          end
+
+          context "with .transaction_at" do
+            let(:transaction_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.transaction_at(transaction_datetime) }
+
+            it { is_expected.to have_valid_at(time_current, table: "users") }
+            it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+          end
+
+          context "other model query" do
+            let(:relation) { Article.all }
+
+            it { is_expected.to have_bitemporal_at(time_current, table: "articles") }
+          end
+        end
+
+        describe "with .ignore_transaction_datetime" do
+          let(:relation) { User.all }
+          around { |e| User.ignore_transaction_datetime.scoping { e.run } }
+
+          it { is_expected.to have_valid_at(time_current, table: "users") }
+          it { is_expected.to not_have_transaction_at(table: "users") }
+
+          context "with .valid_at" do
+            let(:valid_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.valid_at(valid_datetime) }
+
+            it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+            it { is_expected.to not_have_transaction_at(table: "users") }
+          end
+
+          context "with .transaction_at" do
+            let(:transaction_datetime) { "2019/04/1".in_time_zone }
+            let(:relation) { User.transaction_at(transaction_datetime) }
+
+            it { is_expected.to have_valid_at(time_current, table: "users") }
+            it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
           end
         end
 
@@ -1101,6 +1367,14 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to not_have_transaction_at(table: "users") }
         end
 
+        context "with .transaction_at" do
+          let(:transaction_datetime) { "2019/04/1".in_time_zone }
+          let(:relation) { User.transaction_at(transaction_datetime) }
+
+          it { is_expected.to not_have_valid_at(table: "users") }
+          it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+        end
+
         context "other model query" do
           let(:relation) { Article.all }
 
@@ -1133,7 +1407,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       define_method(:articles_sql) { |matcher| satisfy { |_, sql| expect(sql).to matcher } }
 
       let(:sql) { Array(sql_log { relation.to_a.first.articles.load }.split("\n")) }
-      before { Blog.create(valid_from: "2000/01/01").articles.create(valid_from: "2000/01/01") }
+      before { Blog.create(valid_from: "2000/01/01", transaction_from: "2000/01/01").articles.create(valid_from: "2000/01/01", transaction_from: "2000/01/01") }
 
       context ".joins" do
         let(:relation) { Blog.joins(:articles) }
@@ -1178,6 +1452,37 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           # load association
           it { is_expected.to articles_sql have_valid_at(valid_datetime, table: "articles") }
           it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `ignore_transaction_datetime`" do
+          let(:relation) { Blog.ignore_transaction_datetime.joins(:articles) }
+
+          # INNER JOIN
+          it { is_expected.to blogs_sql scan_once 'INNER JOIN "articles"' }
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql not_have_transaction_at(table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql not_have_transaction_at(table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `transaction_at`" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.transaction_at(transaction_datetime).joins(:articles) }
+
+          # INNER JOIN
+          it { is_expected.to blogs_sql scan_once 'INNER JOIN "articles"' }
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(transaction_datetime, table: "articles") }
         end
       end
 
@@ -1225,6 +1530,37 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           it { is_expected.to articles_sql have_valid_at(valid_datetime, table: "articles") }
           it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
         end
+
+        context "with `ignore_transaction_datetime`" do
+          let(:relation) { Blog.ignore_transaction_datetime.left_joins(:articles) }
+
+          # LEFT OUTER JOIN
+          it { is_expected.to blogs_sql scan_once 'LEFT OUTER JOIN "articles"' }
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql not_have_transaction_at(table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql not_have_transaction_at(table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `transaction_at`" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.transaction_at(transaction_datetime).left_joins(:articles) }
+
+          # INNER JOIN
+          it { is_expected.to blogs_sql scan_once 'LEFT OUTER JOIN "articles"' }
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "articles") }
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(transaction_datetime, table: "articles") }
+        end
       end
 
       context ".preload" do
@@ -1258,6 +1594,29 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           # load association
           it { is_expected.to articles_sql have_valid_at(valid_datetime, table: "articles") }
           it { is_expected.to articles_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `ignore_transaction_datetime`" do
+          let(:relation) { Blog.ignore_transaction_datetime.preload(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql not_have_transaction_at(table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql not_have_transaction_at(table: "articles") }
+        end
+
+        context "with `transaction_at`" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.transaction_at(transaction_datetime).preload(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "blogs") }
+          # load association
+          it { is_expected.to articles_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to articles_sql have_transaction_at(transaction_datetime, table: "articles") }
         end
       end
 
@@ -1305,6 +1664,34 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           # load association
           it { is_expected.to blogs_sql have_valid_at(valid_datetime, table: "articles") }
           it { is_expected.to blogs_sql have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `ignore_transaction_datetime`" do
+          define_method(:not_have_transaction_at) { |datetime = Time.current, table:|
+                 not_scan(%{"#{table}"."transaction_from" <= '#{datetime.to_s(:db)}'})
+            .and not_scan(%{"#{table}"."transaction_to" > '#{datetime.to_s(:db)}'})
+          }
+
+          let(:relation) { Blog.ignore_transaction_datetime.eager_load(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql not_have_transaction_at(time_current, table: "blogs") }
+          # load association
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql not_have_transaction_at(time_current, table: "articles") }
+        end
+
+        context "with `transaction_at`" do
+          let(:transaction_datetime) { "2019/01/01".in_time_zone }
+          let(:relation) { Blog.transaction_at(transaction_datetime).eager_load(:articles) }
+
+          # WHERE
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "blogs") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "blogs") }
+          # load association
+          it { is_expected.to blogs_sql have_valid_at(time_current, table: "articles") }
+          it { is_expected.to blogs_sql have_transaction_at(transaction_datetime, table: "articles") }
         end
       end
     end
@@ -1518,6 +1905,30 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       it { is_expected.to include(valid_datetime: time_current, transaction_datetime: transaction_datetime) }
     end
 
+    context "ActiveRecord::Bitemporal.transaction_at" do
+      let(:transaction_datetime) { "2019/01/1".in_time_zone }
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { Blog.all } }
+      it { is_expected.to include(valid_datetime: time_current, transaction_datetime: transaction_datetime) }
+
+      context ".transaction_at" do
+        let(:transaction_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at("1999/01/01") { Blog.transaction_at(transaction_datetime) } }
+        it { is_expected.to include(valid_datetime: time_current, transaction_datetime: transaction_datetime) }
+      end
+    end
+
+    context "ActiveRecord::Bitemporal.transaction_at!" do
+      let(:transaction_datetime) { "2019/01/1".in_time_zone }
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { Blog.all } }
+      it { is_expected.to include(valid_datetime: time_current, transaction_datetime: transaction_datetime) }
+
+      context ".transaction_at" do
+        let(:transaction_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { Blog.transaction_at("1999/01/01") } }
+        it { is_expected.to include(valid_datetime: time_current, transaction_datetime: transaction_datetime) }
+      end
+    end
+
     context "with `.ignore_transaction_datetime`" do
       let(:relation) { Blog.ignore_transaction_datetime }
       it { is_expected.to include(valid_datetime: time_current) }
@@ -1625,6 +2036,19 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         end
       end
 
+      context ".transaction_at" do
+        let(:transaction_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { Blog.transaction_at(transaction_datetime) }
+        it { is_expected.to include(transaction_datetime: transaction_datetime) }
+      end
+
+      context "#transaction_at" do
+        let(:transaction_datetime) { "2019/01/1".in_time_zone }
+        let(:relation) { Blog.all }
+        let(:bitemporal_option) { Timecop.freeze(time_current) { record.transaction_at(transaction_datetime) { |it| it.bitemporal_option } } }
+        it { is_expected.to include(transaction_datetime: transaction_datetime) }
+      end
+
       describe "association" do
         let!(:blog) { Blog.create(valid_from: "1999/01/01", transaction_from: "1999/01/01") }
         let!(:article) { blog.articles.create(valid_from: "1999/01/01", transaction_from: "1999/01/01") }
@@ -1654,6 +2078,25 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           let(:valid_datetime) { "2019/01/1".in_time_zone }
           let(:relation) { Blog.all.first.articles.valid_at(valid_datetime) }
           it { is_expected.to include(valid_datetime: valid_datetime) }
+        end
+
+        context "owner.transaction_at" do
+          let(:transaction_datetime) { "2019/01/1".in_time_zone }
+          let(:owner) { Blog.transaction_at(transaction_datetime).first }
+          let(:relation) { owner.articles }
+          it { is_expected.to include(transaction_datetime: transaction_datetime) }
+
+          context "with association.transaction_at" do
+            let(:association_transaction_datetime) { "2019/05/1".in_time_zone }
+            let(:relation) { owner.articles.transaction_at(association_transaction_datetime) }
+            it { is_expected.to include(transaction_datetime: association_transaction_datetime) }
+          end
+        end
+
+        context "association.transaction_at" do
+          let(:transaction_datetime) { "2019/01/1".in_time_zone }
+          let(:relation) { Blog.all.first.articles.transaction_at(transaction_datetime) }
+          it { is_expected.to include(transaction_datetime: transaction_datetime) }
         end
       end
     end
@@ -1883,7 +2326,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
     context "default scope" do
       let(:relation) { Blog.all }
-      it { is_expected.to be_falsey }
+      it { is_expected.to eq :default_scope }
     end
 
     context "with .transaction_at" do
@@ -1904,6 +2347,146 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     context "with ignore_transaction_datetime.transaction_at" do
       let(:relation) { Blog.ignore_transaction_datetime.transaction_at("04/01") }
       it { is_expected.to be_truthy }
+    end
+
+    context "with ActiveRecord::Bitemporal.transaction_at" do
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at("04/01") { Blog.all } }
+      it { is_expected.to eq :default_scope_with_transaction_datetime }
+    end
+
+    context "with ActiveRecord::Bitemporal.ignore_transaction_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { Blog.all } }
+      it { is_expected.to be_falsey }
+    end
+
+    context "with ActiveRecord::Bitemporal.transaction_at -> .ignore_transaction_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at("04/01") { Blog.ignore_transaction_datetime } }
+      it { is_expected.to be_falsey }
+    end
+
+    context "with ActiveRecord::Bitemporal.transaction_at -> ActiveRecord::Bitemporal.ignore_transaction_datetime" do
+      let(:relation) { ActiveRecord::Bitemporal.transaction_at("04/01") { ActiveRecord::Bitemporal.ignore_transaction_datetime { Blog.all } } }
+      it { is_expected.to be_falsey }
+    end
+
+    context "with ActiveRecord::Bitemporal.ignore_transaction_datetime -> .transaction_at" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { Blog.transaction_at("04/01") } }
+      it { is_expected.to be_truthy }
+    end
+
+    context "with ActiveRecord::Bitemporal.ignore_transaction_datetime -> ActiveRecord::Bitemporal.transaction_at" do
+      let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { ActiveRecord::Bitemporal.transaction_at("04/01") { Blog.all } } }
+      it { is_expected.to be_truthy }
+    end
+
+    context "create association when after record loaded" do
+      let!(:blog) { Blog.create; Blog.first }
+      it { expect { Article.create(blog_id: blog.id) }.to change { blog.articles.count }.by(1) }
+    end
+
+    context ".except_transaction_datetime" do
+      let(:relation) { Blog.all.except_transaction_datetime }
+      it { expect(relation.bitemporal_value).not_to include(:with_transaction_datetime) }
+    end
+
+    context ".ignore_transaction_datetime.except_transaction_datetime" do
+      let(:relation) { Blog.ignore_transaction_datetime.except_transaction_datetime }
+      it { expect(relation.bitemporal_value).not_to include(:with_transaction_datetime) }
+    end
+
+    context ".except_transaction_datetime.ignore_transaction_datetime" do
+      let(:relation) { Blog.except_transaction_datetime.ignore_transaction_datetime }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: false) }
+    end
+
+    context ".transaction_at" do
+      let(:relation) { Blog.transaction_at("2020/10/01") }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    xcontext ".transaction_at.except_transaction_datetime" do
+      let(:relation) { Blog.transaction_at("2020/10/01").except_transaction_datetime }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    context ".merge(.)" do
+      let(:relation) { Blog.all.merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: :default_scope) }
+    end
+
+    context ".merge(.transaction_at)" do
+      let(:relation) { Blog.all.merge(User.transaction_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    context ".merge(.ignore_transaction_datetime)" do
+      let(:relation) { Blog.all.merge(User.ignore_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: false) }
+    end
+
+    context ".merge(.except_transaction_datetime)" do
+      let(:relation) { Blog.all.merge(User.except_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: :default_scope) }
+    end
+
+    context ".transaction_at.merge(.)" do
+      let(:relation) { Blog.transaction_at("2020/10/01").merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: :default_scope) }
+    end
+
+    context ".transaction_at.merge(.transaction_at)" do
+      let(:relation) { Blog.transaction_at("2020/10/01").merge(User.transaction_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    context ".transaction_at.merge(.ignore_transaction_datetime)" do
+      let(:relation) { Blog.transaction_at("2020/10/01").merge(User.ignore_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: false) }
+    end
+
+    context ".transaction_at.merge(.except_transaction_datetime)" do
+      let(:relation) { Blog.transaction_at("2020/10/01").merge(User.except_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    context ".ignore_transaction_datetime.merge(.)" do
+      let(:relation) { Blog.ignore_transaction_datetime.merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: :default_scope) }
+    end
+
+    context ".ignore_transaction_datetime.merge(.transaction_at)" do
+      let(:relation) { Blog.ignore_transaction_datetime.merge(User.transaction_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    context ".ignore_transaction_datetime.merge(.ignore_transaction_datetime)" do
+      let(:relation) { Blog.ignore_transaction_datetime.merge(User.ignore_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: false) }
+    end
+
+    context ".ignore_transaction_datetime.merge(.except_transaction_datetime)" do
+      let(:relation) { Blog.ignore_transaction_datetime.merge(User.except_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: false) }
+    end
+
+    context ".except_transaction_datetime.merge(.)" do
+      let(:relation) { Blog.except_transaction_datetime.merge(User.all) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: :default_scope) }
+    end
+
+    context ".except_transaction_datetime.merge(.transaction_at)" do
+      let(:relation) { Blog.except_transaction_datetime.merge(User.transaction_at("2020/01/01")) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: true) }
+    end
+
+    context ".except_transaction_datetime.merge(.ignore_transaction_datetime)" do
+      let(:relation) { Blog.except_transaction_datetime.merge(User.ignore_transaction_datetime) }
+      it { expect(relation.bitemporal_value).to include(with_transaction_datetime: false) }
+    end
+
+    context ".except_transaction_datetime.merge(.except_transaction_datetime)" do
+      let(:relation) { Blog.except_transaction_datetime.merge(User.except_transaction_datetime) }
+      it { expect(relation.bitemporal_value).not_to include(:with_transaction_datetime) }
     end
   end
 end

@@ -88,7 +88,8 @@ module ActiveRecord::Bitemporal
             transaction_from: transaction_from,
             transaction_to: transaction_to,
             transaction_datetime: transaction_from == transaction_to ? transaction_from : nil,
-            ignore_valid_datetime: valid_from.nil? && valid_to.nil? ? true : false
+            ignore_valid_datetime: valid_from.nil? && valid_to.nil? ? true : false,
+            ignore_transaction_datetime: transaction_from.nil? && transaction_to.nil? ? true : false
           }
         end
       end
@@ -195,6 +196,14 @@ module ActiveRecord::Bitemporal
 
           def ignore_valid_datetime?
             bitemporal_option_storage[:ignore_valid_datetime]
+          end
+
+          def force_transaction_datetime?
+            bitemporal_option_storage[:force_transaction_datetime]
+          end
+
+          def ignore_transaction_datetime?
+            bitemporal_option_storage[:ignore_transaction_datetime]
           end
         end
       }
@@ -353,6 +362,9 @@ module ActiveRecord::Bitemporal
 
       # transaction_from <= datetime && datetime < transaction_to
       scope :transaction_at, -> (datetime) {
+        if ActiveRecord::Bitemporal.force_transaction_datetime?
+          datetime = ActiveRecord::Bitemporal.transaction_datetime
+        end
         datetime = Time.current if datetime.nil?
         transaction_from_lteq(datetime).transaction_to_gt(datetime).with_transaction_datetime
       }
@@ -360,16 +372,22 @@ module ActiveRecord::Bitemporal
         ignore_transaction_from.ignore_transaction_to.without_transaction_datetime
       }
       scope :except_transaction_datetime, -> {
-        except_transaction_from.except_transaction_to.without_transaction_datetime
+        except_transaction_from.except_transaction_to.tap { |relation| relation.bitemporal_value.except! :with_transaction_datetime }
       }
 
       scope :bitemporal_at, -> (datetime) {
         datetime = Time.current if datetime.nil?
-        if ActiveRecord::Bitemporal.ignore_valid_datetime?
-          transaction_at(datetime)
-        else
-          transaction_at(datetime).valid_at(ActiveRecord::Bitemporal.valid_datetime || datetime)
+        relation = self
+
+        if !ActiveRecord::Bitemporal.ignore_transaction_datetime?
+          relation = relation.transaction_at(ActiveRecord::Bitemporal.transaction_datetime || datetime)
         end
+
+        if !ActiveRecord::Bitemporal.ignore_valid_datetime?
+          relation = relation.valid_at(ActiveRecord::Bitemporal.valid_datetime || datetime)
+        end
+
+        relation
       }
       scope :ignore_bitemporal_datetime, -> {
         ignore_transaction_datetime.ignore_valid_datetime
@@ -382,19 +400,29 @@ module ActiveRecord::Bitemporal
         datetime = Time.current
         relation = self
 
-        # Calling scope was slow, so don't call scope
-        relation.unscope_values += [
-          { where: "#{table.name}.transaction_from" },
-          { where: "#{table.name}.transaction_to" }
-        ]
-        relation = relation
-          ._transaction_from_lteq(datetime, without_ignore: true)
-          ._transaction_to_gt(datetime, without_ignore: true)
-          .without_transaction_datetime
+        if !ActiveRecord::Bitemporal.ignore_transaction_datetime?
+          if ActiveRecord::Bitemporal.transaction_datetime
+            transaction_datetime = ActiveRecord::Bitemporal.transaction_datetime
+            relation.bitemporal_value[:with_transaction_datetime] = :default_scope_with_transaction_datetime
+          else
+            relation.bitemporal_value[:with_transaction_datetime] = :default_scope
+          end
+
+          # Calling scope was slow, so don't call scope
+          relation.unscope_values += [
+            { where: "#{table.name}.transaction_from" },
+            { where: "#{table.name}.transaction_to" }
+          ]
+          relation = relation
+            ._transaction_from_lteq(transaction_datetime || datetime, without_ignore: true)
+            ._transaction_to_gt(transaction_datetime || datetime, without_ignore: true)
+        else
+          relation.tap { |relation| relation.without_transaction_datetime unless ActiveRecord::Bitemporal.transaction_datetime }
+        end
 
         if !ActiveRecord::Bitemporal.ignore_valid_datetime?
           if ActiveRecord::Bitemporal.valid_datetime
-            datetime = ActiveRecord::Bitemporal.valid_datetime
+            valid_datetime = ActiveRecord::Bitemporal.valid_datetime
             relation.bitemporal_value[:with_valid_datetime] = :default_scope_with_valid_datetime
           else
             relation.bitemporal_value[:with_valid_datetime] = :default_scope
@@ -405,8 +433,8 @@ module ActiveRecord::Bitemporal
             { where: "#{table.name}.valid_to" }
           ]
           relation = relation
-            ._valid_from_lteq(datetime, without_ignore: true)
-            ._valid_to_gt(datetime, without_ignore: true)
+            ._valid_from_lteq(valid_datetime || datetime, without_ignore: true)
+            ._valid_to_gt(valid_datetime || datetime, without_ignore: true)
         else
           relation.tap { |relation| relation.without_valid_datetime unless ActiveRecord::Bitemporal.valid_datetime }
         end
@@ -417,7 +445,7 @@ module ActiveRecord::Bitemporal
       scope :except_bitemporal_default_scope, -> {
         scope = all
         scope = scope.except_valid_datetime if bitemporal_value[:with_valid_datetime] == :default_scope || bitemporal_value[:with_valid_datetime] == :default_scope_with_valid_datetime
-        scope = scope.except_transaction_datetime unless bitemporal_value[:with_transaction_datetime]
+        scope = scope.except_transaction_datetime if bitemporal_value[:with_transaction_datetime] == :default_scope || bitemporal_value[:with_transaction_datetime] == :default_scope_with_transaction_datetime
         scope
       }
 
