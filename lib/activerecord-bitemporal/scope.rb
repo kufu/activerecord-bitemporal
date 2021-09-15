@@ -377,11 +377,17 @@ module ActiveRecord::Bitemporal
 
       scope :bitemporal_at, -> (datetime) {
         datetime = Time.current if datetime.nil?
-        if ActiveRecord::Bitemporal.ignore_valid_datetime?
-          transaction_at(datetime)
-        else
-          transaction_at(datetime).valid_at(ActiveRecord::Bitemporal.valid_datetime || datetime)
+        relation = self
+
+        if !ActiveRecord::Bitemporal.ignore_transaction_datetime?
+          relation = relation.transaction_at(ActiveRecord::Bitemporal.transaction_datetime || datetime)
         end
+
+        if !ActiveRecord::Bitemporal.ignore_valid_datetime?
+          relation = relation.valid_at(ActiveRecord::Bitemporal.valid_datetime || datetime)
+        end
+
+        relation
       }
       scope :ignore_bitemporal_datetime, -> {
         ignore_transaction_datetime.ignore_valid_datetime
