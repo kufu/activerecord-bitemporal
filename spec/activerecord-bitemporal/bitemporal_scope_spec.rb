@@ -722,7 +722,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
       describe "ActiveRecord::Bitemporal.valid_at!" do
         let(:valid_datetime2) { "2019/06/06".in_time_zone }
-        let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { ActiveRecord::Bitemporal.valid_at(valid_datetime2) { User.all } } }
+        let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { ActiveRecord::Bitemporal.valid_at!(valid_datetime2) { User.all } } }
         it { is_expected.to have_valid_at(valid_datetime2, table: "users") }
         it { is_expected.to have_transaction_at(time_current, table: "users") }
       end
@@ -809,7 +809,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
       describe "ActiveRecord::Bitemporal.transaction_at!" do
         let(:transaction_datetime2) { "2019/06/06".in_time_zone }
-        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime2) { User.all } } }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime2) { User.all } } }
         it { is_expected.to have_valid_at(time_current, table: "users") }
         it { is_expected.to have_transaction_at(transaction_datetime2, table: "users") }
       end
