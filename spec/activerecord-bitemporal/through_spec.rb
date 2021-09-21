@@ -45,12 +45,21 @@ ActiveRecord::Schema.define(version: 1) do
 
     t.timestamps
   end
+
+  create_table :comments, force: true do |t|
+    t.string :body
+
+    t.integer :article_id
+
+    t.timestamps
+  end
 end
 
 class Blog < ActiveRecord::Base
   include ActiveRecord::Bitemporal
   has_many :articles
   has_many :users, through: :articles
+  has_many :comments, through: :articles
 end
 
 class User < ActiveRecord::Base
@@ -62,18 +71,24 @@ class Article < ActiveRecord::Base
   include ActiveRecord::Bitemporal
   belongs_to :blog
   belongs_to :user
+  has_many :comments
 end
 
+class Comment < ActiveRecord::Base
+  belongs_to :article
+end
 
 RSpec.describe "has_xxx with through" do
   describe "created" do
     let!(:blog) { Blog.create!(name: "tabelog").tap { |it| it.update(name: "sushilog") } }
     let!(:user) { User.create!(name: "Jane").tap { |it| it.update(name: "Tom") } }
     let!(:article) { user.articles.create!(title: "yakiniku", blog: blog).tap { |it| it.update(title: "sushi") } }
+    let!(:comment) { article.comments.create!(body: "nice") }
 
     it { expect(blog.users.count).to eq 1 }
     it { expect(blog.articles.count).to eq 1 }
     it { expect(user.articles.count).to eq 1 }
+    it { expect(blog.comments.count).to eq 1 }
     it { expect(article.blog).to eq blog }
     it { expect(article.user).to eq user }
 
