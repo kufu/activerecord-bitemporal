@@ -84,6 +84,8 @@ module ActiveRecord::Bitemporal
     module ThroughAssociation
       def target_scope
         scope = super
+        return scope unless scope.bi_temporal_model?
+
         reflection.chain.drop(1).each do |reflection|
           klass = reflection.klass&.scope_for_association&.klass
           next unless klass&.bi_temporal_model?
