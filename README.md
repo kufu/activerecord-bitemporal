@@ -308,7 +308,7 @@ Timecop.freeze("2019/1/20") {
 |  --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 1 | 001 | Tom | 2019-01-10 | 9999-12-31 | 2019-01-10 | 9999-12-31 |
 
-離席を生成せずに上書きして更新したいのであれば activerecord-bitemporal 側で用意している `#force_update` を利用する事が出来ます。
+履歴を生成せずに上書きして更新したいのであれば activerecord-bitemporal 側で用意している `#force_update` を利用する事が出来ます。
 
 ```ruby
 employee = nil
