@@ -77,8 +77,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     define_method(:have_valid_at) { |datetime = Time.current, table:|
            scan_once(%{"#{table}"."valid_from"})
       .and scan_once(%{"#{table}"."valid_to"})
-      .and include(%{"#{table}"."valid_from" <= '#{datetime.to_s(:db)}'})
-      .and include(%{"#{table}"."valid_to" > '#{datetime.to_s(:db)}'})
+      .and include(%{"#{table}"."valid_from" <= '#{datetime.to_formatted_s(:db)}'})
+      .and include(%{"#{table}"."valid_to" > '#{datetime.to_formatted_s(:db)}'})
     }
     define_method(:not_have_valid_at) { |table:|
            not_scan(%{"#{table}"."valid_from"})
@@ -87,8 +87,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     define_method(:have_transaction_at) { |datetime, table:|
            scan_once(%{"#{table}"."transaction_from"})
       .and scan_once(%{"#{table}"."transaction_to"})
-      .and include(%{"#{table}"."transaction_from" <= '#{datetime.to_s(:db)}'})
-      .and include(%{"#{table}"."transaction_to" > '#{datetime.to_s(:db)}'})
+      .and include(%{"#{table}"."transaction_from" <= '#{datetime.to_formatted_s(:db)}'})
+      .and include(%{"#{table}"."transaction_to" > '#{datetime.to_formatted_s(:db)}'})
     }
     define_method(:not_have_transaction_at) { |table:|
            not_scan(%{"#{table}"."transaction_from"})
@@ -324,7 +324,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let(:relation) { User.valid_from_lt("2019/01/01").valid_from_lt("2019/03/03") }
       it { is_expected.to scan_once("valid_from").and scan_once("valid_to") }
       it { is_expected.to include %{"valid_from" < '2019-03-03 00:00:00'} }
-      it { is_expected.to include %{"valid_to" > '#{time_current.to_s(:db)}'} }
+      it { is_expected.to include %{"valid_to" > '#{time_current.to_formatted_s(:db)}'} }
       it { is_expected.to have_transaction_at(time_current, table: "users") }
     end
 
@@ -332,7 +332,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       let(:relation) { User.valid_from_lt("2019/01/01").valid_from_lteq("2019/03/03") }
       it { is_expected.to scan_once("valid_from").and scan_once("valid_to") }
       it { is_expected.to include %{"valid_from" <= '2019-03-03 00:00:00'} }
-      it { is_expected.to include %{"valid_to" > '#{time_current.to_s(:db)}'} }
+      it { is_expected.to include %{"valid_to" > '#{time_current.to_formatted_s(:db)}'} }
       it { is_expected.to have_transaction_at(time_current, table: "users") }
     end
 
@@ -1622,12 +1622,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
       context ".eager_load" do
         define_method(:have_valid_at) { |datetime = Time.current, table:|
-               include(%{"#{table}"."valid_from" <= '#{datetime.to_s(:db)}'})
-          .and include(%{"#{table}"."valid_to" > '#{datetime.to_s(:db)}'})
+               include(%{"#{table}"."valid_from" <= '#{datetime.to_formatted_s(:db)}'})
+          .and include(%{"#{table}"."valid_to" > '#{datetime.to_formatted_s(:db)}'})
         }
         define_method(:have_transaction_at) { |datetime, table:|
-               include(%{"#{table}"."transaction_from" <= '#{datetime.to_s(:db)}'})
-          .and include(%{"#{table}"."transaction_to" > '#{datetime.to_s(:db)}'})
+               include(%{"#{table}"."transaction_from" <= '#{datetime.to_formatted_s(:db)}'})
+          .and include(%{"#{table}"."transaction_to" > '#{datetime.to_formatted_s(:db)}'})
         }
         let(:relation) { Blog.eager_load(:articles) }
 
@@ -1640,8 +1640,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         context "with `ignore_valid_datetime`" do
           define_method(:not_have_valid_at) { |datetime = Time.current, table:|
-                 not_scan(%{"#{table}"."valid_from" <= '#{datetime.to_s(:db)}'})
-            .and not_scan(%{"#{table}"."valid_to" > '#{datetime.to_s(:db)}'})
+                 not_scan(%{"#{table}"."valid_from" <= '#{datetime.to_formatted_s(:db)}'})
+            .and not_scan(%{"#{table}"."valid_to" > '#{datetime.to_formatted_s(:db)}'})
           }
 
           let(:relation) { Blog.ignore_valid_datetime.eager_load(:articles) }
@@ -1668,8 +1668,8 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
         context "with `ignore_transaction_datetime`" do
           define_method(:not_have_transaction_at) { |datetime = Time.current, table:|
-                 not_scan(%{"#{table}"."transaction_from" <= '#{datetime.to_s(:db)}'})
-            .and not_scan(%{"#{table}"."transaction_to" > '#{datetime.to_s(:db)}'})
+                 not_scan(%{"#{table}"."transaction_from" <= '#{datetime.to_formatted_s(:db)}'})
+            .and not_scan(%{"#{table}"."transaction_to" > '#{datetime.to_formatted_s(:db)}'})
           }
 
           let(:relation) { Blog.ignore_transaction_datetime.eager_load(:articles) }
