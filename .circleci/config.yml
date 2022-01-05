@@ -65,6 +65,12 @@ jobs:
       - run_rspec:
           gemfile: rails-6.1
 
+  ruby_2_7_rails_7_0:
+    executor: ruby_2_7
+    steps:
+      - run_rspec:
+          gemfile: rails-7.0
+
   ruby_2_7_rails_main:
     executor: ruby_2_7
     steps:
@@ -76,6 +82,12 @@ jobs:
     steps:
       - run_rspec:
           gemfile: rails-6.1
+
+  ruby_3_0_rails_7_0:
+    executor: ruby_3_0
+    steps:
+      - run_rspec:
+          gemfile: rails-7.0
 
   ruby_3_0_rails_main:
     executor: ruby_3_0
@@ -94,8 +106,10 @@ workflows:
       - ruby_2_7_rails_5_2
       - ruby_2_7_rails_6_0
       - ruby_2_7_rails_6_1
+      - ruby_2_7_rails_7_0
       - ruby_2_7_rails_main
       - ruby_3_0_rails_6_1
+      - ruby_3_0_rails_7_0
       - ruby_3_0_rails_main
 
   daily_test:
