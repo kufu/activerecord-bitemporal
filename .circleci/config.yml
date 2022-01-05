@@ -108,6 +108,7 @@ workflows:
       - ruby_2_7_rails_6_1
       - ruby_2_7_rails_7_0
       - ruby_2_7_rails_main
+      - ruby_3_0_rails_6_1
       - ruby_3_0_rails_7_0
       - ruby_3_0_rails_main
 
