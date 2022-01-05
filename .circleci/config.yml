@@ -3,17 +3,22 @@ version: 2.1
 executors:
   ruby_2_6:
     docker:
-      - image: ruby:2.6.7
+      - image: ruby:2.6.9
       - image: circleci/postgres:11-alpine
 
   ruby_2_7:
     docker:
-      - image: ruby:2.7.3
+      - image: ruby:2.7.5
       - image: circleci/postgres:11-alpine
 
   ruby_3_0:
     docker:
-      - image: ruby:3.0.1
+      - image: ruby:3.0.3
+      - image: circleci/postgres:11-alpine
+
+  ruby_3_1:
+    docker:
+      - image: ruby:3.1.0
       - image: circleci/postgres:11-alpine
 
 commands:
@@ -91,6 +96,25 @@ jobs:
 
   ruby_3_0_rails_main:
     executor: ruby_3_0
+    steps:
+      - run_rspec:
+          gemfile: rails-main
+
+  ruby_3_1_rails_6_1:
+    executor: ruby_3_1
+    steps:
+      - run_rspec:
+          gemfile: rails-6.1
+
+  # Rails 7.0.0 does not yet support Ruby 3.1
+  # ruby_3_1_rails_7_0:
+  #   executor: ruby_3_1
+  #   steps:
+  #     - run_rspec:
+  #         gemfile: rails-7.0
+
+  ruby_3_1_rails_main:
+    executor: ruby_3_1
     steps:
       - run_rspec:
           gemfile: rails-main
