@@ -106,12 +106,11 @@ jobs:
       - run_rspec:
           gemfile: rails-6.1
 
-  # Rails 7.0.0 does not yet support Ruby 3.1
-  # ruby_3_1_rails_7_0:
-  #   executor: ruby_3_1
-  #   steps:
-  #     - run_rspec:
-  #         gemfile: rails-7.0
+  ruby_3_1_rails_7_0:
+    executor: ruby_3_1
+    steps:
+      - run_rspec:
+          gemfile: rails-7.0
 
   ruby_3_1_rails_main:
     executor: ruby_3_1
