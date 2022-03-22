@@ -40,7 +40,7 @@ Timecop.freeze("2019/1/10") {
 
 | id | bitemporal_id | emp_code | name | valid_from | valid_to | transaction_from | transaction_to |
 |  --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 2019-01-15 |
+| 1 | 1 | 001 | Jane | 2019-01-10 | 9999-12-31 | 2019-01-10 | 9999-12-31 |
 
 そのモデルに対して更新を行うと
 
