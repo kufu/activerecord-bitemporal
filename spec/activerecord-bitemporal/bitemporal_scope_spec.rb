@@ -320,6 +320,12 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       end
     end
 
+    context "where.valid_at.except_bitemporal_datetime with String" do
+      let(:relation) { User.where('name = "Mami"').valid_at("2020/04/01").except_bitemporal_datetime }
+      it { is_expected.to not_have_valid_at(table: "users") }
+      it { is_expected.to not_have_transaction_at(table: "users") }
+    end
+
     context "duplicates `valid_from_lt" do
       let(:relation) { User.valid_from_lt("2019/01/01").valid_from_lt("2019/03/03") }
       it { is_expected.to scan_once("valid_from").and scan_once("valid_to") }
@@ -1837,7 +1843,6 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to not_have_valid_at(table: "blogs") }
         it { is_expected.to have_transaction_at(_01_01, table: "blogs") }
       end
-
     end
   end
 
