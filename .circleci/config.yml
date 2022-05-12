@@ -108,6 +108,9 @@ workflows:
       - ruby_3_0_rails_6_1
       - ruby_3_0_rails_7_0
       - ruby_3_0_rails_main
+      - ruby_3_1_rails_6_1
+      - ruby_3_1_rails_7_0
+      - ruby_3_1_rails_main
 
   daily_test:
     triggers:
