@@ -2,6 +2,12 @@
 
 module ActiveRecord::Bitemporal
   module NodeBitemporalInclude
+    refine String do
+      def bitemporal_include?(*)
+        false
+      end
+    end
+
     refine ::Arel::Nodes::Node do
       def bitemporal_include?(*columns)
         case self
