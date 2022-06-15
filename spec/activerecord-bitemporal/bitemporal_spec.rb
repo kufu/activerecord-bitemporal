@@ -2502,7 +2502,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:valid_datetime) { from + 5.days }
 
       it "returns the current valid record and before/after records" do
-        current, before, after = subject
+        (current, ), before, after = subject
 
         aggregate_failures do
           expect(current).to have_attributes(
@@ -2536,7 +2536,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:force_update) { true }
 
         it "returns the current valid record and an after record" do
-          current, before, after = subject
+          (current, ), before, after = subject
 
           aggregate_failures do
             expect(current).to have_attributes(
@@ -2572,7 +2572,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:valid_datetime) { from - 5.days }
 
       it "returns only an after record" do
-        current, before, after = subject
+        (current, ), before, after = subject
 
         aggregate_failures do
           expect(current).to be_nil
@@ -2592,7 +2592,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:force_update) { true }
 
         it "returns the current valid record and an after record" do
-          current, before, after = subject
+          (current, ), before, after = subject
 
           aggregate_failures do
             expect(current).to have_attributes(
@@ -2626,7 +2626,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:valid_datetime) { to + 5.days }
 
       it "returns before/after records" do
-        current, before, after = subject
+        (current, ), before, after = subject
 
         aggregate_failures do
           expect(current).to be_nil
@@ -2653,7 +2653,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:force_update) { true }
 
         it "returns the current valid record and an after record" do
-          current, before, after = subject
+          (current, ), before, after = subject
 
           aggregate_failures do
             expect(current).to have_attributes(
@@ -2675,6 +2675,157 @@ RSpec.describe ActiveRecord::Bitemporal do
             )
           end
         end
+      end
+    end
+  end
+
+  describe "#bitemporal_build_force_update_records" do
+    let(:_01_01) { "2020/01/01".in_time_zone }
+    let(:_02_01) { "2020/02/01".in_time_zone }
+    let(:_03_01) { "2020/03/01".in_time_zone }
+    let(:_04_01) { "2020/04/01".in_time_zone }
+    let(:_05_01) { "2020/05/01".in_time_zone }
+    let(:_06_01) { "2020/06/01".in_time_zone }
+    let(:_07_01) { "2020/07/01".in_time_zone }
+    let(:_08_01) { "2020/08/01".in_time_zone }
+    let(:_12_31) { "9999/12/31".in_time_zone }
+    let(:target) { Employee.find_at_time(_04_01, @target.id) }
+    define_method(:target_histories) { Employee.ignore_valid_datetime.bitemporal_for(target.id).order(:valid_from) }
+    define_method(:target_history_values) {
+      target_histories.pluck(:valid_from, :valid_to, :name)
+    }
+
+    # Before:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|------- target ------|-------------------------|-------------------------|
+    #
+    before do
+      ActiveRecord::Bitemporal.valid_at(_01_01) { @target = Employee.create(name: "A") }
+      ActiveRecord::Bitemporal.valid_at(_03_01) { @target.update!(name: "B") }
+      ActiveRecord::Bitemporal.valid_at(_05_01) { @target.update!(name: "C") }
+      ActiveRecord::Bitemporal.valid_at(_07_01) { @target.update!(name: "D") }
+    end
+
+    subject {
+      target.force_update { |record|
+        record.update!(valid_from: valid_from, valid_to: valid_to, name: "X")
+      }
+    }
+
+    # Before:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|------- target ------|-------------------------|-------------------------|
+    #
+    # After:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|*********************|-------------------------|-------------------------|
+    #                           ^                     ^
+    #                       valid_from             valid_to
+    #
+    context "valid_from: 03/01, valid_to: 05/01" do
+      let(:valid_from) { _03_01 }
+      let(:valid_to) { _05_01 }
+
+      it do
+        expect { subject }.to change { target_history_values }.to [
+          [_01_01, _03_01, "A"],
+          [_03_01, _05_01, "X"],
+          [_05_01, _07_01, "C"],
+          [_07_01, _12_31, "D"]
+        ]
+      end
+    end
+
+    # Before:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|------- target ------|-------------------------|-------------------------|
+    #
+    # After:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |----------|*********************************************|------------|-------------------------|
+    #                ^                                             ^
+    #            valid_from                                     valid_to
+    #
+    context "valid_from: 02/01, valid_to: 05/01" do
+      let(:valid_from) { _02_01 }
+      let(:valid_to) { _06_01 }
+
+      it do
+        expect { subject }.to change { target_history_values }.to [
+          [_01_01, _02_01, "A"],
+          [_02_01, _06_01, "X"],
+          [_06_01, _07_01, "C"],
+          [_07_01, _12_31, "D"]
+        ]
+      end
+    end
+
+    # Before:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|------- target ------|-------------------------|-------------------------|
+    #
+    # After:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |*********************************************************************|-------------------------|
+    #     ^                                                                     ^
+    # valid_from                                                             valid_to
+    #
+    context "valid_from: 02/01, valid_to: 05/01" do
+      let(:valid_from) { _01_01 }
+      let(:valid_to) { _07_01 }
+
+      it do
+        expect { subject }.to change { target_history_values }.to [
+          [_01_01, _07_01, "X"],
+          [_07_01, _12_31, "D"]
+        ]
+      end
+    end
+
+    # Before:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|------- target ------|-------------------------|-------------------------|
+    #
+    # After:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|          |*************************************************|------------|
+    #                                      ^                                                 ^
+    #                                  valid_from                                         valid_to
+    #
+    context "valid_from: 03/01, valid_to: 05/01" do
+      let(:valid_from) { _04_01 }
+      let(:valid_to) { _08_01 }
+
+      it do
+        expect { subject }.to change { target_history_values }.to [
+          [_01_01, _03_01, "A"],
+          [_04_01, _08_01, "X"],
+          [_08_01, _12_31, "D"]
+        ]
+      end
+    end
+
+    # Before:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|------- target ------|-------------------------|-------------------------|
+    #
+    # After:
+    #   01/01      02/01      03/01      04/01      05/01        06/01        07/01        08/01      9999/12/31
+    #     |---------------------|**********|          |-------------------------|-------------------------|
+    #                           ^          ^
+    #                       valid_from  valid_to
+    #
+    context "valid_from: 03/01, valid_to: 05/01" do
+      let(:valid_from) { _03_01 }
+      let(:valid_to) { _04_01 }
+
+      it do
+        expect { subject }.to change { target_history_values }.to [
+          [_01_01, _03_01, "A"],
+          [_03_01, _04_01, "X"],
+          [_05_01, _07_01, "C"],
+          [_07_01, _12_31, "D"]
+        ]
       end
     end
   end
