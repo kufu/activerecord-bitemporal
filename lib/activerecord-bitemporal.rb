@@ -6,6 +6,7 @@ require "activerecord-bitemporal/bitemporal"
 require "activerecord-bitemporal/scope"
 require "activerecord-bitemporal/patches"
 require "activerecord-bitemporal/version"
+require "activerecord-bitemporal/visualizer"
 
 module ActiveRecord::Bitemporal
   DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
