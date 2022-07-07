@@ -138,15 +138,15 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.not_to match %r/"employees"."valid_from"/ }
       end
 
-      context "with (.._01_30)" do
-        let(:relation) { Employee.valid_in(.._01_30) }
+      context "with (..._01_30)" do
+        let(:relation) { Employee.valid_in(..._01_30) }
 
         it { is_expected.not_to match %r/"employees"."valid_to"/ }
         it { is_expected.to match %r/"employees"."valid_from" < '2019-01-29 15:00:00'/ }
       end
 
-      context "with (..._01_30)" do
-        let(:relation) { Employee.valid_in(..._01_30) }
+      context "with (.._01_30)" do
+        let(:relation) { Employee.valid_in(.._01_30) }
 
         it { is_expected.not_to match %r/"employees"."valid_to"/ }
         it { is_expected.to match %r/"employees"."valid_from" <= '2019-01-29 15:00:00'/ }
