@@ -7,8 +7,8 @@ require "activerecord-bitemporal/version"
 Gem::Specification.new do |spec|
   spec.name          = "activerecord-bitemporal"
   spec.version       = ActiveRecord::Bitemporal::VERSION
-  spec.authors       = ["mserizawa"]
-  spec.email         = ["serizawa@smarthr.co.jp"]
+  spec.authors       = ["SmartHR"]
+  spec.email         = ["oss@smarthr.co.jp"]
 
   spec.summary       = "BiTemporal Data Model for ActiveRecord"
   spec.description   = %q{Enable ActiveRecord models to be handled as BiTemporal Data Model.}
