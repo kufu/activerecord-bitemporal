@@ -74,7 +74,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     context "2019/1/20 - 2019/1/30" do
       let(:from) { "2019/1/20" }
       let(:to) { "2019/1/30" }
-      it { is_expected.to contain_exactly("Homu", "Jane", "Mami", "Tom", "Kevin", "Mado") }
+      it { is_expected.to contain_exactly("Mami", "Tom") }
     end
 
     describe ".to_sql" do
@@ -83,19 +83,84 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         Time.zone = "Tokyo"
       end
       after { Time.zone = @old_time_zone }
-      let(:from) { "2019/1/20" }
-      let(:to) { "2019/1/30" }
-      subject { Employee.valid_in(from: from, to: to).to_sql }
-      it { is_expected.to match %r/"employees"."valid_to" >= '2019-01-19 15:00:00'/ }
-      it { is_expected.to match %r/"employees"."valid_from" <= '2019-01-29 15:00:00'/ }
+
+      let(:_01_20) { "2019/01/20" }
+      let(:_01_30) { "2019/01/30" }
+
+      subject { relation.to_sql }
+
+      context "with from: _01_20, to: _01_30" do
+        let(:relation) { Employee.valid_in(from: _01_20, to: _01_30) }
+
+        it { is_expected.to match %r/"employees"."valid_to" > '2019-01-19 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_from" < '2019-01-29 15:00:00'/ }
+      end
+
+      context "with from: _01_30, to: _01_20" do
+        let(:relation) { Employee.valid_in(from: _01_30, to: _01_20) }
+
+        it { is_expected.to match %r/"employees"."valid_to" > '2019-01-29 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_from" < '2019-01-19 15:00:00'/ }
+      end
+
+      context "with from: _01_20" do
+        let(:relation) { Employee.valid_in(from: _01_20) }
+
+        it { is_expected.to match %r/"employees"."valid_to" > '2019-01-19 15:00:00'/ }
+        it { is_expected.not_to match %r/"employees"."valid_from"/ }
+      end
+
+      context "with to: _01_30" do
+        let(:relation) { Employee.valid_in(to: _01_30) }
+
+        it { is_expected.not_to match %r/"employees"."valid_to"/ }
+        it { is_expected.to match %r/"employees"."valid_from" < '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (_01_20..._01_30)" do
+        let(:relation) { Employee.valid_in(_01_20..._01_30) }
+
+        it { is_expected.to match %r/"employees"."valid_to" > '2019-01-19 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_from" < '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (_01_20.._01_30)" do
+        let(:relation) { Employee.valid_in(_01_20.._01_30) }
+
+        it { is_expected.to match %r/"employees"."valid_to" > '2019-01-19 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_from" <= '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (_01_20..)" do
+        let(:relation) { Employee.valid_in(_01_20..) }
+
+        it { is_expected.to match %r/"employees"."valid_to" > '2019-01-19 15:00:00'/ }
+        it { is_expected.not_to match %r/"employees"."valid_from"/ }
+      end
+
+      context "with (..._01_30)" do
+        let(:relation) { Employee.valid_in(..._01_30) }
+
+        it { is_expected.not_to match %r/"employees"."valid_to"/ }
+        it { is_expected.to match %r/"employees"."valid_from" < '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (.._01_30)" do
+        let(:relation) { Employee.valid_in(.._01_30) }
+
+        it { is_expected.not_to match %r/"employees"."valid_to"/ }
+        it { is_expected.to match %r/"employees"."valid_from" <= '2019-01-29 15:00:00'/ }
+      end
     end
 
     describe ".arel.to_sql" do
       let(:from) { "2019/1/20" }
       let(:to) { "2019/1/30" }
+
       subject { Employee.valid_in(from: from, to: to).arel.to_sql }
-      it { is_expected.to match %r/"employees"."valid_to" >= \$3/ }
-      it { is_expected.to match %r/"employees"."valid_from" <= \$4/ }
+
+      it { is_expected.to match %r/"employees"."valid_to" > \$3/ }
+      it { is_expected.to match %r/"employees"."valid_from" < \$4/ }
     end
   end
 
