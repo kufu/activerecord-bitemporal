@@ -494,10 +494,25 @@ module ActiveRecord::Bitemporal
       }
 
       # from <= valid_from AND valid_to <= to
-      scope :valid_allin, -> (from: nil, to: nil) {
-        ignore_valid_datetime
-          .tap { |relation| break relation.bitemporal_where_bind("valid_from", :gteq, from.in_time_zone.to_datetime) if from }
-          .tap { |relation| break relation.bitemporal_where_bind("valid_to", :lteq, to.in_time_zone.to_datetime) if to }
+      scope :valid_allin, -> (range = nil, from: nil, to: nil) {
+        return valid_allin(from..to) if range.nil?
+
+        relation = ignore_valid_datetime
+        begin_, end_ = range.begin, range.end
+
+        if begin_
+          relation = relation.bitemporal_where_bind("valid_from", :gteq, begin_.in_time_zone.to_datetime)
+        end
+
+        if end_
+          if range.exclude_end?
+            raise 'Range with excluding end is not supported'
+          else
+            relation = relation.bitemporal_where_bind("valid_to", :lteq, end_.in_time_zone.to_datetime)
+          end
+        end
+
+        relation
       }
     end
 
