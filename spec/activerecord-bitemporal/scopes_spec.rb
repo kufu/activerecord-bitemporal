@@ -222,11 +222,72 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         Time.zone = "Tokyo"
       end
       after { Time.zone = @old_time_zone }
-      let(:from) { "2019/1/20" }
-      let(:to) { "2019/1/30" }
-      subject { Employee.valid_allin(from: from, to: to).to_sql }
-      it { is_expected.to match %r/"employees"."valid_from" >= '2019-01-19 15:00:00'/ }
-      it { is_expected.to match %r/"employees"."valid_to" <= '2019-01-29 15:00:00'/ }
+
+      let(:_01_20) { "2019/1/20" }
+      let(:_01_30) { "2019/1/30" }
+
+      subject { relation.to_sql }
+
+      context "with from: _01_20, to: _01_30" do
+        let(:relation) { Employee.valid_allin(from: _01_20, to: _01_30) }
+
+        it { is_expected.to match %r/"employees"."valid_from" >= '2019-01-19 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_to" <= '2019-01-29 15:00:00'/ }
+      end
+
+      context "with from: _01_30, to: _01_20" do
+        let(:relation) { Employee.valid_allin(from: _01_30, to: _01_20) }
+
+        it { is_expected.to match %r/"employees"."valid_from" >= '2019-01-29 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_to" <= '2019-01-19 15:00:00'/ }
+      end
+
+      context "with from: _01_20" do
+        let(:relation) { Employee.valid_allin(from: _01_20) }
+
+        it { is_expected.to match %r/"employees"."valid_from" >= '2019-01-19 15:00:00'/ }
+        it { is_expected.not_to match %r/"employees"."valid_to"/ }
+      end
+
+      context "with to: _01_30" do
+        let(:relation) { Employee.valid_allin(to: _01_30) }
+
+        it { is_expected.not_to match %r/"employees"."valid_from"/ }
+        it { is_expected.to match %r/"employees"."valid_to" <= '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (_01_20.._01_30)" do
+        let(:relation) { Employee.valid_allin(_01_20.._01_30) }
+
+        it { is_expected.to match %r/"employees"."valid_from" >= '2019-01-19 15:00:00'/ }
+        it { is_expected.to match %r/"employees"."valid_to" <= '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (_01_20..)" do
+        let(:relation) { Employee.valid_allin(_01_20..) }
+
+        it { is_expected.to match %r/"employees"."valid_from" >= '2019-01-19 15:00:00'/ }
+        it { is_expected.not_to match %r/"employees"."valid_to"/ }
+      end
+
+      context "with (.._01_30)" do
+        let(:relation) { Employee.valid_allin(.._01_30) }
+
+        it { is_expected.not_to match %r/"employees"."valid_from"/ }
+        it { is_expected.to match %r/"employees"."valid_to" <= '2019-01-29 15:00:00'/ }
+      end
+
+      context "with (_01_20..._01_30)" do
+        let(:relation) { Employee.valid_allin(_01_20..._01_30) }
+
+        it { expect { subject }.to raise_error('Range with excluding end is not supported') }
+      end
+
+      context "with (..._01_30)" do
+        let(:relation) { Employee.valid_allin(..._01_30) }
+
+        it { expect { subject }.to raise_error('Range with excluding end is not supported') }
+      end
     end
 
     describe ".arel.to_sql" do
