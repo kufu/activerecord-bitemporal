@@ -56,10 +56,14 @@ module ActiveRecord::Bitemporal
                 case node
                 when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
                   y << node if node && node.left.respond_to?(:relation)
-                when Arel::Nodes::Or, Arel::Nodes::And
+                when Arel::Nodes::Or
                   if Gem::Version.new("6.1.0") <= ActiveRecord.version
                     each_operatable_node(node.left) { |node| y << node }
                     each_operatable_node(node.right) { |node| y << node }
+                  end
+                when Arel::Nodes::And
+                  if Gem::Version.new("6.1.0") <= ActiveRecord.version
+                    each_operatable_node(node.children) { |node| y << node }
                   end
                 when Arel::Nodes::Grouping
                   each_operatable_node(node.expr) { |node| y << node }
