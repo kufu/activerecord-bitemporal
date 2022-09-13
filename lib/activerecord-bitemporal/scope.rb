@@ -47,7 +47,7 @@ module ActiveRecord::Bitemporal
           end
         }
 
-        def each_operatable_node(nodes = predicates, &block)
+        def each_operatable_node_6_0(nodes = predicates, &block)
           if block
             each_operatable_node(nodes).each(&block)
           else
@@ -56,20 +56,41 @@ module ActiveRecord::Bitemporal
                 case node
                 when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
                   y << node if node && node.left.respond_to?(:relation)
-                when Arel::Nodes::Or
-                  if Gem::Version.new("6.1.0") <= ActiveRecord.version
-                    each_operatable_node(node.left) { |node| y << node }
-                    each_operatable_node(node.right) { |node| y << node }
-                  end
-                when Arel::Nodes::And
-                  if Gem::Version.new("6.1.0") <= ActiveRecord.version
-                    each_operatable_node(node.children) { |node| y << node }
-                  end
                 when Arel::Nodes::Grouping
                   each_operatable_node(node.expr) { |node| y << node }
                 end
               }
             }
+          end
+        end
+
+        def each_operatable_node_6_1(nodes = predicates, &block)
+          if block
+            each_operatable_node_6_1(nodes).each(&block)
+          else
+            Enumerator.new { |y|
+              Array(nodes).each { |node|
+                case node
+                when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
+                  y << node if node && node.left.respond_to?(:relation)
+                when Arel::Nodes::And
+                  each_operatable_node_6_1(node.children) { |node| y << node }
+                when Arel::Nodes::Binary
+                  each_operatable_node_6_1(node.left) { |node| y << node }
+                  each_operatable_node_6_1(node.right) { |node| y << node }
+                when Arel::Nodes::Unary
+                  each_operatable_node_6_1(node.expr) { |node| y << node }
+                end
+              }
+            }
+          end
+        end
+
+        def each_operatable_node(nodes = predicates, &block)
+          if Gem::Version.new("6.1.0") <= ActiveRecord.version
+            each_operatable_node_6_1(nodes, &block)
+          else
+            each_operatable_node_6_0(nodes, &block)
           end
         end
 
