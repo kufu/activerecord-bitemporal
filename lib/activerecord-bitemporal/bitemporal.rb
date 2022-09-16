@@ -321,6 +321,7 @@ module ActiveRecord
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
+          self.transaction_from = after_instance.transaction_from
 
           1
         # MEMO: Must return false instead of nil, if `#_update_row` failure.

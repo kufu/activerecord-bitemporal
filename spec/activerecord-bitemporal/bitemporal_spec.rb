@@ -793,11 +793,13 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
 
-    describe "changed `valid_from` columns" do
+    describe "changed `valid_from` and `transaction_from` columns" do
       let(:employee) { Employee.create(name: "Jane", emp_code: "001") }
-      subject { -> { employee.update(name: "Tom") } }
+      subject { -> { employee.update!(name: "Tom") } }
+
       it { is_expected.to change(employee, :name).from("Jane").to("Tom") }
       it { is_expected.to change(employee, :valid_from) }
+      it { is_expected.to change(employee, :transaction_from) }
       # valid_to is fixed "9999/12/31"
       it { is_expected.not_to change(employee, :valid_to) }
       it { is_expected.not_to change(employee, :emp_code) }
