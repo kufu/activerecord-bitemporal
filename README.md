@@ -195,7 +195,7 @@ end
 | `valid_from` | `datetime` | 有効時間の開始時刻 |
 | `valid_to` | `datetime` | 有効時間の終了時刻 |
 | `transaction_from` | `datetime` | システム時間の開始時刻 |
-| `transaction_to` | `datetime` | システム時間の終了終了 |
+| `transaction_to` | `datetime` | システム時間の終了時刻 |
 
 また、モデルクラスでは `ActiveRecord::Bitemporal` を `include` をする必要があります。
 
