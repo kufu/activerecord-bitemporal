@@ -2502,7 +2502,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:valid_datetime) { from + 5.days }
 
       it "returns the current valid record and before/after records" do
-        current, before, after = subject
+        (current, ), before, after = subject
 
         aggregate_failures do
           expect(current).to have_attributes(
@@ -2536,7 +2536,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:force_update) { true }
 
         it "returns the current valid record and an after record" do
-          current, before, after = subject
+          (current, ), before, after = subject
 
           aggregate_failures do
             expect(current).to have_attributes(
@@ -2572,7 +2572,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:valid_datetime) { from - 5.days }
 
       it "returns only an after record" do
-        current, before, after = subject
+        (current, ), before, after = subject
 
         aggregate_failures do
           expect(current).to be_nil
@@ -2592,7 +2592,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:force_update) { true }
 
         it "returns the current valid record and an after record" do
-          current, before, after = subject
+          (current, ), before, after = subject
 
           aggregate_failures do
             expect(current).to have_attributes(
@@ -2626,7 +2626,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:valid_datetime) { to + 5.days }
 
       it "returns before/after records" do
-        current, before, after = subject
+        (current, ), before, after = subject
 
         aggregate_failures do
           expect(current).to be_nil
@@ -2653,7 +2653,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:force_update) { true }
 
         it "returns the current valid record and an after record" do
-          current, before, after = subject
+          (current, ), before, after = subject
 
           aggregate_failures do
             expect(current).to have_attributes(

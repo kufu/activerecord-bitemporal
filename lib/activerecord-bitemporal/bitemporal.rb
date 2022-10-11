@@ -309,18 +309,16 @@ module ActiveRecord
       end
 
       def _update_row(attribute_names, attempted_action = 'update')
-        current_valid_record, before_instance, after_instance = bitemporal_build_update_records(valid_datetime: self.valid_datetime, force_update: self.force_update?)
+        current_instances, *new_instances = bitemporal_build_update_records(valid_datetime: self.valid_datetime, force_update: self.force_update?)
 
         # MEMO: このメソッドに来るまでに validation が発動しているので、以後 validate は考慮しなくて大丈夫
         ActiveRecord::Base.transaction(requires_new: true) do
-          current_valid_record&.update_transaction_to(current_valid_record.transaction_to)
-          before_instance&.save!(validate: false)
-          # NOTE: after_instance always exists
-          after_instance.save!(validate: false)
+          current_instances.each { |instance| instance.update_transaction_to(instance.transaction_to) }
+          new_instances.compact.each { |instance| instance.save!(validate: false) }
 
           # update 後に新しく生成したインスタンスのデータを移行する
-          @_swapped_id = after_instance.swapped_id
-          self.valid_from = after_instance.valid_from
+          @_swapped_id = new_instances.compact.last.swapped_id
+          self.valid_from = new_instances.compact.last.valid_from
 
           1
         # MEMO: Must return false instead of nil, if `#_update_row` failure.
@@ -467,12 +465,7 @@ module ActiveRecord
 
         # force_update の場合は既存のレコードを論理削除した上で新しいレコードを生成する
         if current_valid_record.present? && force_update
-          # 有効なレコードは論理削除する
-          current_valid_record.assign_transaction_to(current_time)
-          # 以前の履歴データは valid_from/to を更新しないため、破棄する
-          before_instance = nil
-          # 以降の履歴データはそのまま保存
-          after_instance.transaction_from = current_time
+          return bitemporal_build_force_update_records(current_time: current_time)
 
         # 有効なレコードがある場合
         elsif current_valid_record.present?
@@ -511,7 +504,42 @@ module ActiveRecord
           after_instance.transaction_from = current_time
         end
 
-        [current_valid_record, before_instance, after_instance]
+        [[current_valid_record].compact, before_instance, after_instance]
+      end
+
+      def bitemporal_build_force_update_records(from: valid_from, to: valid_to, current_time: Time.current)
+        current_records = self.class.bitemporal_for(self.bitemporal_id)
+                      .ignore_valid_datetime
+                      .where('? < valid_to AND valid_from < ?', from, to)
+                      .order(:valid_from, :valid_to) # valid_from == valid_to なレコードの存在を考慮してvalid_toでもorderする
+                      .load
+        current_records.each { |record|
+          record.id = record.swapped_id
+          record.clear_changes_information
+        }
+
+        before_record = nil
+        overwrite_record = build_new_instance
+        overwrite_record.transaction_from = current_time
+        after_record = nil
+
+        if current_records.first.valid_from < overwrite_record.valid_from && self.swapped_id != current_records.first.swapped_id
+          before_record = current_records.first.dup
+          before_record.valid_to = overwrite_record.valid_from
+          before_record.transaction_from = current_time
+        end
+
+        if overwrite_record.valid_to < current_records.last.valid_to && self.swapped_id != current_records.last.swapped_id
+          after_record = current_records.last.dup
+          after_record.valid_from = overwrite_record.valid_to
+          after_record.transaction_from = current_time
+        end
+
+        current_records.each { |record|
+          record.assign_transaction_to(current_time)
+        }
+
+        [current_records, before_record, overwrite_record, after_record]
       end
     end
 
@@ -559,13 +587,20 @@ module ActiveRecord
           end
         }
 
-        valid_at_scope = finder_class.unscoped.ignore_valid_datetime
-            .valid_from_lt(valid_to).valid_to_gt(valid_from)
-            .yield_self { |scope|
-              # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
-              # id と swapped_id の両方が存在する場合のみクエリを追加する
-              record.id && record.swapped_id ? scope.where.not(id: record.swapped_id) : scope
-            }
+        if record.force_update?
+          valid_to = record.valid_to
+          valid_at_scope = finder_class.unscoped.ignore_valid_datetime
+              .valid_from_lt(valid_to).valid_to_gt(valid_from)
+          relation = relation.where.not(bitemporal_id: record.bitemporal_id)
+        else
+          valid_at_scope = finder_class.unscoped.ignore_valid_datetime
+              .valid_from_lt(valid_to).valid_to_gt(valid_from)
+              .yield_self { |scope|
+                # MEMO: #dup などでコピーした場合、id は存在しないが swapped_id のみ存在するケースがあるので
+                # id と swapped_id の両方が存在する場合のみクエリを追加する
+                record.id && record.swapped_id ? scope.where.not(id: record.swapped_id) : scope
+              }
+        end
 
         # MEMO: Must refer Time.current, when not new record
         #       Because you don't want transaction_from to be rewritten
@@ -580,7 +615,6 @@ module ActiveRecord
         transaction_at_scope = finder_class.unscoped
           .transaction_to_gt(transaction_from)
           .transaction_from_lt(transaction_to)
-
         relation.merge(valid_at_scope.with_valid_datetime).merge(transaction_at_scope.with_transaction_datetime)
       end
     end
