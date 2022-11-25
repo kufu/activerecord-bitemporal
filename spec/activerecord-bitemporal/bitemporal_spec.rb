@@ -803,6 +803,22 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { is_expected.not_to change(employee, :emp_code) }
     end
 
+    context 'when updated with valid_at in the past ' do
+      describe "changed `valid_to` columns" do
+        let(:employee) {
+          ActiveRecord::Bitemporal.valid_at("2019/05/01") {
+            Employee.create(name: "Jane", emp_code: "001")
+          }
+        }
+        subject { -> {
+          ActiveRecord::Bitemporal.valid_at("2019/04/01") { employee.update(name: "Tom") }
+        }}
+
+        it { is_expected.to change(employee, :valid_to).from(ActiveRecord::Bitemporal::DEFAULT_VALID_TO)
+                                                       .to(Time.utc(2019, 05, 01).in_time_zone) }
+      end
+    end
+
     context "in `#valid_at`" do
       describe "set transaction_to" do
         let(:employee) { Timecop.freeze("2019/1/1") { Employee.create!(name: "Jane") } }
