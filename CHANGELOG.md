@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.1
+
+### Breaking Changed
+
+### Added
+- [Update valid_to after #update](https://github.com/kufu/activerecord-bitemporal/pull/105)
+- [Add GitHub Actions workflow to release to RubyGems.org](https://github.com/kufu/activerecord-bitemporal/pull/104)
+- [migrate Scheduled workflows in CircleCI](https://github.com/kufu/activerecord-bitemporal/pull/106)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ## 2.0.0
 
 ### Breaking Changed
