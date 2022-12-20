@@ -4,17 +4,17 @@ executors:
   ruby_2_7:
     docker:
       - image: ruby:2.7.5
-      - image: circleci/postgres:11-alpine
+      - image: cimg/postgres:11.16
 
   ruby_3_0:
     docker:
       - image: ruby:3.0.3
-      - image: circleci/postgres:11-alpine
+      - image: cimg/postgres:11.16
 
   ruby_3_1:
     docker:
       - image: ruby:3.1.0
-      - image: circleci/postgres:11-alpine
+      - image: cimg/postgres:11.16
 
 commands:
   run_rspec:
