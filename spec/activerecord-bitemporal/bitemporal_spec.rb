@@ -1042,6 +1042,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     it { is_expected.not_to change(employee, :valid_to) }
     it { is_expected.to change(employee, :transaction_to).from(ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO).to(destroyed_time) }
     it { is_expected.to change { Employee.ignore_valid_datetime.within_deleted.count }.by(1) }
+    it { is_expected.to change(employee, :swapped_id) }
     it { expect(subject.call).to eq employee }
 
     it do

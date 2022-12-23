@@ -348,6 +348,7 @@ module ActiveRecord
           }
           raise ActiveRecord::RecordInvalid unless @destroyed
 
+          @_swapped_id = duplicated_instance.swapped_id
           self
         end
       rescue => e
