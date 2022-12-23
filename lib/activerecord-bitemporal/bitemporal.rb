@@ -345,10 +345,10 @@ module ActiveRecord
             duplicated_instance.valid_to = target_datetime
             duplicated_instance.transaction_from = current_time
             duplicated_instance.save!(validate: false)
+            @_swapped_id = duplicated_instance.swapped_id if @destroyed
           }
           raise ActiveRecord::RecordInvalid unless @destroyed
 
-          @_swapped_id = duplicated_instance.swapped_id
           self
         end
       rescue => e

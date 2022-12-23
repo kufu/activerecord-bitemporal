@@ -1082,6 +1082,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       shared_examples "return false and #destroyed? to be false" do
         it { is_expected.not_to change(employee, :destroyed?) }
         it { is_expected.not_to change { Employee.ignore_valid_datetime.count } }
+        it { is_expected.not_to change(employee, :swapped_id) }
         it { expect(subject.call).to eq false }
         it do
           subject.call
