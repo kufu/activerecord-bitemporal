@@ -9,7 +9,7 @@ jobs:
         type: string
     docker:
       - image: ruby:<< parameters.ruby-version >>
-      - image: cimg/postgres:11.17
+      - image: cimg/postgres:11.16
     steps:
       - checkout
       - run: gem install bundler
