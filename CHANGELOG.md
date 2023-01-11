@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.2.0
+
+### Breaking Changed
+
+### Added
+- [replace postgres docker image ](https://github.com/kufu/activerecord-bitemporal/pull/103)
+- [use Matrix Jobs in CircleCI](https://github.com/kufu/activerecord-bitemporal/pull/107)
+- [Add support changing swapped_id, when called # destroy](https://github.com/kufu/activerecord-bitemporal/pull/110)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ## 2.1.0
 
 ### Breaking Changed
