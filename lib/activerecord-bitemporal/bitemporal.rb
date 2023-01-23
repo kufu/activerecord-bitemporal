@@ -280,7 +280,10 @@ module ActiveRecord
           # MEMO: Do not copy `swapped_id`
           def dup(*)
             super.tap { |itself|
-              itself.instance_exec { @_swapped_id = nil } unless itself.frozen?
+              itself.instance_exec do
+                @_swapped_id_previously_was = nil
+                @_swapped_id = nil
+              end unless itself.frozen?
             }
           end
         end
@@ -319,6 +322,7 @@ module ActiveRecord
           after_instance.save!(validate: false)
 
           # update 後に新しく生成したインスタンスのデータを移行する
+          @_swapped_id_previously_was = swapped_id
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
           self.valid_to = after_instance.valid_to
@@ -345,7 +349,10 @@ module ActiveRecord
             duplicated_instance.valid_to = target_datetime
             duplicated_instance.transaction_from = current_time
             duplicated_instance.save!(validate: false)
-            @_swapped_id = duplicated_instance.swapped_id if @destroyed
+            if @destroyed
+              @_swapped_id_previously_was = swapped_id
+              @_swapped_id = duplicated_instance.swapped_id
+            end
           }
           raise ActiveRecord::RecordInvalid unless @destroyed
 
@@ -380,6 +387,7 @@ module ActiveRecord
             @new_record = false
             @previously_new_record = false
             # NOTE: Hook to copying swapped_id
+            @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
             self
           end
@@ -402,6 +410,7 @@ module ActiveRecord
             @new_record = false
             @previously_new_record = false
             # NOTE: Hook to copying swapped_id
+            @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
             self
           end
@@ -423,6 +432,7 @@ module ActiveRecord
             @attributes = fresh_object.instance_variable_get("@attributes")
             @new_record = false
             # NOTE: Hook to copying swapped_id
+            @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
             self
           end
