@@ -586,6 +586,8 @@ RSpec.describe ActiveRecord::Bitemporal do
   describe "#reload" do
     let(:employee) { Employee.create!(name: "Tom").tap { |emp| emp.update!(name: "Jane") } }
 
+    it { expect { employee.reload }.to change { employee.swapped_id_previously_was }.from(kind_of(Integer)).to(nil) }
+
     context "call #update" do
       subject { -> { employee.update!(name: "Kevin") } }
       it { is_expected.to change { employee.reload.swapped_id } }
@@ -652,6 +654,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:to) { from + 10.days }
       let(:finish) { Time.utc(9999, 12, 31).in_time_zone }
       let!(:employee) { Employee.create!(name: "Jone", valid_from: from, valid_to: to) }
+      let!(:swapped_id) { employee.swapped_id }
       let(:count) { -> { Employee.where(bitemporal_id: employee.id).ignore_valid_datetime.count } }
       let(:old_jone) { Employee.ignore_valid_datetime.within_deleted.find_by(bitemporal_id: employee.id, name: "Jone") }
       let(:now) { time_current }
@@ -680,7 +683,8 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:now) { from + 5.days }
         it { is_expected.to change(&count).by(1) }
         it { is_expected.to change(employee, :name).from("Jone").to("Tom") }
-        it { is_expected.to change(employee, :swapped_id) }
+        it { is_expected.to change(employee, :swapped_id).from(swapped_id).to(kind_of(Integer)) }
+        it { is_expected.to change(employee, :swapped_id_previously_was).from(nil).to(swapped_id) }
         it_behaves_like "updated Jone" do
           let(:valid_from) { from }
           let(:valid_to) { now }
@@ -702,7 +706,8 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:now) { from - 5.days }
         it { is_expected.to change(&count).by(1) }
         it { is_expected.to change(employee, :name).from("Jone").to("Tom") }
-        it { is_expected.to change(employee, :swapped_id) }
+        it { is_expected.to change(employee, :swapped_id).from(swapped_id).to(kind_of(Integer)) }
+        it { is_expected.to change(employee, :swapped_id_previously_was).from(nil).to(swapped_id) }
         it_behaves_like "updated Jone" do
           let(:valid_from) { from }
           let(:valid_to) { to }
@@ -904,6 +909,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
   describe "#force_update" do
     let!(:employee) { Employee.create!(name: "Jane") }
+    let!(:swapped_id) { employee.swapped_id }
     let(:count) { -> { Employee.ignore_valid_datetime.within_deleted.count } }
     let(:update_attributes) { { name: "Tom" } }
 
@@ -912,7 +918,8 @@ RSpec.describe ActiveRecord::Bitemporal do
     it { is_expected.to change(&count).by(1) }
     it { is_expected.to change(employee, :name).from("Jane").to("Tom") }
     it { is_expected.not_to change(employee, :id) }
-    it { is_expected.to change(employee, :swapped_id) }
+    it { is_expected.to change(employee, :swapped_id).from(swapped_id).to(kind_of(Integer)) }
+    it { is_expected.to change(employee, :swapped_id_previously_was).from(nil).to(swapped_id) }
 
     context "with `#valid_at`" do
       let!(:employee) { Timecop.freeze("2019/1/1") { Employee.create!(name: "Jane") } }
@@ -1030,6 +1037,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     before do
       Timecop.freeze(updated_time) { employee.update!(name: "Tom") }
+      @swapped_id_before_destroy = employee.swapped_id
     end
 
     it { is_expected.not_to change(employee, :valid_to) }
@@ -1042,7 +1050,8 @@ RSpec.describe ActiveRecord::Bitemporal do
     it { is_expected.not_to change(employee, :valid_to) }
     it { is_expected.to change(employee, :transaction_to).from(ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO).to(destroyed_time) }
     it { is_expected.to change { Employee.ignore_valid_datetime.within_deleted.count }.by(1) }
-    it { is_expected.to change(employee, :swapped_id) }
+    it { is_expected.to change(employee, :swapped_id).from(@swapped_id_before_destroy).to(kind_of(Integer)) }
+    it { is_expected.to change(employee, :swapped_id_previously_was).from(kind_of(Integer)).to(@swapped_id_before_destroy) }
     it { expect(subject.call).to eq employee }
 
     it do
@@ -1083,6 +1092,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         it { is_expected.not_to change(employee, :destroyed?) }
         it { is_expected.not_to change { Employee.ignore_valid_datetime.count } }
         it { is_expected.not_to change(employee, :swapped_id) }
+        it { is_expected.not_to change(employee, :swapped_id_previously_was) }
         it { expect(subject.call).to eq false }
         it do
           subject.call
