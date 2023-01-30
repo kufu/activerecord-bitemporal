@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.3.0
+
+### Breaking Changed
+
+### Added
+- [Add `InstanceMethods#swapped_id_previously_was`](https://github.com/kufu/activerecord-bitemporal/pull/114)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ## 2.2.0
 
 ### Breaking Changed
