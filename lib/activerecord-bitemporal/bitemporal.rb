@@ -335,14 +335,13 @@ module ActiveRecord
       def destroy(force_delete: false)
         return super() if force_delete
 
-        current_time = Time.current
-        target_datetime = valid_datetime || current_time
-
-        duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
-
         ActiveRecord::Base.transaction(requires_new: true, joinable: false) do
           @destroyed = false
           _run_destroy_callbacks {
+            current_time = Time.current
+            target_datetime = valid_datetime || current_time
+            duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
+
             @destroyed = update_transaction_to(current_time)
 
             # 削除時の状態を履歴レコードとして保存する
