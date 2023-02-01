@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.0
+
+### Breaking Changed
+- [Assign updated bitemporal times to the receiver after update/destroy](https://github.com/kufu/activerecord-bitemporal/pull/118)
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ## 2.3.0
 
 ### Breaking Changed
