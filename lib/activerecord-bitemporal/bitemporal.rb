@@ -326,6 +326,8 @@ module ActiveRecord
           @_swapped_id = after_instance.swapped_id
           self.valid_from = after_instance.valid_from
           self.valid_to = after_instance.valid_to
+          self.transaction_from = after_instance.transaction_from
+          self.transaction_to = after_instance.transaction_to
 
           1
         # MEMO: Must return false instead of nil, if `#_update_row` failure.
@@ -352,6 +354,10 @@ module ActiveRecord
             if @destroyed
               @_swapped_id_previously_was = swapped_id
               @_swapped_id = duplicated_instance.swapped_id
+              self.valid_from = duplicated_instance.valid_from
+              self.valid_to = duplicated_instance.valid_to
+              self.transaction_from = duplicated_instance.transaction_from
+              self.transaction_to = duplicated_instance.transaction_to
             end
           }
           raise ActiveRecord::RecordInvalid unless @destroyed
