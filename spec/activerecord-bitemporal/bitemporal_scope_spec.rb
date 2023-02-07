@@ -302,7 +302,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       context "ActiveRecord::Bitemporal.valid_at" do
         let(:valid_datetime) { "2017/04/01".in_time_zone }
         let(:relation) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { User.bitemporal_at(bitemporal_datetime) } }
-        it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
         it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
       end
 
@@ -312,17 +312,57 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
       end
 
+      context "ActiveRecord::Bitemporal.valid_at!" do
+        let(:valid_datetime) { "2017/04/01".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.valid_at!(valid_datetime) { User.bitemporal_at(bitemporal_datetime) } }
+        it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
+      end
+
       context "ActiveRecord::Bitemporal.transaction_at" do
         let(:transaction_datetime) { "2017/04/01".in_time_zone }
         let(:relation) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { User.bitemporal_at(bitemporal_datetime) } }
         it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
-        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
       end
 
       context "ActiveRecord::Bitemporal.ignore_transaction_datetime" do
         let(:relation) { ActiveRecord::Bitemporal.ignore_transaction_datetime { User.bitemporal_at(bitemporal_datetime) } }
         it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
         it { is_expected.to not_have_transaction_at(table: "users") }
+      end
+
+      context "ActiveRecord::Bitemporal.transaction_at!" do
+        let(:transaction_datetime) { "2017/04/01".in_time_zone }
+        let(:relation) { ActiveRecord::Bitemporal.transaction_at!(transaction_datetime) { User.bitemporal_at(bitemporal_datetime) } }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
+      end
+
+      context "valid_at.bitemporal_at" do
+        let(:relation) { User.valid_at("2019/05/05").bitemporal_at(bitemporal_datetime) }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
+      end
+
+      context "transaction_at.bitemporal_at" do
+        let(:relation) { User.transaction_at("2019/05/05").bitemporal_at(bitemporal_datetime) }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
+      end
+
+      context "bitemporal_at.valid_at" do
+        let(:valid_datetime) { "2017/04/01".in_time_zone }
+        let(:relation) { User.bitemporal_at(bitemporal_datetime).valid_at(valid_datetime) }
+        it { is_expected.to have_valid_at(valid_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(bitemporal_datetime, table: "users") }
+      end
+
+      context "bitemporal_at.transaction_at" do
+        let(:transaction_datetime) { "2017/04/01".in_time_zone }
+        let(:relation) { User.bitemporal_at(bitemporal_datetime).transaction_at(transaction_datetime) }
+        it { is_expected.to have_valid_at(bitemporal_datetime, table: "users") }
+        it { is_expected.to have_transaction_at(transaction_datetime, table: "users") }
       end
     end
 
