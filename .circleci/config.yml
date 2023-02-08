@@ -1,26 +1,15 @@
 version: 2.1
 
-executors:
-  ruby_2_7:
-    docker:
-      - image: ruby:2.7.5
-      - image: circleci/postgres:11-alpine
-
-  ruby_3_0:
-    docker:
-      - image: ruby:3.0.3
-      - image: circleci/postgres:11-alpine
-
-  ruby_3_1:
-    docker:
-      - image: ruby:3.1.0
-      - image: circleci/postgres:11-alpine
-
-commands:
-  run_rspec:
+jobs:
+  rspec:
     parameters:
+      ruby-version:
+        type: string
       gemfile:
         type: string
+    docker:
+      - image: ruby:<< parameters.ruby-version >>
+      - image: cimg/postgres:11.16
     steps:
       - checkout
       - run: gem install bundler
@@ -28,96 +17,28 @@ commands:
       - run: bundle exec appraisal << parameters.gemfile >> bundle install
       - run: bundle exec appraisal << parameters.gemfile >> rspec
 
-jobs:
-  ruby_2_7_rails_5_2:
-    executor: ruby_2_7
-    steps:
-      - run_rspec:
-          gemfile: rails-5.2
-
-  ruby_2_7_rails_6_0:
-    executor: ruby_2_7
-    steps:
-      - run_rspec:
-          gemfile: rails-6.0
-
-  ruby_2_7_rails_6_1:
-    executor: ruby_2_7
-    steps:
-      - run_rspec:
-          gemfile: rails-6.1
-
-  ruby_2_7_rails_7_0:
-    executor: ruby_2_7
-    steps:
-      - run_rspec:
-          gemfile: rails-7.0
-
-  ruby_2_7_rails_main:
-    executor: ruby_2_7
-    steps:
-      - run_rspec:
-          gemfile: rails-main
-
-  ruby_3_0_rails_6_1:
-    executor: ruby_3_0
-    steps:
-      - run_rspec:
-          gemfile: rails-6.1
-
-  ruby_3_0_rails_7_0:
-    executor: ruby_3_0
-    steps:
-      - run_rspec:
-          gemfile: rails-7.0
-
-  ruby_3_0_rails_main:
-    executor: ruby_3_0
-    steps:
-      - run_rspec:
-          gemfile: rails-main
-
-  ruby_3_1_rails_6_1:
-    executor: ruby_3_1
-    steps:
-      - run_rspec:
-          gemfile: rails-6.1
-
-  ruby_3_1_rails_7_0:
-    executor: ruby_3_1
-    steps:
-      - run_rspec:
-          gemfile: rails-7.0
-
-  ruby_3_1_rails_main:
-    executor: ruby_3_1
-    steps:
-      - run_rspec:
-          gemfile: rails-main
-
 workflows:
-  version: 2
-
   test:
-    jobs: &jobs
-      - ruby_2_7_rails_5_2
-      - ruby_2_7_rails_6_0
-      - ruby_2_7_rails_6_1
-      - ruby_2_7_rails_7_0
-      - ruby_2_7_rails_main
-      - ruby_3_0_rails_6_1
-      - ruby_3_0_rails_7_0
-      - ruby_3_0_rails_main
-      - ruby_3_1_rails_6_1
-      - ruby_3_1_rails_7_0
-      - ruby_3_1_rails_main
-
-  daily_test:
-    triggers:
-      - schedule:
-          cron: "0 23 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs: *jobs
+    jobs:
+      - rspec:
+          matrix:
+            parameters:
+              ruby-version:
+                - '2.7'
+                - '3.0'
+                - '3.1'
+              gemfile:
+                - rails-5.2
+                - rails-6.0
+                - rails-6.1
+                - rails-7.0
+                - rails-main
+            exclude:
+              - ruby-version: '3.0'
+                gemfile: rails-5.2
+              - ruby-version: '3.0'
+                gemfile: rails-6.0
+              - ruby-version: '3.1'
+                gemfile: rails-5.2
+              - ruby-version: '3.1'
+                gemfile: rails-6.0

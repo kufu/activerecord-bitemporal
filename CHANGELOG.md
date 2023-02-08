@@ -1,5 +1,69 @@
 # Changelog
 
+## 3.0.0
+
+### Breaking Changed
+- [Assign updated bitemporal times to the receiver after update/destroy](https://github.com/kufu/activerecord-bitemporal/pull/118)
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+## 2.3.0
+
+### Breaking Changed
+
+### Added
+- [Add `InstanceMethods#swapped_id_previously_was`](https://github.com/kufu/activerecord-bitemporal/pull/114)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+## 2.2.0
+
+### Breaking Changed
+
+### Added
+- [replace postgres docker image](https://github.com/kufu/activerecord-bitemporal/pull/103)
+- [use Matrix Jobs in CircleCI](https://github.com/kufu/activerecord-bitemporal/pull/107)
+- [Add support changing swapped_id, when called #destroy](https://github.com/kufu/activerecord-bitemporal/pull/110)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+## 2.1.0
+
+### Breaking Changed
+
+### Added
+- [Update valid_to after #update](https://github.com/kufu/activerecord-bitemporal/pull/105)
+- [Add GitHub Actions workflow to release to RubyGems.org](https://github.com/kufu/activerecord-bitemporal/pull/104)
+- [migrate Scheduled workflows in CircleCI](https://github.com/kufu/activerecord-bitemporal/pull/106)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ## 2.0.0
 
 ### Breaking Changed
