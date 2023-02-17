@@ -317,9 +317,9 @@ module ActiveRecord
         # MEMO: このメソッドに来るまでに validation が発動しているので、以後 validate は考慮しなくて大丈夫
         ActiveRecord::Base.transaction(requires_new: true) do
           current_valid_record&.update_transaction_to(current_valid_record.transaction_to)
-          before_instance&.save!(validate: false)
+          before_instance&.save_without_bitemporal_callbacks!(validate: false)
           # NOTE: after_instance always exists
-          after_instance.save!(validate: false)
+          after_instance.save_without_bitemporal_callbacks!(validate: false)
 
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id_previously_was = swapped_id
@@ -350,7 +350,7 @@ module ActiveRecord
             # 削除時の状態を履歴レコードとして保存する
             duplicated_instance.valid_to = target_datetime
             duplicated_instance.transaction_from = current_time
-            duplicated_instance.save!(validate: false)
+            duplicated_instance.save_without_bitemporal_callbacks!(validate: false)
             if @destroyed
               @_swapped_id_previously_was = swapped_id
               @_swapped_id = duplicated_instance.swapped_id
