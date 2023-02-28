@@ -1,12 +1,16 @@
 # Changelog
 
-## Unreleased
+## 4.0.0
 
 ### Breaking Changed
 
+- [[proposal]When bitemporal_at exists inside the nest, the specified date was not prioritized, so the date of the inner bitemporal_at is now prioritized. #121](https://github.com/kufu/activerecord-bitemporal/pull/121)
+- [Drop support Rails 5.2 #122](https://github.com/kufu/activerecord-bitemporal/pull/122)
+- [Add required_ruby_version >= 2.7.0 #125](https://github.com/kufu/activerecord-bitemporal/pull/125)
+
 ### Added
 
-- [Add support `bitemporal_callbacks`](https://github.com/kufu/activerecord-bitemporal/pull/123)
+- [Add support `bitemporal_callbacks` #123](https://github.com/kufu/activerecord-bitemporal/pull/123)
 
   ```rb
   class Employee < ActiveRecord::Base
@@ -38,9 +42,15 @@
 
 ### Changed
 
+- [Update auto asgn #124](https://github.com/kufu/activerecord-bitemporal/pull/124)
+- [Update License and CoC files #115](https://github.com/kufu/activerecord-bitemporal/pull/115)
+
 ### Deprecated
 
 ### Removed
+
+- [Remove Gemfile.lock #126](https://github.com/kufu/activerecord-bitemporal/pull/126)
+- [Remove test cases for using bitemporal_option_merge! of ActiveRecord:::Bitemporal::Callbacks #129](https://github.com/kufu/activerecord-bitemporal/pull/129)
 
 ### Fixed
 
