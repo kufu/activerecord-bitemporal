@@ -338,5 +338,36 @@ EOS
 EOS
       end
     end
+
+    describe 'label' do
+      subject(:figure) { described_class.visualize(employee, label: true) }
+      let(:employee) do
+        employee = Employee.create!
+        Timecop.freeze '2022-06-23 18:06:06.712' do
+          employee.update!(name: 'Jane')
+          employee.reload
+        end
+      end
+
+      it 'has label' do
+        expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
+                        | 2022-05-23 18:06:06.712
+                        |                   | 2022-06-23 18:06:06.712
+                        |                   |                   | 9999-12-31 00:00:00.000
+2022-05-23 18:06:06.712 +---------------------------------------+
+                        |                                       |
+                        |                                       |
+                        |                                       |
+                        |                                       |
+2022-06-23 18:06:06.712 +-------------------+-------------------+
+                        |                   |*******************|
+                        |                   |*******************|
+                        |                   |*******************|
+                        |                   |*******************|
+9999-12-31 00:00:00.000 +-------------------+-------------------+
+EOS
+      end
+    end
   end
 end
