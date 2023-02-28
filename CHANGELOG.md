@@ -1,5 +1,50 @@
 # Changelog
 
+## Unreleased
+
+### Breaking Changed
+
+### Added
+
+- [Add support `bitemporal_callbacks`](https://github.com/kufu/activerecord-bitemporal/pull/123)
+
+  ```rb
+  class Employee < ActiveRecord::Base
+    include ActiveRecord::Bitemporal
+  
+    after_bitemporal_create :log_create
+    after_bitemporal_update :log_update
+    after_bitemporal_destroy :log_destroy
+  
+    private
+    
+    def log_create
+      puts "employee created"
+    end
+
+    def log_update
+      puts "employee updated"
+    end
+
+    def log_destroy
+      puts "employee destroyed"
+    end
+  end
+  
+  employee = Employee.create!(...) # => "employee created"
+  employee.update!(...) # => "employee updated"
+  employee.destroy! # => "employee destroyed"
+  ```
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+
 ## 3.0.0
 
 ### Breaking Changed
