@@ -21,18 +21,18 @@ module ActiveRecord::Bitemporal
 
     module_function
 
-    def visualize(record, height: 10, width: 40, highlight: true, label: false)
+    def visualize(record, height: 10, width: 40, highlight: true)
       histories = record.class.ignore_bitemporal_datetime.bitemporal_for(record).order(:transaction_from, :valid_from)
 
       if highlight
-        visualize_records(histories, [record], height: height, width: width, label: label)
+        visualize_records(histories, [record], height: height, width: width)
       else
-        visualize_records(histories, height: height, width: width, label: label)
+        visualize_records(histories, height: height, width: width)
       end
     end
 
     # e.g. visualize_records(ActiveRecord::Relation, ActiveRecord::Relation)
-    def visualize_records(*relations, height: 10, width: 40, label: false)
+    def visualize_records(*relations, height: 10, width: 40)
       raise 'More than 3 relations are not supported' if relations.size >= 3
       records = relations.flatten
 
@@ -92,17 +92,16 @@ module ActiveRecord::Bitemporal
         end
       end
 
-      if label
-        transaction_label = 'transaction_datetime'
-        right_margin = time_length + 1 - transaction_label.size
-        if right_margin >= 0
-          "#{transaction_label + ' ' * right_margin}| valid_datetime\n#{headers.to_s}\n#{body.to_s}"
-        else
-          "#{transaction_label[0...right_margin]}| valid_datetime\n#{headers.to_s}\n#{body.to_s}"
-        end
+      transaction_label = 'transaction_datetime'
+      right_margin = time_length + 1 - transaction_label.size
+
+      label = if right_margin >= 0
+        "#{transaction_label + ' ' * right_margin}| valid_datetime"
       else
-        "#{headers.to_s}\n#{body.to_s}"
+        "#{transaction_label[0...right_margin]}| valid_datetime"
       end
+
+      "#{label}\n#{headers.to_s}\n#{body.to_s}"
     end
   
     # Compute a dictionary of where each time should be plotted.

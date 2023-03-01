@@ -13,6 +13,7 @@ RSpec.describe ActiveRecord::Bitemporal::Visualizer do
 
       it 'is a square' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |                                       | 9999-12-31 00:00:00.000
 2022-05-23 18:06:06.712 +---------------------------------------+
@@ -41,6 +42,7 @@ EOS
 
       it 'is 3 squares' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |                   | 2022-06-23 18:06:06.712
                         |                   |                   | 9999-12-31 00:00:00.000
@@ -74,6 +76,7 @@ EOS
 
       it 'is 5 squares' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |    | 2022-06-01 18:06:06.712
                         |    |              | 2022-06-23 18:06:06.712
@@ -112,6 +115,7 @@ EOS
 
       it 'is plotted in the smallest area' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         | | 2022-05-23 18:06:06.831
                         | | | 2022-05-23 18:06:07.939
@@ -156,6 +160,7 @@ EOS
 
       it 'is plotted as zero length history' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |    | 2022-06-01 18:06:06.712
                         |    |              | 2022-06-23 18:06:06.712
@@ -192,6 +197,7 @@ EOS
 
       it 'is plotted as zero area history' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |                   | 2022-06-01 18:06:06.712
                         |                   |                   | 9999-12-31 00:00:00.000
@@ -229,6 +235,7 @@ EOS
 
       it 'is 4 squares' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-04-23 18:06:06.712
                         |    | 2022-05-01 18:06:06.712
                         |    |              | 2022-05-23 18:06:06.712
@@ -263,6 +270,7 @@ EOS
 
       it 'is 3 squares with blanks' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |                  | 2022-06-23 18:06:06.712
                         |                  | | 2022-06-23 18:06:07.712
@@ -293,6 +301,7 @@ EOS
 
       it 'is 2 squares' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |                   | 2022-06-23 18:06:06.712
                         |                   |                   | 9999-12-31 00:00:00.000
@@ -322,6 +331,7 @@ EOS
 
       it 'is 2 squares' do
         expect(figure).to eq <<~EOS.chomp
+transaction_datetime    | valid_datetime
                         | 2022-05-23 18:06:06.712
                         |                                       | 9999-12-31 00:00:00.000
 2022-05-23 18:06:06.712 +---------------------------------------+
@@ -335,37 +345,6 @@ EOS
                         |***************************************|
                         |***************************************|
 9999-12-31 00:00:00.000 +---------------------------------------+
-EOS
-      end
-    end
-
-    describe 'label' do
-      subject(:figure) { described_class.visualize(employee, label: true) }
-      let(:employee) do
-        employee = Employee.create!
-        Timecop.freeze '2022-06-23 18:06:06.712' do
-          employee.update!(name: 'Jane')
-          employee.reload
-        end
-      end
-
-      it 'has label' do
-        expect(figure).to eq <<~EOS.chomp
-transaction_datetime    | valid_datetime
-                        | 2022-05-23 18:06:06.712
-                        |                   | 2022-06-23 18:06:06.712
-                        |                   |                   | 9999-12-31 00:00:00.000
-2022-05-23 18:06:06.712 +---------------------------------------+
-                        |                                       |
-                        |                                       |
-                        |                                       |
-                        |                                       |
-2022-06-23 18:06:06.712 +-------------------+-------------------+
-                        |                   |*******************|
-                        |                   |*******************|
-                        |                   |*******************|
-                        |                   |*******************|
-9999-12-31 00:00:00.000 +-------------------+-------------------+
 EOS
       end
     end
