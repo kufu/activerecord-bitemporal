@@ -71,25 +71,10 @@ RSpec.describe ActiveRecord::Bitemporal::Callbacks do
       it { expect { subject }.not_to change(employee, :log) }
     end
 
-    context 'nested_attributes' do
+    context 'with nested_attributes' do
       before { employee.build_job_title(name: "CEO") }
-
-      context 'without option `ignore_bitemporal_callbacks`' do
-        it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_create after_bitemporal_create]) }
-        it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_create after_bitemporal_create]) }
-      end
-
-      context 'employee with option `ignore_bitemporal_callbacks: true`' do
-        before { employee.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-        it { expect { subject }.not_to change(employee, :log) }
-        it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_create after_bitemporal_create]) }
-      end
-
-      context 'job_title with option `ignore_bitemporal_callbacks: true`' do
-        before { employee.job_title.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-        it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_create after_bitemporal_create]) }
-        it { expect { subject }.not_to change { employee.job_title.log } }
-      end
+      it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_create after_bitemporal_create]) }
+      it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_create after_bitemporal_create]) }
     end
   end
 
@@ -111,61 +96,34 @@ RSpec.describe ActiveRecord::Bitemporal::Callbacks do
       it { expect { subject }.not_to change(employee, :log) }
     end
 
-    context 'has_one relation' do
+    context 'with nested_attributes' do
       let(:employee) {
         EmployeeWithBitemporalCallbacksLog.create!(name: "Jane").tap { |e|
           e.create_job_title!(name: "CEO").tap(&:clear_log)
           e.clear_log
         }
       }
+      subject {
+        employee.assign_attributes(**update_attributes)
+        employee.save!
+      }
 
-      context 'with assign_nested_attributes' do
-        subject {
-          employee.assign_attributes({ name: "Tom", job_title_attributes: { id: employee.job_title.id, name: "COO" } })
-          employee.save!
-        }
-
-        context 'without option `ignore_bitemporal_callbacks`' do
-          it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-        end
-
-        context 'employee with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.not_to change(employee, :log) }
-          it { expect { subject }.not_to change { employee.job_title.log } }
-        end
-
-        context 'job_title with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.job_title.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-          it { expect { subject }.not_to change { employee.job_title.log } }
-        end
+      context 'employee and job_title have changes' do
+        let(:update_attributes) { { name: "Tom", job_title_attributes: { id: employee.job_title.id, name: "COO" } } }
+        it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
+        it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
       end
 
-      context 'with _assign_attribute' do
-        subject {
-          employee.name = "Tom"
-          employee.job_title.name = "COO"
-          employee.save!
-        }
+      context 'employee has changes and job_title does not have changes' do
+        let(:update_attributes) { { name: "Tom" } }
+        it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
+        it { expect { subject }.not_to change { employee.job_title.log } }
+      end
 
-        context 'without option `ignore_bitemporal_callbacks`' do
-          it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-        end
-
-        context 'employee with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.not_to change(employee, :log) }
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-        end
-
-        context 'job_title with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.job_title.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
-          it { expect { subject }.not_to change { employee.job_title.log } }
-        end
+      context 'employee does not have changes and job_title has changes' do
+        let(:update_attributes) { { job_title_attributes: { id: employee.job_title.id, name: "COO" } } }
+        it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
+        it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_update after_bitemporal_update]) }
       end
     end
   end
@@ -198,23 +156,8 @@ RSpec.describe ActiveRecord::Bitemporal::Callbacks do
 
       context 'with `dependent: :destroy`' do
         subject { employee.destroy! }
-
-        context 'without option `ignore_bitemporal_callbacks`' do
-          it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
-        end
-
-        context 'employee with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.not_to change(employee, :log) }
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
-        end
-
-        context 'job_title with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.job_title.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
-          it { expect { subject }.not_to change { employee.job_title.log } }
-        end
+        it { expect { subject }.to change(employee, :log).from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
+        it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
       end
 
       context 'with nested_attributes' do
@@ -222,20 +165,7 @@ RSpec.describe ActiveRecord::Bitemporal::Callbacks do
           employee.assign_attributes({ job_title_attributes: { id: employee.job_title.id, _destroy: true } })
           employee.save!
         }
-
-        context 'without option `ignore_bitemporal_callbacks`' do
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
-        end
-
-        context 'employee with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
-        end
-
-        context 'job_title with option `ignore_bitemporal_callbacks: true`' do
-          before { employee.job_title.bitemporal_option_merge!(ignore_bitemporal_callbacks: true) }
-          it { expect { subject }.not_to change { employee.job_title.log } }
-        end
+        it { expect { subject }.to change { employee.job_title.log }.from([]).to(%i[before_bitemporal_destroy after_bitemporal_destroy]) }
       end
     end
   end
