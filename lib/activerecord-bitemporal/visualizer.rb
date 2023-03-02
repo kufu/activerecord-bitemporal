@@ -91,8 +91,17 @@ module ActiveRecord::Bitemporal
           end
         end
       end
-  
-      "#{headers.to_s}\n#{body.to_s}"
+
+      transaction_label = 'transaction_datetime'
+      right_margin = time_length + 1 - transaction_label.size
+
+      label = if right_margin >= 0
+        "#{transaction_label + ' ' * right_margin}| valid_datetime"
+      else
+        "#{transaction_label[0...right_margin]}| valid_datetime"
+      end
+
+      "#{label}\n#{headers.to_s}\n#{body.to_s}"
     end
   
     # Compute a dictionary of where each time should be plotted.
