@@ -95,6 +95,24 @@ RSpec.describe "Association" do
         end
       end
     end
+
+    describe "inverse_of" do
+      let(:company) do
+        Class.new(Company) {
+          has_many :employee_without_bitemporals, foreign_key: :company_id, inverse_of: :company
+
+          def self.name
+            "CompanyWithInverseOf"
+          end
+        }.create!(name: "Company")
+      end
+      before do
+        company.update(name: "Company2")
+        company.employee_without_bitemporals.create!(name: "Jane")
+      end
+
+      it { expect(company.reload.employee_without_bitemporals.first.company).to be company }
+    end
   end
 
   describe "non BTDM has many BTDM" do
@@ -254,6 +272,24 @@ RSpec.describe "Association" do
         it { is_expected.to change { employee2.reload.company_id }.from(company.id).to(nil) }
       end
     end
+
+    describe "inverse_of" do
+      let(:company) do
+        Class.new(CompanyWithoutBitemporal) {
+          has_many :employees, foreign_key: :company_id, inverse_of: :company
+
+          def self.name
+            'CompanyWithInverseOf'
+          end
+        }.create!(name: "Company")
+      end
+      before do
+        employee = company.employees.create!(name: "Jane")
+        employee.update!(name: "Tom")
+      end
+
+      it { expect(company.reload.employees.first.company).to be company }
+    end
   end
 
   describe "BTDM has many BTDM" do
@@ -354,6 +390,25 @@ RSpec.describe "Association" do
         end
       end
     end
+
+    describe "inverse_of" do
+      let(:company) do
+        Class.new(Company) {
+          has_many :employees, foreign_key: :company_id, inverse_of: :company
+
+          def self.name
+            "CompanyWithInverseOf"
+          end
+        }.create!(name: "Company")
+      end
+      before do
+        company.update!(name: "Company2")
+        employee = company.employees.create!(name: "Jane")
+        employee.update!(name: "Tom")
+      end
+
+      it { expect(company.reload.employees.first.company).to be company }
+    end
   end
 
   describe "non BTDM has one BTDM" do
@@ -371,6 +426,24 @@ RSpec.describe "Association" do
 
         it { is_expected.to change { employee.reload.company_id }.from(company.id).to(nil) }
       end
+    end
+
+    describe "inverse_of" do
+      let(:employee) do
+        Class.new(EmployeeWithoutBitemporal) {
+          has_one :address, foreign_key: :employee_id, inverse_of: :employee
+
+          def self.name
+            "EmployeeWithInverseOf"
+          end
+        }.create!(name: "Jane")
+      end
+      before do
+        address = employee.create_address!(city: "Tokyo")
+        address.update!(city: "Osaka")
+      end
+
+      it { expect(employee.reload.address.employee).to be employee }
     end
   end
 
@@ -393,6 +466,27 @@ RSpec.describe "Association" do
           it { expect(addresses.loaded?).to eq true }
         end
       end
+    end
+  end
+
+  describe "BTDM has one BTDM" do
+    describe "inverse_of" do
+      let(:employee) do
+        Class.new(Employee) {
+          has_one :address, foreign_key: :employee_id, inverse_of: :employee
+
+          def self.name
+            "EmployeeWithInverseOf"
+          end
+        }.create!(name: "Jane")
+      end
+      before do
+        employee.update!(name: "Tom")
+        employee.create_address!(city: "Tokyo")
+          .update!(city: "Osaka") # create history
+      end
+
+      it { expect(employee.reload.address.employee).to be employee }
     end
   end
 end
