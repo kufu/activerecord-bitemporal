@@ -79,6 +79,18 @@ module ActiveRecord::Bitemporal
       def bi_temporal_model?
         owner.class.bi_temporal_model? && klass&.bi_temporal_model?
       end
+
+      def matches_foreign_key?(record)
+        return super unless owner.class.bi_temporal_model?
+
+        begin
+          original_owner_id = owner.id
+          owner.id = owner.read_attribute(owner.class.bitemporal_id_key)
+          super
+        ensure
+          owner.id = original_owner_id
+        end
+      end
     end
 
     module ThroughAssociation
