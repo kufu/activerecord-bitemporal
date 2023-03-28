@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.1.0
+
+### Added
+- [add label option #127](https://github.com/kufu/activerecord-bitemporal/pull/127)
+
+### Changed
+- [Support for inverse_of of Rails 6.1 or higher #130](https://github.com/kufu/activerecord-bitemporal/pull/130)
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ## 4.0.0
 
 ### Breaking Changed
