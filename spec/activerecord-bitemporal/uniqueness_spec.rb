@@ -210,17 +210,17 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
       end
 
       context "update to name" do
-        subject { -> { employee.update!(name: "Tom") } }
+        subject { employee.update!(name: "Tom") }
 
         context "exitst other records" do
           context "same name" do
             let!(:other) { EmployeeWithUniquness.create!(name: "Jane").tap { |m| m.update!(name: "Tom") } }
-            it { is_expected.to raise_error ActiveRecord::RecordInvalid }
+            it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
           end
           context "other name" do
             let!(:other) { EmployeeWithUniquness.create!(name: "Mami").tap { |m| m.update!(name: "Homu") }  }
-            it { is_expected.not_to raise_error }
-            it { is_expected.to change { employee.reload.name }.from("Jane").to("Tom") }
+            it { expect { subject }.not_to raise_error }
+            it { expect { subject }.to change { employee.reload.name }.from("Jane").to("Tom") }
           end
         end
 
@@ -229,12 +229,12 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
           before do
             other.update!(name: "Homu")
           end
-          it { is_expected.not_to raise_error }
-          it { is_expected.to change { employee.reload.name }.from("Jane").to("Tom") }
+          it { expect { subject }.not_to raise_error }
+          it { expect { subject }.to change { employee.reload.name }.from("Jane").to("Tom") }
 
           context "with `valid_at`" do
-            subject { -> { employee.valid_at(Time.current - 1.days) { |m| m.update!(name: "Tom") } } }
-            it { is_expected.to raise_error ActiveRecord::RecordInvalid }
+            subject { employee.valid_at(Time.current - 1.days) { |m| m.update!(name: "Tom") } }
+            it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
           end
         end
 
@@ -243,12 +243,12 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
           before do
             other.destroy
           end
-          it { is_expected.not_to raise_error }
-          it { is_expected.to change { employee.reload.name }.from("Jane").to("Tom") }
+          it { expect { subject }.not_to raise_error }
+          it { expect { subject }.to change { employee.reload.name }.from("Jane").to("Tom") }
 
           context "with `valid_at`" do
-            subject { -> { employee.valid_at(Time.current - 1.days) { |m| m.update!(name: "Tom") } } }
-            it { is_expected.to raise_error ActiveRecord::RecordInvalid }
+            subject { employee.valid_at(Time.current - 1.days) { |m| m.update!(name: "Tom") } }
+            it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
           end
         end
       end
@@ -261,20 +261,20 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
     end
 
     describe ".create" do
-      subject { -> { EmployeeWithUniquness.create!(name: "Tom") } }
+      subject { EmployeeWithUniquness.create!(name: "Tom") }
       context "exists destroyed model" do
         let(:employee) { EmployeeWithUniquness.create!(name: "Jane").tap { |it| it.update(name: "Tom") } }
         before do
           employee.destroy!
         end
-        it { is_expected.not_to raise_error }
+        it { expect { subject }.not_to raise_error }
       end
 
       context "exists past model" do
         before do
           EmployeeWithUniquness.create!(name: "Tom", valid_from: "1982/12/02", valid_to: "2001/03/24")
         end
-        it { is_expected.not_to raise_error }
+        it { expect { subject }.not_to raise_error }
       end
     end
 

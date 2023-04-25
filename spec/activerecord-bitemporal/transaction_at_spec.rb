@@ -254,15 +254,15 @@ RSpec.describe "transaction_at" do
       let(:company) { Timecop.freeze(created_at) { Company.create(name: "Company1") } }
       let(:updated_at) { created_at + 1.days }
       let(:valid_datetime) { company.valid_from - 1.days }
-      subject { -> {
+      subject {
         Timecop.freeze(updated_at) {
           ActiveRecord::Bitemporal.valid_at(valid_datetime) {
             company.update(name: "Comapny2")
           }
         }
-      } }
+      }
       it do
-        is_expected.to change { Company.ignore_valid_datetime.bitemporal_for(company.id).order(:transaction_from).pluck(:transaction_from) }.to match [created_at, updated_at]
+        expect { subject }.to change { Company.ignore_valid_datetime.bitemporal_for(company.id).order(:transaction_from).pluck(:transaction_from) }.to match [created_at, updated_at]
       end
     end
   end
@@ -531,27 +531,27 @@ RSpec.describe "transaction_at" do
     end
 
     describe ".create" do
-      subject { -> { EmployeeWithUniquness.create!(name: "Tom") } }
+      subject { EmployeeWithUniquness.create!(name: "Tom") }
       context "exists destroyed model" do
         let(:employee) { EmployeeWithUniquness.create!(name: "Jane").tap { |it| it.update(name: "Tom") } }
         before do
           employee.destroy!
         end
-        it { is_expected.not_to raise_error }
+        it { expect { subject }.not_to raise_error }
       end
 
       context "exists past model" do
         before do
           EmployeeWithUniquness.create!(name: "Tom", transaction_from: "1982/12/02", transaction_to: "2001/03/24")
         end
-        it { is_expected.not_to raise_error }
+        it { expect { subject }.not_to raise_error }
       end
 
       context "exists future model" do
         before do
           EmployeeWithUniquness.create!(name: "Tom", transaction_from: Time.current + 10.days)
         end
-        it { is_expected.to raise_error ActiveRecord::RecordInvalid }
+        it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
       end
     end
 
@@ -619,31 +619,31 @@ RSpec.describe "transaction_at" do
     end
 
     context "create" do
-      subject { -> { WithoutCreatedAtDeletedAt.create!(name: "Tom") } }
-      it { is_expected.not_to raise_error }
+      subject { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
+      it { expect { subject }.not_to raise_error }
 
       context "with transaction_to" do
-        subject { -> { WithoutCreatedAtDeletedAt.create!(name: "Tom", transaction_to: Time.current + 10.days) } }
-        it { is_expected.not_to raise_error }
+        subject { WithoutCreatedAtDeletedAt.create!(name: "Tom", transaction_to: Time.current + 10.days) }
+        it { expect { subject }.not_to raise_error }
       end
     end
 
     context "update" do
       let(:record) { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
-      subject { -> { record.update(name: "Jane") } }
-      it { is_expected.not_to raise_error }
+      subject { record.update(name: "Jane") }
+      it { expect { subject }.not_to raise_error }
     end
 
     context "force_update" do
       let(:record) { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
-      subject { -> { record.force_update { |record| record.update(name: "Jane") } } }
-      it { is_expected.not_to raise_error }
+      subject { record.force_update { |record| record.update(name: "Jane") } }
+      it { expect { subject }.not_to raise_error }
     end
 
     context "destroy" do
       let(:record) { WithoutCreatedAtDeletedAt.create!(name: "Tom") }
-      subject { -> { record.destroy! } }
-      it { is_expected.not_to raise_error }
+      subject { record.destroy! }
+      it { expect { subject }.not_to raise_error }
     end
   end
 end

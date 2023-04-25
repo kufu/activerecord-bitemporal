@@ -34,20 +34,20 @@ RSpec.describe "Relation" do
 
     context "when creating" do
       let(:count) { -> { Employee.all.count } }
-      subject { -> { Employee.create!(name: "Homu") } }
-      it { is_expected.to change(&count).by(1) }
+      subject { Employee.create!(name: "Homu") }
+      it { expect { subject }.to change(&count).by(1) }
     end
 
     context "when updating" do
       let(:count) { -> { Employee.all.count } }
-      subject { -> { Employee.first.update(name: "Homu") } }
-      it { is_expected.not_to change(&count) }
+      subject { Employee.first.update(name: "Homu") }
+      it { expect { subject }.not_to change(&count) }
     end
 
     context "when destroying" do
       let(:count) { -> { Employee.all.count } }
-      subject { -> { Employee.first.destroy } }
-      it { is_expected.to change(&count).by(-1) }
+      subject { Employee.first.destroy }
+      it { expect { subject }.to change(&count).by(-1) }
     end
   end
 
@@ -89,15 +89,15 @@ RSpec.describe "Relation" do
     context "update `name` to `Jane`" do
       before { Employee.create!(name: "Tom") }
       let(:count) { -> { Employee.where(name: "Tom").count } }
-      subject { -> { Employee.find_by(name: "Tom").update(name: "Jane") } }
-      it { is_expected.to change(&count).by(-1) }
+      subject { Employee.find_by(name: "Tom").update(name: "Jane") }
+      it { expect { subject }.to change(&count).by(-1) }
     end
 
     context "update `name` to `Tom`" do
       before { Employee.create!(name: "Tom") }
       let(:count) { -> { Employee.where(name: "Tom").count } }
-      subject { -> { Employee.where.not(name: "Tom").first.update(name: "Tom") } }
-      it { is_expected.to change(&count).by(1) }
+      subject { Employee.where.not(name: "Tom").first.update(name: "Tom") }
+      it { expect { subject }.to change(&count).by(1) }
     end
   end
 
@@ -110,14 +110,14 @@ RSpec.describe "Relation" do
 
     context "update `name`" do
       let(:count) { -> { Employee.count } }
-      subject { -> { Employee.first.update(name: "Tom") } }
-      it { is_expected.not_to change(&count) }
+      subject { Employee.first.update(name: "Tom") }
+      it { expect { subject }.not_to change(&count) }
     end
 
     context "force_update `valid_to`" do
       let(:count) { -> { Employee.count } }
-      subject { -> { Employee.first.force_update { |it| it.update(valid_to: Time.current) } } }
-      it { is_expected.to change(&count).by(-1) }
+      subject { Employee.first.force_update { |it| it.update(valid_to: Time.current) } }
+      it { expect { subject }.to change(&count).by(-1) }
     end
   end
 

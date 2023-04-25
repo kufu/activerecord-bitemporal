@@ -93,17 +93,17 @@ RSpec.describe "has_xxx with through" do
     it { expect(article.user).to eq user }
 
     context "user.create" do
-      subject { -> { blog.users.create!(name: "Homu") } }
-      it { is_expected.to change { blog.users.count }.by(1) }
-      it { is_expected.to change { blog.articles.count }.by(1) }
-      it { is_expected.not_to change { user.articles.count } }
+      subject { blog.users.create!(name: "Homu") }
+      it { expect { subject }.to change { blog.users.count }.by(1) }
+      it { expect { subject }.to change { blog.articles.count }.by(1) }
+      it { expect { subject }.not_to change { user.articles.count } }
     end
 
     context "user.articles.create" do
-      subject { -> { user.articles.create!(title: "sukiyaki", blog: blog) } }
-      it { is_expected.to change { blog.users.count }.by(1) }
-      it { is_expected.to change { blog.articles.count }.by(1) }
-      it { is_expected.to change { user.articles.count }.by(1) }
+      subject { user.articles.create!(title: "sukiyaki", blog: blog) }
+      it { expect { subject }.to change { blog.users.count }.by(1) }
+      it { expect { subject }.to change { blog.articles.count }.by(1) }
+      it { expect { subject }.to change { user.articles.count }.by(1) }
     end
   end
 
@@ -113,26 +113,26 @@ RSpec.describe "has_xxx with through" do
     let!(:article) { user.articles.create!(title: "yakiniku", blog: blog).tap { |it| it.update(title: "sushi") } }
 
     context "user.update" do
-      subject { -> { user.update(name: "Kevin") } }
-      it { is_expected.not_to change { blog.users.count } }
-      it { is_expected.not_to change { blog.articles.count } }
-      it { is_expected.not_to change { user.articles.count } }
-      it { is_expected.to change { blog.users.first.name }.from("Tom").to("Kevin") }
+      subject { user.update(name: "Kevin") }
+      it { expect { subject }.not_to change { blog.users.count } }
+      it { expect { subject }.not_to change { blog.articles.count } }
+      it { expect { subject }.not_to change { user.articles.count } }
+      it { expect { subject }.to change { blog.users.first.name }.from("Tom").to("Kevin") }
 
-      it { is_expected.to change { blog.users.ignore_valid_datetime.count }.by(2) }
-      it { is_expected.not_to change { blog.articles.ignore_valid_datetime.count } }
+      it { expect { subject }.to change { blog.users.ignore_valid_datetime.count }.by(2) }
+      it { expect { subject }.not_to change { blog.articles.ignore_valid_datetime.count } }
     end
 
     context "article.update" do
-      subject { -> { article.update(title: "kaisendon") } }
-      it { is_expected.not_to change { blog.users.count } }
-      it { is_expected.not_to change { blog.articles.count } }
-      it { is_expected.not_to change { user.articles.count } }
-      it { is_expected.to change { blog.articles.first.title }.from("sushi").to("kaisendon") }
-      it { is_expected.to change { user.articles.first.title }.from("sushi").to("kaisendon") }
+      subject { article.update(title: "kaisendon") }
+      it { expect { subject }.not_to change { blog.users.count } }
+      it { expect { subject }.not_to change { blog.articles.count } }
+      it { expect { subject }.not_to change { user.articles.count } }
+      it { expect { subject }.to change { blog.articles.first.title }.from("sushi").to("kaisendon") }
+      it { expect { subject }.to change { user.articles.first.title }.from("sushi").to("kaisendon") }
 
-      it { is_expected.to change { blog.users.ignore_valid_datetime.count }.by(2) }
-      it { is_expected.to change { blog.articles.ignore_valid_datetime.count }.by(1) }
+      it { expect { subject }.to change { blog.users.ignore_valid_datetime.count }.by(2) }
+      it { expect { subject }.to change { blog.articles.ignore_valid_datetime.count }.by(1) }
     end
   end
 
