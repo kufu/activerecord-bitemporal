@@ -1,2 +1,4 @@
 .bundle/
+.rspec_status
+Gemfile.lock
 gemfiles/*.gemfile.lock
