@@ -10,9 +10,9 @@ RSpec.describe "Association" do
       let!(:employee) { Employee.create!(name: "Mami").tap { |it| it.update(name: "Jane") } }
       let!(:tokyo) { employee.address_without_bitemporal = AddressWithoutBitemporal.create!(city: "Tokyo") }
 
-      subject { -> { employee.update!(name: "Tom") } }
-      it { is_expected.to change { tokyo.reload.employee.name }.from("Jane").to("Tom") }
-      it { is_expected.to change { AddressWithoutBitemporal.find_by(city: "Tokyo").employee.name }.from("Jane").to("Tom") }
+      subject { employee.update!(name: "Tom") }
+      it { expect { subject }.to change { tokyo.reload.employee.name }.from("Jane").to("Tom") }
+      it { expect { subject }.to change { AddressWithoutBitemporal.find_by(city: "Tokyo").employee.name }.from("Jane").to("Tom") }
 
       context "any call" do
         it do
@@ -128,39 +128,39 @@ RSpec.describe "Association" do
     end
 
     describe "#create" do
-      subject { -> { company.employees.create(name: "Employee1") } }
+      subject { company.employees.create(name: "Employee1") }
 
-      it { is_expected.to change(company.employees, :count).by(1) }
-      it { is_expected.to change(company.employees, :first).from(nil).to(have_attributes name: "Employee1") }
-      it { is_expected.to change { company.employees.ignore_valid_datetime.count }.by(1) }
-      it { is_expected.to change { company.employees.find_by(name: "Employee1") }.from(nil).to(have_attributes name: "Employee1") }
+      it { expect { subject }.to change(company.employees, :count).by(1) }
+      it { expect { subject }.to change(company.employees, :first).from(nil).to(have_attributes name: "Employee1") }
+      it { expect { subject }.to change { company.employees.ignore_valid_datetime.count }.by(1) }
+      it { expect { subject }.to change { company.employees.find_by(name: "Employee1") }.from(nil).to(have_attributes name: "Employee1") }
     end
 
     describe "#update" do
       let!(:employee1) { company.employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
-      subject { -> { employee1.update(name: "New") } }
+      subject { employee1.update(name: "New") }
 
-      it { is_expected.not_to change(company.employees, :count) }
-      it { is_expected.to change { company.employees.first.reload.name }.to("New") }
-      it { is_expected.to change { company.employees.ignore_valid_datetime.count }.by(1) }
+      it { expect { subject }.not_to change(company.employees, :count) }
+      it { expect { subject }.to change { company.employees.first.reload.name }.to("New") }
+      it { expect { subject }.to change { company.employees.ignore_valid_datetime.count }.by(1) }
     end
 
     describe "#force_update" do
       let!(:employee1) { company.employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
-      subject { -> { employee1.force_update { |m| m.update(name: "New") } } }
+      subject { employee1.force_update { |m| m.update(name: "New") } }
 
-      it { is_expected.not_to change(company.employees, :count) }
-      it { is_expected.to change { company.employees.first.reload.name }.to("New") }
-      it { is_expected.to change { company.employees.ignore_valid_datetime.within_deleted.count }.by(1) }
+      it { expect { subject }.not_to change(company.employees, :count) }
+      it { expect { subject }.to change { company.employees.first.reload.name }.to("New") }
+      it { expect { subject }.to change { company.employees.ignore_valid_datetime.within_deleted.count }.by(1) }
     end
 
     describe "#destroy" do
       let!(:employee1) { company.employees.create(name: "Employee0").tap { |it| it.update(name: "Employee1") } }
-      subject { -> { employee1.destroy } }
+      subject { employee1.destroy }
 
-      it { is_expected.to change { company.employees.count }.by(-1) }
-      it { is_expected.to change(employee1, :destroyed?).from(false).to(true) }
-      it { is_expected.to change { company.employees.ignore_valid_datetime.within_deleted.count }.by(1) }
+      it { expect { subject }.to change { company.employees.count }.by(-1) }
+      it { expect { subject }.to change(employee1, :destroyed?).from(false).to(true) }
+      it { expect { subject }.to change { company.employees.ignore_valid_datetime.within_deleted.count }.by(1) }
     end
 
     describe "relations" do
@@ -239,19 +239,17 @@ RSpec.describe "Association" do
         let!(:employee2) { company.employees.create(name: "Homu").tap { |m| m.update!(name: "Mami") } }
 
         subject {
-          -> {
-            company.employees_attributes = [
-              { id: employee1.id, name: "Kevin" },
-              { id: employee2.id, name: "Mado" }
-            ]
-            company.save
-          }
+          company.employees_attributes = [
+            { id: employee1.id, name: "Kevin" },
+            { id: employee2.id, name: "Mado" }
+          ]
+          company.save
         }
 
-        it { is_expected.not_to change { Employee.count } }
-        it { is_expected.to change { Employee.ignore_valid_datetime.count }.by(2) }
-        it { is_expected.to change { employee1.reload.name }.from("Tom").to("Kevin") }
-        it { is_expected.to change { employee2.reload.name }.from("Mami").to("Mado") }
+        it { expect { subject }.not_to change { Employee.count } }
+        it { expect { subject }.to change { Employee.ignore_valid_datetime.count }.by(2) }
+        it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
+        it { expect { subject }.to change { employee2.reload.name }.from("Mami").to("Mado") }
       end
     end
 
@@ -266,10 +264,10 @@ RSpec.describe "Association" do
         let!(:employee1) { company.employees.create(name: "_").tap { |m| m.update(name: "Employee1") } }
         let!(:employee2) { company.employees.create(name: "_").tap { |m| m.update(name: "Employee2") } }
 
-        subject { -> { company.destroy } }
+        subject { company.destroy }
 
-        it { is_expected.to change { employee1.reload.company_id }.from(company.id).to(nil) }
-        it { is_expected.to change { employee2.reload.company_id }.from(company.id).to(nil) }
+        it { expect { subject }.to change { employee1.reload.company_id }.from(company.id).to(nil) }
+        it { expect { subject }.to change { employee2.reload.company_id }.from(company.id).to(nil) }
       end
     end
 
@@ -304,19 +302,17 @@ RSpec.describe "Association" do
         let!(:employee2) { company.employees.create(name: "Homu").tap { |m| m.update(name: "Mami") } }
 
         subject {
-          -> {
-            company.employees_attributes = [
-              { id: employee1.id, name: "Kevin" },
-              { id: employee2.id, name: "Mado" }
-            ]
-            company.save
-          }
+          company.employees_attributes = [
+            { id: employee1.id, name: "Kevin" },
+            { id: employee2.id, name: "Mado" }
+          ]
+          company.save
         }
 
-        it { is_expected.not_to change { Employee.count } }
-        it { is_expected.to change { Employee.ignore_valid_datetime.count }.by(2) }
-        it { is_expected.to change { employee1.reload.name }.from("Tom").to("Kevin") }
-        it { is_expected.to change { employee2.reload.name }.from("Mami").to("Mado") }
+        it { expect { subject }.not_to change { Employee.count } }
+        it { expect { subject }.to change { Employee.ignore_valid_datetime.count }.by(2) }
+        it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
+        it { expect { subject }.to change { employee2.reload.name }.from("Mami").to("Mado") }
       end
     end
 
@@ -329,10 +325,10 @@ RSpec.describe "Association" do
         let(:company) { Company.new(name: "Company") }
 
         context "saving" do
-          subject { -> { company.save } }
-          it { is_expected.to change { employee1.valid_from } }
-          it { is_expected.to change { employee2.valid_from } }
-          it { is_expected.not_to change { employee3.valid_from } }
+          subject { company.save }
+          it { expect { subject }.to change { employee1.valid_from } }
+          it { expect { subject }.to change { employee2.valid_from } }
+          it { expect { subject }.not_to change { employee3.valid_from } }
         end
 
         context "saved" do
@@ -375,10 +371,10 @@ RSpec.describe "Association" do
         let(:company) { Company.create(name: "Company") }
 
         context "saving" do
-          subject { -> { company.save } }
-          it { is_expected.to change { employee1.valid_from } }
-          it { is_expected.to change { employee2.valid_from } }
-          it { is_expected.not_to change { employee3.valid_from } }
+          subject { company.save }
+          it { expect { subject }.to change { employee1.valid_from } }
+          it { expect { subject }.to change { employee2.valid_from } }
+          it { expect { subject }.not_to change { employee3.valid_from } }
         end
 
         context "saved" do
@@ -422,9 +418,9 @@ RSpec.describe "Association" do
         }
         let!(:employee) { Employee.create(name: "_", company_id: company.id).tap { |m| m.update(name: "Employee1") } }
 
-        subject { -> { company.destroy } }
+        subject { company.destroy }
 
-        it { is_expected.to change { employee.reload.company_id }.from(company.id).to(nil) }
+        it { expect { subject }.to change { employee.reload.company_id }.from(company.id).to(nil) }
       end
     end
 

@@ -55,9 +55,9 @@ RSpec.describe "Model with polymorphic option" do
     let(:picture2) { product.pictures.create(name: "Picture2") }
     let(:picture1_imageable_name) { -> { picture1.imageable.name } }
     let(:picture2_imageable_name) { -> { picture2.imageable.name } }
-    subject { -> { product.update!(name: "New") } }
+    subject { product.update!(name: "New") }
 
-    it { is_expected.to change(&picture1_imageable_name).from("Product").to("New") }
-    it { is_expected.to change(&picture2_imageable_name).from("Product").to("New") }
+    it { expect { subject }.to change(&picture1_imageable_name).from("Product").to("New") }
+    it { expect { subject }.to change(&picture2_imageable_name).from("Product").to("New") }
   end
 end
