@@ -346,17 +346,20 @@ module ActiveRecord
           _run_destroy_callbacks {
             @destroyed = update_transaction_to(operated_at)
 
-            # 削除時の状態を履歴レコードとして保存する
-            duplicated_instance.valid_to = target_datetime
-            duplicated_instance.transaction_from = operated_at
-            duplicated_instance.save_without_bitemporal_callbacks!(validate: false)
-            if @destroyed
-              @_swapped_id_previously_was = swapped_id
-              @_swapped_id = duplicated_instance.swapped_id
-              self.valid_from = duplicated_instance.valid_from
-              self.valid_to = duplicated_instance.valid_to
-              self.transaction_from = duplicated_instance.transaction_from
-              self.transaction_to = duplicated_instance.transaction_to
+            # force_update の場合は削除時の状態の履歴を残さない
+            unless force_update?
+              # 削除時の状態を履歴レコードとして保存する
+              duplicated_instance.valid_to = target_datetime
+              duplicated_instance.transaction_from = operated_at
+              duplicated_instance.save_without_bitemporal_callbacks!(validate: false)
+              if @destroyed
+                @_swapped_id_previously_was = swapped_id
+                @_swapped_id = duplicated_instance.swapped_id
+                self.valid_from = duplicated_instance.valid_from
+                self.valid_to = duplicated_instance.valid_to
+                self.transaction_from = duplicated_instance.transaction_from
+                self.transaction_to = duplicated_instance.transaction_to
+              end
             end
           }
           raise ActiveRecord::RecordInvalid unless @destroyed
