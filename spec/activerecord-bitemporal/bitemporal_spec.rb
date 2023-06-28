@@ -858,15 +858,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:valid_datetime) { company.valid_from }
         subject { company.valid_at(valid_datetime) { |c| c.update(name: "Company") } }
 
-        it { expect(subject).to be_falsey }
-        it { expect { subject }.not_to change(&company_count) }
-        it { expect { subject }.not_to change(&company_transaction_to) }
+        it { expect { subject }.to raise_error(ActiveRecord::Bitemporal::ValidDatetimeRangeError) }
 
         context "call `update!`" do
           subject { company.valid_at(valid_datetime) { |c| c.update!(name: "Company") } }
-          it { expect { subject }.to raise_error(ActiveRecord::RecordInvalid) }
+          it { expect { subject }.to raise_error(ActiveRecord::Bitemporal::ValidDatetimeRangeError) }
           it { expect { subject }.to raise_error { |e|
-            expect(e.message).to eq "Validation failed: Valid from can't be greater equal than valid_to"
+            expect(e.message).to eq "valid_from #{company.valid_from} can't be greater equal than valid_to #{valid_datetime}"
           } }
         end
       end
