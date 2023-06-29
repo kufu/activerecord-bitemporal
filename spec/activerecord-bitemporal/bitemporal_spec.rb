@@ -2514,7 +2514,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
     subject do
       employee.name = "Tom"
-      employee.__send__(:bitemporal_build_update_records, valid_datetime: valid_datetime, current_time: now, force_update: force_update)
+      employee.__send__(:bitemporal_build_update_records, valid_datetime: valid_datetime, transaction_datetime: now, force_update: force_update)
     end
 
     # before: |-----------------------|
@@ -2698,6 +2698,48 @@ RSpec.describe ActiveRecord::Bitemporal do
             )
           end
         end
+      end
+    end
+  end
+
+  describe ".freeze_transaction_datetime" do
+    context 'with freeze_transaction_datetime' do
+      it 'same transaction_time for create, update and delete operations' do
+        employee_for_update = Employee.create!(name: "Jone")
+        employee_for_destroy = Employee.create!(name: "Mami")
+
+        ActiveRecord::Bitemporal.freeze_transaction_datetime do
+          employee_for_create = Employee.create!(name: "Homu")
+          employee_for_update.update!(name: "Bonnie")
+          employee_for_destroy.destroy!
+
+          create_time = employee_for_create.reload.transaction_from
+          update_time = employee_for_update.reload.transaction_from
+          destroy_time = Employee.bitemporal_for(employee_for_destroy.id).ignore_bitemporal_datetime.maximum(:transaction_from)
+
+          expect([create_time,
+                  update_time,
+                  destroy_time].uniq.size).to eq 1
+        end
+      end
+    end
+
+    context 'without freeze_transaction_datetime' do
+      it 'same transaction_time for create, update and delete operations' do
+        employee_for_update = Employee.create!(name: "Jone")
+        employee_for_destroy = Employee.create!(name: "Mami")
+
+        employee_for_create = Employee.create!(name: "Homu")
+        employee_for_update.update!(name: "Bonnie")
+        employee_for_destroy.destroy!
+
+        create_time = employee_for_create.reload.transaction_from
+        update_time = employee_for_update.reload.transaction_from
+        destroy_time = Employee.bitemporal_for(employee_for_destroy.id).ignore_bitemporal_datetime.maximum(:transaction_from)
+
+        expect([create_time,
+                update_time,
+                destroy_time].uniq.size).to eq 3
       end
     end
   end
