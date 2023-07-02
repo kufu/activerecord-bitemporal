@@ -106,10 +106,6 @@ module ActiveRecord
             option_.merge!(transaction_datetime: bitemporal_option_storage[:transaction_datetime])
           end
 
-          if bitemporal_option_storage[:frozen_transaction_datetime]
-            option_.merge!(frozen_transaction_datetime: bitemporal_option_storage[:frozen_transaction_datetime])
-          end
-
           bitemporal_option_storage.merge(option_)
         end
       private
