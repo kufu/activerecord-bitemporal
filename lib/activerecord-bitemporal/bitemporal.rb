@@ -549,6 +549,9 @@ module ActiveRecord
           after_instance.transaction_from = target_transaction_datetime
         end
 
+        raise ActiveRecord::RecordInvalid.new(before_instance) if before_instance&.transaction_from_cannot_be_greater_equal_than_transaction_to
+        raise ActiveRecord::RecordInvalid.new(after_instance) if after_instance.transaction_from_cannot_be_greater_equal_than_transaction_to
+
         [current_valid_record, before_instance, after_instance]
       end
     end
