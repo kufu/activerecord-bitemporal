@@ -93,7 +93,7 @@ module ActiveRecord
         end
 
         def frozen_transaction_datetime
-          bitemporal_option[:frozen_transaction_datetime]&.in_time_zone
+          bitemporal_option[:frozen_transaction_datetime]
         end
 
         def merge_by(option)
@@ -251,7 +251,7 @@ module ActiveRecord
         end
 
         def frozen_transaction_datetime
-          bitemporal_option[:frozen_transaction_datetime]&.in_time_zone
+          bitemporal_option[:frozen_transaction_datetime]
         end
       end
       include PersistenceOptionable
