@@ -463,7 +463,7 @@ module ActiveRecord
 
       private
 
-      def bitemporal_assign_initialize_value(valid_datetime:, transaction_datetime: nil)
+      def bitemporal_assign_initialize_value(valid_datetime:, transaction_datetime:)
         # 自身の `valid_from` を設定
         current_time = Time.current
         self.valid_from = valid_datetime || current_time if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
