@@ -73,10 +73,12 @@ module ActiveRecord
         end
 
         def transaction_at(datetime, &block)
+          raise 'already transaction_datetime is specified' if frozen_transaction_datetime.present?
           with_bitemporal_option(ignore_transaction_datetime: false, transaction_datetime: datetime, &block)
         end
 
         def transaction_at!(datetime, &block)
+          raise 'already transaction_datetime is specified' if frozen_transaction_datetime.present?
           with_bitemporal_option(ignore_transaction_datetime: false, transaction_datetime: datetime, force_transaction_datetime: true, &block)
         end
 
@@ -89,11 +91,15 @@ module ActiveRecord
         end
 
         def freeze_transaction_datetime(&block)
-          with_bitemporal_option(frozen_transaction_datetime: Time.current, &block)
+          raise 'already transaction_datetime is specified' if transaction_datetime.present?
+          with_bitemporal_option(frozen_transaction_datetime: true,
+                                 ignore_transaction_datetime: false,
+                                 transaction_datetime: Time.current, &block)
         end
 
         def frozen_transaction_datetime
-          bitemporal_option[:frozen_transaction_datetime]
+          return nil unless bitemporal_option[:frozen_transaction_datetime]
+          bitemporal_option[:transaction_datetime]
         end
 
         def merge_by(option)
@@ -229,6 +235,7 @@ module ActiveRecord
         end
 
         def transaction_at(datetime, &block)
+          raise 'already transaction_datetime is specified' if frozen_transaction_datetime.present?
           with_bitemporal_option(transaction_datetime: datetime, &block)
         end
 
@@ -251,7 +258,8 @@ module ActiveRecord
         end
 
         def frozen_transaction_datetime
-          bitemporal_option[:frozen_transaction_datetime]
+          return nil unless bitemporal_option[:frozen_transaction_datetime]
+          bitemporal_option[:transaction_datetime]
         end
       end
       include PersistenceOptionable

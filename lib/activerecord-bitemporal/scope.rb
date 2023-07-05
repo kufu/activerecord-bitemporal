@@ -393,6 +393,8 @@ module ActiveRecord::Bitemporal
 
       # transaction_from <= datetime && datetime < transaction_to
       scope :transaction_at, -> (datetime) {
+        raise 'already transaction_datetime is specified' if ActiveRecord::Bitemporal.frozen_transaction_datetime.present?
+
         if ActiveRecord::Bitemporal.force_transaction_datetime?
           datetime = ActiveRecord::Bitemporal.transaction_datetime
         end

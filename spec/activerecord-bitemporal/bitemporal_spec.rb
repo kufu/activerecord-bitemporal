@@ -2705,6 +2705,8 @@ RSpec.describe ActiveRecord::Bitemporal do
   describe ".freeze_transaction_datetime" do
     context 'with freeze_transaction_datetime' do
       it 'same transaction_datetime for create, update and delete operations' do
+
+        employee_for_create = nil
         employee_for_update = Employee.create!(name: "Jone")
         employee_for_destroy = Employee.create!(name: "Mami")
 
@@ -2712,27 +2714,28 @@ RSpec.describe ActiveRecord::Bitemporal do
           employee_for_create = Employee.create!(name: "Homu")
           employee_for_update.update!(name: "Bonnie")
           employee_for_destroy.destroy!
-
-          create_transaction_datetime = employee_for_create.reload.transaction_from
-
-          update_transaction_datetimes = Employee.ignore_bitemporal_datetime
-                                                 .bitemporal_for(employee_for_update.id)
-                                                 .order(:updated_at)
-
-          expect(update_transaction_datetimes).to match_array([have_attributes(transaction_to: create_transaction_datetime),
-                                                               have_attributes(transaction_from: create_transaction_datetime,
-                                                                               transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO),
-                                                               have_attributes(transaction_from: create_transaction_datetime,
-                                                                               transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO)])
-
-          destroy_transaction_datetimes = Employee.ignore_bitemporal_datetime
-                                                  .bitemporal_for(employee_for_destroy.id)
-                                                  .order(:updated_at)
-
-          expect(destroy_transaction_datetimes).to match_array([have_attributes(transaction_to: create_transaction_datetime),
-                                                                have_attributes(transaction_from: create_transaction_datetime,
-                                                                                transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO)])
         end
+
+        create_transaction_datetime = employee_for_create.reload.transaction_from
+
+        update_transaction_datetimes = Employee.ignore_bitemporal_datetime
+                                               .bitemporal_for(employee_for_update.id)
+                                               .order(:updated_at)
+
+        expect(update_transaction_datetimes).to match_array([have_attributes(transaction_to: create_transaction_datetime),
+                                                             have_attributes(transaction_from: create_transaction_datetime,
+                                                                             transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO),
+                                                             have_attributes(transaction_from: create_transaction_datetime,
+                                                                             transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO)])
+
+        destroy_transaction_datetimes = Employee.ignore_bitemporal_datetime
+                                                .bitemporal_for(employee_for_destroy.id)
+                                                .order(:updated_at)
+
+        expect(destroy_transaction_datetimes).to match_array([have_attributes(transaction_to: create_transaction_datetime),
+                                                              have_attributes(transaction_from: create_transaction_datetime,
+                                                                              transaction_to: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO)])
+
       end
     end
 
