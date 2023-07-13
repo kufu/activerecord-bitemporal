@@ -1196,6 +1196,14 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { expect { subject }.to change(employee, :transaction_from).from(updated_time).to(destroyed_time) }
       it { expect { subject }.not_to change(employee, :transaction_to) }
     end
+
+    context "with operated_at" do
+      subject { employee.destroy(operated_at: destroyed_time) }
+      it { expect { subject }.not_to change(employee, :valid_from) }
+      it { expect { subject }.to change(employee, :valid_to).from(ActiveRecord::Bitemporal::DEFAULT_VALID_TO).to(destroyed_time) }
+      it { expect { subject }.to change(employee, :transaction_from).from(updated_time).to(destroyed_time) }
+      it { expect { subject }.not_to change(employee, :transaction_to) }
+    end
   end
 
   describe "#touch" do
