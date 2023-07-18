@@ -1204,6 +1204,21 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { expect { subject }.to change(employee, :transaction_from).from(updated_time).to(destroyed_time) }
       it { expect { subject }.not_to change(employee, :transaction_to) }
     end
+
+    context "with `#force_update`" do
+      subject { Timecop.freeze(destroyed_time) { employee.force_update { employee.destroy } } }
+
+      it { expect { subject }.to change(Employee, :count).by(-1) }
+      it { expect { subject }.to change(employee, :destroyed?).from(false).to(true) }
+      it { expect { subject }.not_to change(employee, :valid_from) }
+      it { expect { subject }.not_to change(employee, :valid_to) }
+      it { expect { subject }.not_to change(employee, :transaction_from) }
+      it { expect { subject }.to change(employee, :transaction_to).from(ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO).to(destroyed_time) }
+      it { expect { subject }.not_to change { Employee.ignore_valid_datetime.within_deleted.count } }
+      it { expect { subject }.not_to change(employee, :swapped_id) }
+      it { expect { subject }.not_to change(employee, :swapped_id_previously_was) }
+      it { expect(subject).to eq employee }
+    end
   end
 
   describe "#touch" do
