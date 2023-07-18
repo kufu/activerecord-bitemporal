@@ -10,7 +10,7 @@ module ActiveRecord::Bitemporal
       define_model_callbacks :bitemporal_destroy
     end
 
-    def destroy
+    def destroy(...)
       perform_bitemporal_callbacks? ? run_callbacks(:bitemporal_destroy) { super } : super
     end
 

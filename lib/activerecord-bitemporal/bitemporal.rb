@@ -334,22 +334,21 @@ module ActiveRecord
         end || false
       end
 
-      def destroy(force_delete: false)
+      def destroy(force_delete: false, operated_at: Time.current)
         return super() if force_delete
 
-        current_time = Time.current
-        target_datetime = valid_datetime || current_time
+        target_datetime = valid_datetime || operated_at
 
         duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
 
         ActiveRecord::Base.transaction(requires_new: true, joinable: false) do
           @destroyed = false
           _run_destroy_callbacks {
-            @destroyed = update_transaction_to(current_time)
+            @destroyed = update_transaction_to(operated_at)
 
             # 削除時の状態を履歴レコードとして保存する
             duplicated_instance.valid_to = target_datetime
-            duplicated_instance.transaction_from = current_time
+            duplicated_instance.transaction_from = operated_at
             duplicated_instance.save_without_bitemporal_callbacks!(validate: false)
             if @destroyed
               @_swapped_id_previously_was = swapped_id
