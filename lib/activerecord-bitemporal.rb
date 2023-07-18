@@ -109,6 +109,12 @@ module ActiveRecord::Bitemporal::Bitemporalize
       end
     end
 
+    def valid_from_cannot_be_equal_to_valid_datetime
+      if persisted? && changed? && !force_update? && valid_from && valid_datetime && valid_from == valid_datetime
+        errors.add(:valid_from, "can't be equal to valid_datetime")
+      end
+    end
+
     def transaction_from_cannot_be_greater_equal_than_transaction_to
       if transaction_from && transaction_to && transaction_from >= transaction_to
         errors.add(:transaction_from, "can't be greater equal than transaction_to")
@@ -157,6 +163,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     validates :transaction_from, presence: true
     validates :transaction_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
+    validate :valid_from_cannot_be_equal_to_valid_datetime
     validate :transaction_from_cannot_be_greater_equal_than_transaction_to
 
     validates bitemporal_id_key, uniqueness: true, allow_nil: true, strict: enable_strict_by_validates_bitemporal_id

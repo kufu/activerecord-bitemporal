@@ -866,7 +866,7 @@ RSpec.describe ActiveRecord::Bitemporal do
           subject { company.valid_at(valid_datetime) { |c| c.update!(name: "Company") } }
           it { expect { subject }.to raise_error(ActiveRecord::RecordInvalid) }
           it { expect { subject }.to raise_error { |e|
-            expect(e.message).to eq "Validation failed: Valid from can't be greater equal than valid_to"
+            expect(e.message).to eq "Validation failed: Valid from can't be equal to valid_datetime"
           } }
         end
       end
@@ -1255,6 +1255,76 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:valid_from) { nil }
         let(:valid_to) { nil }
         it { is_expected.to be_invalid }
+      end
+    end
+
+    context "with `valid_from` and `valid_at`" do
+      around do |e|
+        ActiveRecord::Bitemporal.valid_at(valid_at) { e.run }
+      end
+
+      context "when `new_record?`" do
+        let(:employee) { Employee.new(name: "Jane", valid_from: valid_from) }
+
+        context "`valid_from` != `valid_at`" do
+          let(:valid_from) { time_current - 1.day }
+          let(:valid_at) { time_current }
+          it { is_expected.to be_valid }
+        end
+
+        context "`valid_from` == `valid_at`" do
+          let(:valid_from) { time_current }
+          let(:valid_at) { time_current }
+          it { is_expected.to be_valid }
+        end
+      end
+
+      context "when `persisted?`" do
+        context 'and `changed?`' do
+          let(:employee) do
+            employee = ActiveRecord::Bitemporal.valid_at(time_current - 1.week) { Employee.create! }
+            employee.valid_from = valid_from
+            employee
+          end
+
+          context "`valid_from` != `valid_at`" do
+            let(:valid_from) { time_current - 1.day }
+            let(:valid_at) { time_current }
+            it { is_expected.to be_valid }
+          end
+
+          context "`valid_from` == `valid_at`" do
+            let(:valid_from) { time_current }
+            let(:valid_at) { time_current }
+            it { is_expected.to be_invalid }
+
+            context "with `force_update?`" do
+              around do |e|
+                employee.force_update { e.run }
+              end
+
+              it { is_expected.to be_valid }
+            end
+          end
+        end
+
+        context "and not `changed?`" do
+          let(:employee) do
+            ActiveRecord::Bitemporal.valid_at(time_current - 1.week) { Employee.create! }
+          end
+
+          context "`valid_from` != `valid_at`" do
+          # let(:valid_from) { time_current - 1.week }
+            let(:valid_at) { time_current }
+            it { is_expected.to be_valid }
+          end
+
+          context "`valid_from` == `valid_at`" do
+          # let(:valid_from) { time_current - 1.week }
+            let(:valid_at) { time_current - 1.week }
+            it { is_expected.to be_valid }
+          end
+        end
       end
     end
 
