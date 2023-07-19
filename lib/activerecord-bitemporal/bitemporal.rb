@@ -331,6 +331,10 @@ module ActiveRecord
           self.transaction_from = after_instance.transaction_from
           self.transaction_to = after_instance.transaction_to
 
+          if attempted_action == 'touch'
+            @_touch_attr_names += Set.new(['valid_from', 'valid_to', 'transaction_from', 'transaction_to'])
+          end
+
           1
         # MEMO: Must return false instead of nil, if `#_update_row` failure.
         end || false
