@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.2.0
+
+### Added
+
+- [Allow passing `operated_at` to destroy #138](https://github.com/kufu/activerecord-bitemporal/pull/138)
+
+### Changed
+
+- [Change not to create history when destroying with `force_update` #135](https://github.com/kufu/activerecord-bitemporal/pull/135)
+- [Raise `ValidDatetimeRangeError` instead of `RecordInvalid` in `_update_row` #136](https://github.com/kufu/activerecord-bitemporal/pull/136)
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Chores
+
+- [Fix for RSpec deprecated warning #132](https://github.com/kufu/activerecord-bitemporal/pull/132)
+- [Add some files to .gitignore #134](https://github.com/kufu/activerecord-bitemporal/pull/134)
+
 ## 4.1.0
 
 ### Added
