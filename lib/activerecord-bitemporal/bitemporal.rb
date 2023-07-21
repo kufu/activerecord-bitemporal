@@ -501,13 +501,17 @@ module ActiveRecord
 
           # 以前の履歴データは valid_to を詰めて保存
           before_instance.valid_to = target_datetime
-          raise ActiveRecord::RecordInvalid.new(before_instance) if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
+          if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
+            raise ValidDatetimeRangeError.new("valid_from #{before_instance.valid_from} can't be greater equal than valid_to #{before_instance.valid_to}")
+          end
           before_instance.transaction_from = current_time
 
           # 以降の履歴データは valid_from と valid_to を調整して保存する
           after_instance.valid_from = target_datetime
           after_instance.valid_to = current_valid_record.valid_to
-          raise ActiveRecord::RecordInvalid.new(after_instance) if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
+          if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
+            raise ValidDatetimeRangeError.new("valid_from #{after_instance.valid_from} can't be greater equal than valid_to #{after_instance.valid_to}")
+          end
           after_instance.transaction_from = current_time
 
         # 有効なレコードがない場合

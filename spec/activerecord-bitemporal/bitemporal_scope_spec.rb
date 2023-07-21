@@ -1204,9 +1204,9 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     end
 
     describe "through" do
-      let(:blog) { Blog.create!(name: "tabelog").tap { |it| it.update(name: "sushilog") } }
-      let(:user) { User.create!(name: "Jane").tap { |it| it.update(name: "Tom") } }
-      let(:article) { user.articles.create!(title: "yakiniku", blog: blog).tap { |it| it.update(title: "sushi") } }
+      let(:blog) { Blog.create!(name: "tabelog") }
+      let(:user) { User.create!(name: "Jane") }
+      let(:article) { user.articles.create!(title: "yakiniku", blog: blog) }
 
       context ".ignore_valid_datetime" do
         let(:relation) { blog.users.ignore_valid_datetime }
