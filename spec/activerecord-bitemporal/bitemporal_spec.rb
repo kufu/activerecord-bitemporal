@@ -27,6 +27,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         it {
           is_expected.to have_attributes(
             bitemporal_id: subject.id,
+            changes: be_empty,
             previous_changes: include(
               "id" => [nil, subject.swapped_id],
               "valid_from" => [nil, be_present],
@@ -42,6 +43,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         it {
           is_expected.to have_attributes(
             bitemporal_id: subject.id,
+            changes: be_empty,
             previous_changes: include(
               "id" => [nil, subject.id],
               "valid_from" => [nil, be_present],
