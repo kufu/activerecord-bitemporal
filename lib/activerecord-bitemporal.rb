@@ -104,6 +104,10 @@ module ActiveRecord::Bitemporal::Bitemporalize
       swapped_id.presence || super
     end
 
+    def previously_force_updated?
+      @previously_force_updated
+    end
+
     def valid_from_cannot_be_greater_equal_than_valid_to
       if valid_from && valid_to && valid_from >= valid_to
         errors.add(:valid_from, "can't be greater equal than valid_to")
@@ -141,10 +145,12 @@ module ActiveRecord::Bitemporal::Bitemporalize
       # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
       update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
       swap_id!(without_clear_changes_information: true)
+      @previously_force_updated = false
     end
 
     after_find do
       self.swap_id! if self.send(bitemporal_id_key).present?
+      @previously_force_updated = false
     end
 
     # Callback hook to `validates :xxx, uniqueness: true`

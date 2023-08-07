@@ -277,12 +277,13 @@ module ActiveRecord
         end
 
         refine ActiveRecord::Base do
-          # MEMO: Do not copy `swapped_id`
+          # MEMO: Do not copy bitemporal internal status
           def dup(*)
             super.tap { |itself|
               itself.instance_exec do
                 @_swapped_id_previously_was = nil
                 @_swapped_id = nil
+                @previously_force_updated = false
               end unless itself.frozen?
             }
           end
@@ -320,6 +321,7 @@ module ActiveRecord
           before_instance&.save_without_bitemporal_callbacks!(validate: false)
           # NOTE: after_instance always exists
           after_instance.save_without_bitemporal_callbacks!(validate: false)
+          @previously_force_updated = self.force_update?
 
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id_previously_was = swapped_id
@@ -345,6 +347,7 @@ module ActiveRecord
           @destroyed = false
           _run_destroy_callbacks {
             @destroyed = update_transaction_to(operated_at)
+            @previously_force_updated = force_update?
 
             # force_update の場合は削除時の状態の履歴を残さない
             unless force_update?
@@ -397,6 +400,7 @@ module ActiveRecord
             # NOTE: Hook to copying swapped_id
             @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
+            @previously_force_updated = false
             self
           end
         elsif Gem::Version.new("6.1.0") <= ActiveRecord.version
@@ -420,6 +424,7 @@ module ActiveRecord
             # NOTE: Hook to copying swapped_id
             @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
+            @previously_force_updated = false
             self
           end
         else
@@ -442,6 +447,7 @@ module ActiveRecord
             # NOTE: Hook to copying swapped_id
             @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
+            @previously_force_updated = false
             self
           end
         end

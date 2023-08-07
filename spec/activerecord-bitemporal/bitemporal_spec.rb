@@ -47,7 +47,8 @@ RSpec.describe ActiveRecord::Bitemporal do
               "valid_from" => [nil, be_present],
               "valid_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_VALID_TO],
               "name" => [nil, "Tom"]
-            )
+            ),
+            previously_force_updated?: false
           )
         }
       end
@@ -918,6 +919,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     it { expect { subject }.not_to change(employee, :id) }
     it { expect { subject }.to change(employee, :swapped_id).from(swapped_id).to(kind_of(Integer)) }
     it { expect { subject }.to change(employee, :swapped_id_previously_was).from(nil).to(swapped_id) }
+    it { expect { subject }.to change(employee, :previously_force_updated?).from(false).to(true) }
 
     context "with `#valid_at`" do
       let!(:employee) { Timecop.freeze("2019/1/1") { Employee.create!(name: "Jane") } }
@@ -1215,6 +1217,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       it { expect { subject }.not_to change { Employee.ignore_valid_datetime.within_deleted.count } }
       it { expect { subject }.not_to change(employee, :swapped_id) }
       it { expect { subject }.not_to change(employee, :swapped_id_previously_was) }
+      it { expect { subject }.to change(employee, :previously_force_updated?).from(false).to(true) }
       it { expect(subject).to eq employee }
     end
   end
@@ -2720,6 +2723,24 @@ RSpec.describe ActiveRecord::Bitemporal do
           end
         end
       end
+    end
+  end
+
+  describe "#previously_force_updated?" do
+    let(:employee) { Employee.create!(name: "Jone") }
+
+    it "sets previously_force_updated after find" do
+      expect(Employee.find(employee.id)).not_to be_previously_force_updated
+    end
+
+    it "reverts the previously_force_updated after updating" do
+      employee.force_update { |e| e.update!(name: "Tom") }
+      expect { employee.update!(name: "Kevin") }.to change(employee, :previously_force_updated?).from(true).to(false)
+    end
+
+    it "reverts the previously_force_updated after reloading" do
+      employee.force_update { |e| e.update!(name: "Tom") }
+      expect { employee.reload }.to change(employee, :previously_force_updated?).from(true).to(false)
     end
   end
 
