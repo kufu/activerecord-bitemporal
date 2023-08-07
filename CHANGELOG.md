@@ -1,5 +1,23 @@
 # Changelog
 
+## 4.3.0
+
+### Added
+
+- [Add `previously_force_updated?` #142](https://github.com/kufu/activerecord-bitemporal/pull/142)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Chores
+
+- [Remove unneeded spec for Rails 5.x #143](https://github.com/kufu/activerecord-bitemporal/pull/143)
+
 ## 4.2.0
 
 ### Added
