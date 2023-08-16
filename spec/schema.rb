@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 ActiveRecord::Schema.define(version: 1) do
+  enable_extension "pgcrypto"
+
   create_table :companies, force: true do |t|
     t.string :name
 
@@ -82,6 +84,19 @@ ActiveRecord::Schema.define(version: 1) do
 
     t.timestamps
   end
+
+  create_table :plans, force: true, id: :uuid do |t|
+    t.string :name
+    t.uuid :bitemporal_id
+
+    t.datetime :valid_from, precision: 6
+    t.datetime :valid_to, precision: 6
+    t.datetime :deleted_at, precision: 6
+    t.datetime :transaction_from, precision: 6
+    t.datetime :transaction_to, precision: 6
+
+    t.timestamps
+  end
 end
 
 class Company < ActiveRecord::Base
@@ -151,3 +166,6 @@ class AddressWithoutBitemporal < ActiveRecord::Base
   belongs_to :employee, foreign_key: :employee_id
 end
 
+class Plan < ActiveRecord::Base
+  include ActiveRecord::Bitemporal
+end

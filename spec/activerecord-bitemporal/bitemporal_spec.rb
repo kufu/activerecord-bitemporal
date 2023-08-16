@@ -80,6 +80,44 @@ RSpec.describe ActiveRecord::Bitemporal do
         it { is_expected.to have_attributes(created_at: created_at, transaction_from: created_at) }
       end
     end
+
+    context 'bitemporal_id_key is uuid' do
+      context 'on create' do
+        context "with `bitemporal_id`" do
+          it "swaps id with bitemporal_id" do
+            previous_record = Plan.create!(name: "Jane", valid_from: "2019/01/01", valid_to: "2019/04/01")
+            new_record = Plan.create!(bitemporal_id: previous_record.id, name: 'Tom', valid_from: "2019/04/01", valid_to: "2019/10/01" )
+
+            expect(new_record).to have_attributes(
+              bitemporal_id: previous_record.id,
+              previous_changes: include(
+                "id" => [nil, new_record.swapped_id],
+                "valid_from" => [nil, be_present],
+                "valid_to" => [nil, "2019/10/01".in_time_zone],
+                "name" => [nil, "Tom"]
+              )
+            )
+          end
+        end
+
+        context "without `bitemporal_id`" do
+          it "updates bitemporal_id by id" do
+            new_record = Plan.create!(name: 'Tom')
+
+            expect(new_record).to have_attributes(
+              bitemporal_id: new_record.id,
+              previous_changes: include(
+                "id" => [nil, new_record.id],
+                "valid_from" => [nil, be_present],
+                "valid_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_VALID_TO],
+                "name" => [nil, "Tom"]
+              ),
+              previously_force_updated?: false
+            )
+          end
+        end
+      end
+    end
   end
 
   describe ".find" do

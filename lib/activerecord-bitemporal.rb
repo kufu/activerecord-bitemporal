@@ -49,6 +49,10 @@ module ActiveRecord::Bitemporal::Bitemporalize
       'bitemporal_id'
     end
 
+    def bitemporal_id_key_uuid?
+      column_for_attribute(bitemporal_id_key).type == :uuid
+    end
+
     # Override ActiveRecord::Core::ClassMethods#cached_find_by_statement
     # `.find_by` not use caching
     def cached_find_by_statement(key, &block)
@@ -141,10 +145,21 @@ module ActiveRecord::Bitemporal::Bitemporalize
       }
     end
 
-    after_create do
-      # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
-      update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
-      swap_id!(without_clear_changes_information: true)
+    around_create do |_, block|
+      if self.class.bitemporal_id_key_uuid? && public_send(bitemporal_id_key).nil?
+        # When bitamporal_id is uuid, skip update query after create for optimization.
+        uuid = id || SecureRandom.uuid
+        assign_attributes(id: uuid, bitemporal_id_key => uuid)
+
+        block.call
+      else
+        block.call
+
+        # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
+        update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
+        swap_id!(without_clear_changes_information: true)
+      end
+
       @previously_force_updated = false
     end
 
