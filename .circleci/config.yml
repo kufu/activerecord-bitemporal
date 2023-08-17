@@ -9,13 +9,14 @@ jobs:
         type: string
     docker:
       - image: ruby:<< parameters.ruby-version >>
+        environment:
+          BUNDLE_GEMFILE: gemfiles/<< parameters.gemfile >>.gemfile
       - image: cimg/postgres:11.16
     steps:
       - checkout
       - run: gem install bundler
       - run: bundle install
-      - run: bundle exec appraisal << parameters.gemfile >> bundle install
-      - run: bundle exec appraisal << parameters.gemfile >> rspec
+      - run: bundle exec rspec
 
 workflows:
   test:
@@ -28,12 +29,12 @@ workflows:
                 - '3.0'
                 - '3.1'
               gemfile:
-                - rails-6.0
-                - rails-6.1
-                - rails-7.0
-                - rails-main
+                - rails_6.0
+                - rails_6.1
+                - rails_7.0
+                - rails_main
             exclude:
               - ruby-version: '3.0'
-                gemfile: rails-6.0
+                gemfile: rails_6.0
               - ruby-version: '3.1'
-                gemfile: rails-6.0
+                gemfile: rails_6.0
