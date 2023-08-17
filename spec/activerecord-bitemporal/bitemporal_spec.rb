@@ -106,6 +106,7 @@ RSpec.describe ActiveRecord::Bitemporal do
 
             expect(new_record).to have_attributes(
               bitemporal_id: new_record.id,
+              swapped_id: new_record.id,
               previous_changes: include(
                 "id" => [nil, new_record.id],
                 "valid_from" => [nil, be_present],
