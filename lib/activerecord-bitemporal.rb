@@ -151,9 +151,9 @@ module ActiveRecord::Bitemporal::Bitemporalize
         uuid = id || SecureRandom.uuid
         assign_attributes(id: uuid, bitemporal_id_key => uuid)
 
-        block.call
+        next unless block.call
       else
-        block.call
+        next unless block.call
 
         # MEMO: #update_columns is not call #_update_row (and validations, callbacks)
         update_columns(bitemporal_id_key => swapped_id) unless send(bitemporal_id_key)
