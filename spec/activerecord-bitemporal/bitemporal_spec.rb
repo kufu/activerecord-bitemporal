@@ -27,10 +27,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         it {
           is_expected.to have_attributes(
             bitemporal_id: subject.id,
+            # changes: be_empty, FIXME: Creating with bitemporal_id produces the unexpected "id" changes. See #144 or #147
             previous_changes: include(
               "id" => [nil, subject.swapped_id],
               "valid_from" => [nil, be_present],
               "valid_to" => [nil, "2019/10/01".in_time_zone],
+              "transaction_from" => [nil, be_present],
+              "transaction_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO],
               "name" => [nil, "Tom"]
             )
           )
@@ -42,10 +45,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         it {
           is_expected.to have_attributes(
             bitemporal_id: subject.id,
+            changes: be_empty,
             previous_changes: include(
               "id" => [nil, subject.id],
               "valid_from" => [nil, be_present],
               "valid_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_VALID_TO],
+              "transaction_from" => [nil, be_present],
+              "transaction_to" => [nil, ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO],
               "name" => [nil, "Tom"]
             ),
             previously_force_updated?: false
@@ -654,7 +660,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       let(:from) { time_current }
       let(:to) { from + 10.days }
       let(:finish) { Time.utc(9999, 12, 31).in_time_zone }
-      let!(:employee) { Employee.create!(name: "Jone", valid_from: from, valid_to: to) }
+      let!(:employee) { Timecop.freeze(from - 1.month) { Employee.create!(name: "Jone", valid_from: from, valid_to: to) } }
       let!(:swapped_id) { employee.swapped_id }
       let(:count) { -> { Employee.where(bitemporal_id: employee.id).ignore_valid_datetime.count } }
       let(:old_jone) { Employee.ignore_valid_datetime.within_deleted.find_by(bitemporal_id: employee.id, name: "Jone") }
@@ -684,6 +690,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:now) { from + 5.days }
         it { expect { subject }.to change(&count).by(1) }
         it { expect { subject }.to change(employee, :name).from("Jone").to("Tom") }
+        it { expect { subject }.to change(employee, :valid_from).from(from).to(now) }
+        it { expect { subject }.not_to change(employee, :valid_to) }
+        it { expect { subject }.to change(employee, :transaction_from).to(now) }
+        it { expect { subject }.not_to change(employee, :transaction_to) }
+        it { expect(employee.changes).to be_empty }
+        it { expect { subject }.not_to change(employee, :changes) }
+        it { expect { subject }.to change { employee.saved_changes.keys }.to(contain_exactly("name", "valid_from", "transaction_from", "updated_at")) }
         it { expect { subject }.to change(employee, :swapped_id).from(swapped_id).to(kind_of(Integer)) }
         it { expect { subject }.to change(employee, :swapped_id_previously_was).from(nil).to(swapped_id) }
         it_behaves_like "updated Jone" do
@@ -707,6 +720,13 @@ RSpec.describe ActiveRecord::Bitemporal do
         let(:now) { from - 5.days }
         it { expect { subject }.to change(&count).by(1) }
         it { expect { subject }.to change(employee, :name).from("Jone").to("Tom") }
+        it { expect { subject }.to change(employee, :valid_from).from(from).to(now) }
+        it { expect { subject }.to change(employee, :valid_to).from(to).to(from) }
+        it { expect { subject }.to change(employee, :transaction_from).to(now) }
+        it { expect { subject }.not_to change(employee, :transaction_to) }
+        it { expect(employee.changes).to be_empty }
+        it { expect { subject }.not_to change(employee, :changes) }
+        it { expect { subject }.to change { employee.saved_changes.keys }.to contain_exactly("name", "valid_from", "valid_to", "transaction_from", "updated_at") }
         it { expect { subject }.to change(employee, :swapped_id).from(swapped_id).to(kind_of(Integer)) }
         it { expect { subject }.to change(employee, :swapped_id_previously_was).from(nil).to(swapped_id) }
         it_behaves_like "updated Jone" do
@@ -1052,6 +1072,8 @@ RSpec.describe ActiveRecord::Bitemporal do
     it { expect { subject }.to change { Employee.ignore_valid_datetime.within_deleted.count }.by(1) }
     it { expect { subject }.to change(employee, :swapped_id).from(@swapped_id_before_destroy).to(kind_of(Integer)) }
     it { expect { subject }.to change(employee, :swapped_id_previously_was).from(kind_of(Integer)).to(@swapped_id_before_destroy) }
+    xit { expect { subject }.to change(employee, :changes).to(be_empty) } # FIXME: Destroying produces the unexpected "valid_to", "transaction_from", and "transaction_to" changes.
+    it { expect { subject }.not_to change(employee, :saved_changes) }
     it { expect(subject).to eq employee }
 
     it do
@@ -1223,14 +1245,66 @@ RSpec.describe ActiveRecord::Bitemporal do
   end
 
   describe "#touch" do
-    let!(:employee) { Employee.create(name: "Jane").tap { |it| it.update!(name: "Tom") } }
+    let!(:employee) { Timecop.freeze(created_time) { Employee.create(name: "Tom") } }
     let(:employee_count) { -> { Employee.ignore_valid_datetime.bitemporal_for(employee.id).count } }
-    subject { employee.touch(:archived_at) }
+    let(:created_time) { time_current - 10.seconds }
+    let(:touched_time) { time_current - 5.seconds }
+    subject { Timecop.freeze(touched_time) { employee.touch(:archived_at) } }
+
+    before { @swapped_id_before_touch = employee.swapped_id }
 
     it { expect(employee).to have_attributes(name: "Tom", id: employee.id) }
     it { expect(subject).to eq true }
     it { expect { subject }.to change(&employee_count).by(1) }
     it { expect { subject }.to change { employee.reload.archived_at }.from(nil) }
+    it { expect { subject }.to change(employee, :valid_from).from(created_time).to(touched_time) }
+    it { expect { subject }.not_to change(employee, :valid_to) }
+    it { expect { subject }.to change(employee, :transaction_from).from(created_time).to(touched_time) }
+    it { expect { subject }.not_to change(employee, :transaction_to) }
+    it { expect { subject }.to change(employee, :swapped_id).from(@swapped_id_before_touch).to(kind_of(Integer)) }
+    it { expect { subject }.to change(employee, :swapped_id_previously_was).from(nil).to(@swapped_id_before_touch) }
+    it { expect(employee.changes).to be_empty }
+    it { expect { subject }.not_to change(employee, :changes) }
+    it { expect { subject }.to change { employee.saved_changes.keys }.to(contain_exactly("archived_at", "valid_from", "transaction_from", "updated_at")) }
+
+    context "with unsaved changes" do
+      let(:changed_time) { time_current - 7.seconds } # Neither created_time nor touched_time
+
+      before do
+        employee.name = "Jane"
+        employee.valid_from = changed_time
+        employee.archived_at = changed_time
+        @updated_at_before_touch = employee.updated_at
+      end
+
+      it { expect(employee).to have_attributes(name: "Jane", id: employee.id) }
+      it { expect(subject).to eq true }
+      it { expect { subject }.to change(&employee_count).by(1) }
+      # Do not save temporary changes
+      it { expect { subject }.not_to change { employee.reload.name } }
+      it { expect { subject }.to change { employee.reload.valid_from }.from(created_time).to(touched_time) }
+      it { expect { subject }.to change { employee.reload.archived_at }.from(nil).to(touched_time) }
+      # Merge temporary changes with changes by bi-temporal operations
+      it { expect { subject }.not_to change(employee, :valid_from) }
+      it { expect { subject }.not_to change(employee, :valid_to) }
+      it { expect { subject }.to change(employee, :transaction_from).from(created_time).to(touched_time) }
+      it { expect { subject }.not_to change(employee, :transaction_to) }
+      it { expect(employee.changes).to eq({ "name" => ["Tom", "Jane"], "valid_from" => [created_time, changed_time], "archived_at" => [nil, changed_time] }) }
+      it { expect { subject }.to change { employee.changes }.to(eq({ "name" => ["Tom", "Jane"], "valid_from" => [touched_time, changed_time] })) } # Discard archived_at and changes the previous value of valid_from
+      it { expect { subject }.to change { employee.saved_changes }.to(eq({ "archived_at" => [nil, touched_time], "valid_from" => [created_time, touched_time], "transaction_from" => [created_time, touched_time], "updated_at" => [@updated_at_before_touch, touched_time] })) }
+
+      context "and #force_update" do
+        subject { Timecop.freeze(touched_time) { employee.force_update { |e| e.touch(:archived_at) } } }
+
+        it { expect(subject).to eq true }
+        it { expect { subject }.not_to change(&employee_count) }
+        # With update + force_update, valid_from changes are reflected as is (saved as changed_time), but touch + force_update ignores the changes
+        it { expect(employee.reload.valid_from).to eq(created_time) }
+        it { expect { subject }.not_to change { employee.reload.valid_from } }
+        it { expect(employee.valid_from).to eq(changed_time) }
+        it { expect { subject }.not_to change(employee, :valid_from) }
+      end
+    end
   end
 
   describe "validation" do

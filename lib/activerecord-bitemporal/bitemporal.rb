@@ -312,6 +312,59 @@ module ActiveRecord
         end
       end
 
+      # @see https://github.com/rails/rails/blob/v7.1.0/activerecord/lib/active_record/attribute_methods/dirty.rb#L200
+      # @see https://github.com/rails/rails/blob/v7.1.0/activerecord/lib/active_record/persistence.rb#L1200
+      def _touch_row(attribute_names, time)
+        _touch_attr_names = Set.new(attribute_names)
+
+        time ||= current_time_from_proper_timezone
+
+        attribute_names.each do |attr_name|
+          _write_attribute(attr_name, time)
+        end
+
+        changes = {}
+        @attributes.keys.each do |attr_name|
+          next if _touch_attr_names.include?(attr_name)
+
+          if attribute_changed?(attr_name)
+            changes[attr_name] = _read_attribute(attr_name)
+            _write_attribute(attr_name, attribute_was(attr_name))
+            clear_attribute_change(attr_name)
+          end
+        end
+
+        # The ActiveRecord::Bitemporal::Persistence#_update_row is different from the original
+        # and also save changes other than the passed attribute_names.
+        # To avoid saving unintended changes, evacuate the unsaved changes to a variable
+        # before _update_row is called. ActiveRecord::AttributeMethods::Dirty#_touch_row does this **after** _update_row.
+        affected_rows = _update_row(attribute_names, "touch")
+
+        # @_skip_dirty_tracking was introduced to prevent unintentional changes of previous_changes
+        # due to deferred touches caused by `touch: true`. See https://github.com/rails/rails/pull/36271
+        # To reproduce similar behavior, return affected_rows without calling changes_applied.
+        # Note that unlike the original, changes must be evacuated and restored.
+        # As explained above, this is to avoid implementation differences in _update_row.
+        #
+        # FIXME: Implicit touching with `touch: true`` is **completely** broken in the bi-temporal gem.
+        #        ActiveRecord::TouchLater#touch_later sets an instance variable and performs the actual touching
+        #        with before_committed!, but the bi-temporal gem internally creates multiple Active Record instances
+        #        and calls touch_later and before_committed! for each. So, we cannot propagate instance variables properly.
+        #        As a result, there is no case where @_skip_dirty_tracking works effectively in Rails v7.0.
+        if @_skip_dirty_tracking ||= false
+          clear_attribute_changes(_touch_attr_names)
+          changes.each { |attr_name, value| _write_attribute(attr_name, value) }
+          return affected_rows
+        end
+
+        changes_applied
+        changes.each { |attr_name, value| _write_attribute(attr_name, value) }
+
+        affected_rows
+      ensure
+        @_skip_dirty_tracking = nil
+      end
+
       def _update_row(attribute_names, attempted_action = 'update')
         current_valid_record, before_instance, after_instance = bitemporal_build_update_records(valid_datetime: self.valid_datetime, force_update: self.force_update?)
 
