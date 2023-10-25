@@ -14,6 +14,10 @@ class EmployeeWithUniqunessAndMessage < Employee
   validates :name, uniqueness: { message: "is duplicated" }
 end
 
+class DepartmentWithUniquness < Department
+  validates :name, uniqueness: true
+end
+
 RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
   # MEMO: Intentionally shift test time
   let(:time_current) { Time.current.round(6) + 10.years }
@@ -377,5 +381,337 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
       EmployeeWithUniqunessAndMessage.create(name: "Jane", valid_from: valid_from, valid_to: valid_to).errors.full_messages
     }
     it { is_expected.to include "Name is duplicated" }
+  end
+
+  describe DepartmentWithUniquness do
+    around { |e| Time.use_zone("Tokyo", &e) }
+
+    context "have an active model" do
+      shared_context "define active model" do
+        let(:active_from) { time_current }
+        let(:active_to) { active_from + 10.days }
+        before do
+          DepartmentWithUniquness.create!(name: "Dev", valid_from: active_from, valid_to: active_to)
+        end
+      end
+
+      shared_examples "valid uniqueness" do
+        include_context "define active model"
+        subject { DepartmentWithUniquness.new(name: "Dev", valid_from: new_from, valid_to: new_to) }
+        it { is_expected.to be_valid }
+      end
+
+      shared_examples "invalid uniqueness" do
+        include_context "define active model"
+        subject { DepartmentWithUniquness.new(name: "Dev", valid_from: new_from, valid_to: new_to) }
+        it { is_expected.to be_invalid }
+      end
+
+      # active valid time :                 |<---------->|
+      # new valid time    : |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { active_from - 12.days }
+        let(:new_to) { active_to - 12.days }
+      end
+
+      # active valid time :              |<---------->|
+      # new valid time    : |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { new_to - 10.days }
+        let(:new_to) { active_from }
+      end
+
+      # active valid time :        |<---------->|
+      # new valid time    : |<---------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from - 5.days }
+        let(:new_to) { active_to - 5.days }
+      end
+
+      # active valid time :        |<---------->|
+      # new valid time    : |<----------------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from - 15.days }
+        let(:new_to) { active_to }
+      end
+
+      # active : |<---------->|
+      # new    : |<---------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from }
+        let(:new_to) { active_to }
+      end
+
+      # active : |<---------->|
+      # new    :   |<------>|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from + 2.days }
+        let(:new_to) { active_to - 2.days }
+      end
+
+      # active :   |<---------->|
+      # new    : |<-------------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from - 2.days }
+        let(:new_to) { active_to + 2.days }
+      end
+
+      # active valid time : |<---------->|
+      # new valid time    : |<----------------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from }
+        let(:new_to) { active_to + 15.days }
+      end
+
+      # active valid time : |<---------->|
+      # new valid time    :        |<---------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active_from + 5.days }
+        let(:new_to) { active_to + 5.days }
+      end
+
+      # active valid time : |<---------->|
+      # new valid time    :              |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { active_to }
+        let(:new_to) { new_from + 10.days }
+      end
+
+      # active valid time : |<---------->|
+      # new valid time    :                 |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { active_from + 12.days }
+        let(:new_to) { active_to + 12.days }
+      end
+    end
+
+    context "have an active models" do
+      shared_context "define active models" do
+        # active1 valid time : |<------------>|
+        # active2 valid time :                          |<--------->|
+        #                      ^time_current  ^10.days  ^40.days    ^50.days
+        let(:active1_from) { time_current }
+        let(:active1_to) { active1_from + 10.days }
+
+        let(:active2_from) { active1_from + 40.days }
+        let(:active2_to) { active2_from + 10.days }
+
+        before do
+          DepartmentWithUniquness.create!(name: "Dev", valid_from: active1_from, valid_to: active1_to)
+          DepartmentWithUniquness.create!(name: "Dev", valid_from: active2_from, valid_to: active2_to)
+        end
+      end
+
+      shared_examples "valid uniqueness" do
+        include_context "define active models"
+        subject { DepartmentWithUniquness.new(name: "Dev", valid_from: new_from, valid_to: new_to) }
+        it { is_expected.to be_valid }
+      end
+
+      shared_examples "invalid uniqueness" do
+        include_context "define active models"
+        subject { DepartmentWithUniquness.new(name: "Dev", valid_from: new_from, valid_to: new_to) }
+        it { is_expected.to be_invalid }
+      end
+
+      # active1 valid time : |<---------->|
+      # active2 valid time :                                 |<---------->|
+      # new valid time     :                 |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { active1_to + 2.days }
+        let(:new_to) { new_from + 10.days }
+      end
+
+      # active1 valid time :                 |<---------->|
+      # active2 valid time :                                 |<---------->|
+      # new valid time     : |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { new_to - 10.days }
+        let(:new_to) { active1_from - 2.days }
+      end
+
+      # active1 valid time : |<---------->|
+      # active2 valid time :                |<---------->|
+      # new valid time     :                               |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { active2_to + 2.days }
+        let(:new_to) { new_from + 10.days }
+      end
+
+      # active1 valid time : |<---------->|
+      # active2 valid time :          |<---------->|
+      # new valid time     :                    |<---------->|
+      it_behaves_like "invalid uniqueness" do
+        let(:new_from) { active1_to - 2.days }
+        let(:new_to) { active2_from + 2.days }
+      end
+
+      # active1 valid time : |<---------->|
+      # active2 valid time :              |<---------->|
+      # new valid time     :                           |<---------->|
+      it_behaves_like "valid uniqueness" do
+        let(:new_from) { active2_to }
+        let(:new_to) { new_from + 10.days }
+      end
+    end
+
+    describe "#update" do
+      let(:department) { Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "Dev") } }
+
+      context "update to name" do
+        subject { department.update!(name: "Sales") }
+
+        context "exitst other records" do
+          context "same name" do
+            before do
+              other = Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "HR") }
+              other.update!(name: "Sales")
+            end
+            it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
+          end
+          context "other name" do
+            before do
+              other = Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "HR") }
+              other.update!(name: "Plan")
+            end
+            it { expect { subject }.not_to raise_error }
+            it { expect { subject }.to change { department.reload.name }.from("Dev").to("Sales") }
+          end
+        end
+
+        context "after updating other record" do
+          before do
+            other = Timecop.travel(2.days.ago) { DepartmentWithUniquness.create!(name: "HR") }
+            Timecop.travel(1.day.ago) { other.update!(name: "Sales") }
+            other.update!(name: "General")
+          end
+          it { expect { subject }.not_to raise_error }
+          it { expect { subject }.to change { department.reload.name }.from("Dev").to("Sales") }
+
+          context "with `valid_at`" do
+            subject { department.valid_at(Time.current - 1.day) { |m| m.update!(name: "Sales") } }
+            it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
+          end
+        end
+
+        context "after destroying other record" do
+          before do
+            other = Timecop.travel(2.days.ago) { DepartmentWithUniquness.create!(name: "HR") }
+            Timecop.travel(1.day.ago) { other.update!(name: "Sales") }
+            other.destroy!
+          end
+          it { expect { subject }.not_to raise_error }
+          it { expect { subject }.to change { department.reload.name }.from("Dev").to("Sales") }
+
+          context "with `valid_at`" do
+            subject { department.valid_at(Time.current - 1.days) { |m| m.update!(name: "Sales") } }
+            it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
+          end
+        end
+      end
+    end
+
+    describe "#dup" do
+      let(:department) do
+        Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "Dev") }
+          .tap { |it| it.update(name: "Sales") }
+      end
+      subject { department.dup.save  }
+      it { is_expected.to be false }
+    end
+
+    describe ".create" do
+      subject { DepartmentWithUniquness.create!(name: "Dev") }
+      context "exists destroyed model" do
+        let(:department) do
+          Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "Dev") }
+            .tap { |it| it.update(name: "Sales") }
+        end
+        before do
+          department.destroy!
+        end
+        it { expect { subject }.not_to raise_error }
+      end
+
+      context "exists past model" do
+        before do
+          DepartmentWithUniquness.create!(name: "Dev", valid_from: "1982/12/02", valid_to: "2001/03/24")
+        end
+        it { expect { subject }.not_to raise_error }
+      end
+    end
+
+    context "with `#valid_at`" do
+      let(:department) { Timecop.freeze("2019/2/1") { DepartmentWithUniquness.create!(name: "Dev") } }
+      before do
+        Timecop.freeze("2019/3/1") { department.update(name: "Sales") }
+        Timecop.freeze("2019/4/1") { department.update(name: "Ops") }
+      end
+      it do
+        Timecop.freeze("2019/5/1") { department.valid_at("2019/1/1") { |m|
+          m.name = "Dev"
+          expect(m).to be_valid
+        } }
+      end
+      it do
+        Timecop.freeze("2019/5/1") { department.valid_at("2019/1/1") { |m|
+          m.name = "Sales"
+          expect(m).to be_valid
+        } }
+      end
+
+      context "exists other record" do
+        before { DepartmentWithUniquness.create!(name: "HR", valid_from: "2019/1/10", valid_to: "2019/1/20") }
+        it do
+          Timecop.freeze("2019/3/1") { department.valid_at("2019/1/1") { |m|
+            m.name = "HR"
+            expect(m).to be_invalid
+          } }
+        end
+      end
+    end
+
+    context "and `valid_from`" do
+      before do
+        DepartmentWithUniquness.create!(name: "Dev", valid_from: "2019/1/10", valid_to: "2019/1/20")
+      end
+      subject { DepartmentWithUniquness.new(name: "Dev", valid_from: "2019/1/15").valid_at("2019/1/30", &:save) }
+      it { is_expected.to be false }
+    end
+
+    context "`valid_datetime` out of range `valid_from` ~ `valid_to`" do
+      context "empty records" do
+        subject { DepartmentWithUniquness.new(valid_from: "9999/1/10").valid_at("9999/1/1", &:save) }
+        it { is_expected.to be true }
+      end
+    end
+
+    context "`valid_at` is duplicated in past history" do
+      let(:record) {
+        department = DepartmentWithUniquness.create!(name: "A", valid_from: "2000/01/01")
+        department.update!(name: "B")
+        department
+      }
+      subject { record.valid_at("2010/01/01", &:valid?) }
+      it { is_expected.to be false }
+    end
+
+    context "#force_update" do
+      let(:department) { Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "Dev") } }
+      before { department.update!(name: "Sales") }
+      subject { department.force_update { department.update!(name: "Ops") } }
+      it { expect { subject }.not_to raise_error }
+      it { expect { subject }.to change { department.reload.name }.from("Sales").to("Ops") }
+
+      context "with `valid_at`" do
+        subject do
+          ActiveRecord::Bitemporal.valid_at(department.valid_from) do
+            department.force_update { department.update!(name: "Ops") }
+          end
+        end
+        it { expect { subject }.not_to raise_error }
+        it { expect { subject }.to change { department.reload.name }.from("Sales").to("Ops") }
+      end
+    end
   end
 end

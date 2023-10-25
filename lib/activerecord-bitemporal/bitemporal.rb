@@ -68,6 +68,10 @@ module ActiveRecord
           bitemporal_option[:valid_datetime]&.in_time_zone
         end
 
+        def valid_date
+          valid_datetime&.to_date
+        end
+
         def ignore_valid_datetime(&block)
           with_bitemporal_option(ignore_valid_datetime: true, valid_datetime: nil, &block)
         end
@@ -236,6 +240,10 @@ module ActiveRecord
 
         def valid_datetime
           bitemporal_option[:valid_datetime]&.in_time_zone
+        end
+
+        def valid_date
+          valid_datetime&.to_date
         end
 
         def transaction_datetime
@@ -579,10 +587,13 @@ module ActiveRecord
         valid_from = record.valid_from if record.force_update?
 
         valid_to = record.valid_to.yield_self { |valid_to|
+          # NOTE: `cover?` may give incorrect results, when the time zone is not UTC and `valid_from` is date type
+          #   Therefore, cast to type of `valid_from`
+          record_valid_time = finder_class.type_for_attribute(:valid_from).cast(record.valid_datetime)
           # レコードを更新する時に valid_datetime が valid_from ~ valid_to の範囲外だった場合、
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
-          if (record.valid_datetime && (record.valid_from..record.valid_to).cover?(record.valid_datetime)) == false && (record.persisted?)
+          if (record_valid_time && (record.valid_from..record.valid_to).cover?(record_valid_time)) == false && (record.persisted?)
             finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gt(target_datetime).order(valid_from: :asc).first.valid_from
           else
             valid_to

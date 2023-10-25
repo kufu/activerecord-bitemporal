@@ -166,6 +166,10 @@ module ActiveRecord::Bitemporal
       bitemporal_clause[:valid_datetime]&.in_time_zone
     end
 
+    def valid_date
+      valid_datetime&.to_date
+    end
+
     def transaction_datetime
       bitemporal_clause[:transaction_datetime]&.in_time_zone
     end
