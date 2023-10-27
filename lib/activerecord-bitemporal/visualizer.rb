@@ -49,7 +49,8 @@ module ActiveRecord::Bitemporal
         prev_valid_times.each do |valid_time|
           headers.print('|', line: line, column: columns[valid_time])
         end
-        headers.print("| #{valid_time.strftime('%F %T.%3N')}", line: line, column: columns[valid_time])
+        valid_time_str = valid_time.kind_of?(Date) ? valid_time.strftime('%F') : valid_time.strftime('%F %T.%3N')
+        headers.print("| #{valid_time_str}", line: line, column: columns[valid_time])
         prev_valid_times << valid_time
       end
   
@@ -92,13 +93,14 @@ module ActiveRecord::Bitemporal
         end
       end
 
+      valid_label = valid_times[0].kind_of?(Date) ? 'valid_date' : 'valid_datetime'
       transaction_label = 'transaction_datetime'
       right_margin = time_length + 1 - transaction_label.size
 
       label = if right_margin >= 0
-        "#{transaction_label + ' ' * right_margin}| valid_datetime"
+        "#{transaction_label + ' ' * right_margin}| #{valid_label}"
       else
-        "#{transaction_label[0...right_margin]}| valid_datetime"
+        "#{transaction_label[0...right_margin]}| #{valid_label}"
       end
 
       "#{label}\n#{headers.to_s}\n#{body.to_s}"
