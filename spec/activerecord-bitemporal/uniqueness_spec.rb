@@ -485,7 +485,7 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
       end
     end
 
-    context "have an active models" do
+    context "have active models" do
       shared_context "define active models" do
         # active1 valid time : |<------------>|
         # active2 valid time :                          |<--------->|
@@ -561,7 +561,7 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
       context "update to name" do
         subject { department.update!(name: "Sales") }
 
-        context "exitst other records" do
+        context "exist other records" do
           context "same name" do
             before do
               other = Timecop.travel(1.day.ago) { DepartmentWithUniquness.create!(name: "HR") }

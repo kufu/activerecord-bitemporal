@@ -558,7 +558,7 @@ RSpec.describe ActiveRecord::Bitemporal, 'date type valid time' do
         department = Department.ignore_valid_datetime.find_by!(name: "Test")
         department.force_update { |m| m.update(name: "Test2") }
         expect(Department.find_at_time(department.valid_from, department.id).name).to eq "Test2"
-        expect(Department.ignore_valid_datetime.where(name: "Jane")).not_to be_exists
+        expect(Department.ignore_valid_datetime.where(name: "Test")).not_to be_exists
       end
     end
 
