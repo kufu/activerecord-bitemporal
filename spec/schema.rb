@@ -82,6 +82,18 @@ ActiveRecord::Schema.define(version: 1) do
 
     t.timestamps
   end
+
+  create_table :departments, force: true do |t|
+    t.string :name
+
+    t.integer :bitemporal_id
+    t.date :valid_from
+    t.date :valid_to
+    t.datetime :transaction_from, precision: 6
+    t.datetime :transaction_to, precision: 6
+
+    t.timestamps
+  end
 end
 
 class Company < ActiveRecord::Base
@@ -151,3 +163,6 @@ class AddressWithoutBitemporal < ActiveRecord::Base
   belongs_to :employee, foreign_key: :employee_id
 end
 
+class Department < ActiveRecord::Base
+  include ActiveRecord::Bitemporal
+end
