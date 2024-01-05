@@ -30,20 +30,11 @@ workflows:
                 - '3.2'
                 - '3.3'
               gemfile:
-                - rails_6.0
                 - rails_6.1
                 - rails_7.0
                 - rails_main
             exclude:
-              - ruby-version: '3.0'
-                gemfile: rails_6.0
-              - ruby-version: '3.1'
-                gemfile: rails_6.0
-              - ruby-version: '3.2'
-                gemfile: rails_6.0
               - ruby-version: '3.2'
                 gemfile: rails_6.1
-              - ruby-version: '3.3'
-                gemfile: rails_6.0
               - ruby-version: '3.3'
                 gemfile: rails_6.1
