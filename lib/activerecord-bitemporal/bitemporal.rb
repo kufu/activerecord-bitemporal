@@ -383,6 +383,18 @@ module ActiveRecord
         false
       end
 
+      if Gem::Version.new("7.1.0") <= ActiveRecord.version
+        # MEMO: Since Rails 7.1 #_find_record refers to a record with find_by!(@primary_key => id)
+        #       But if @primary_key is "id", it can't refer to the intended record, so we hack it to refer to the record based on self.class.bitemporal_id_key
+        #       see: https://github.com/rails/rails/blob/v7.1.0/activerecord/lib/active_record/persistence.rb#L1152-#L1171
+        def _find_record(*)
+          tmp_primary_key, @primary_key = @primary_key, self.class.bitemporal_id_key
+          super
+        ensure
+          @primary_key = tmp_primary_key
+        end
+      end
+
       module ::ActiveRecord::Persistence
         # MEMO: Must be override ActiveRecord::Persistence#reload
         alias_method :active_record_bitemporal_original_reload, :reload unless method_defined? :active_record_bitemporal_original_reload
