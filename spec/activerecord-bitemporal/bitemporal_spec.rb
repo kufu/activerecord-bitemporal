@@ -1967,7 +1967,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let!(:company) { Company.create(name: "Company") }
         before do
           emp = company.employees.create(name: "Jane")
-          emp.address = Address.create(name: "Address")
+          emp.create_address(name: "Address")
         end
         it do
           Company.includes(:employees, employees: :address).find_at_time(time_current, company.id).tap { |c|
@@ -2021,7 +2021,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let!(:company) { Company.create(name: "Company") }
         before do
           emp = company.employees.create(name: "Jane")
-          emp.address = Address.create(name: "Address")
+          emp.create_address(name: "Address")
         end
         it do
           Company.includes(:employees, employees: :address).find_at_time(time_current, company.id).tap { |c|
@@ -2152,7 +2152,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let!(:company) { Company.create(name: "Company") }
         before do
           emp = company.employees.create(name: "Jane")
-          emp.address = Address.create(name: "Address")
+          emp.create_address(name: "Address")
         end
         it do
           Company.includes(:employees, employees: :address).transaction_at(time_current).find_by(bitemporal_id: company.id).tap { |c|
@@ -2204,7 +2204,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         let!(:company) { Company.create(name: "Company") }
         before do
           emp = company.employees.create(name: "Jane")
-          emp.address = Address.create(name: "Address")
+          emp.create_address(name: "Address")
         end
         it do
           Company.includes(:employees, employees: :address).transaction_at(time_current).find_by(bitemporal_id: company.id).tap { |c|
@@ -2284,6 +2284,143 @@ RSpec.describe ActiveRecord::Bitemporal do
               expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_from" <= /
               expect(Employee.ignore_transaction_datetime.to_sql).not_to match %r/"transaction_to" > /
             }
+          }
+        end
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.bitemporal_at" do
+      context "instance object" do
+        let!(:company) { Company.create(name: "Company") }
+        before do
+          emp = company.employees.create(name: "Jane")
+          emp.create_address(name: "Address")
+        end
+        it do
+          Company.includes(:employees, employees: :address).bitemporal_at(time_current).find_by(bitemporal_id: company.id).tap { |c|
+            expect(c.valid_datetime).to eq time_current
+            expect(c.employees.first.valid_datetime).to eq time_current
+            expect(c.employees.first.address.valid_datetime).to eq time_current
+            expect(c.transaction_datetime).to eq time_current
+            expect(c.employees.first.transaction_datetime).to eq time_current
+            expect(c.employees.first.address.transaction_datetime).to eq time_current
+            ActiveRecord::Bitemporal.bitemporal_at("2019/1/1") {
+              expect(c.valid_datetime).to eq time_current
+              expect(c.employees.first.valid_datetime).to eq time_current
+              expect(c.employees.first.address.valid_datetime).to eq time_current
+              expect(c.transaction_datetime).to eq time_current
+              expect(c.employees.first.transaction_datetime).to eq time_current
+              expect(c.employees.first.address.transaction_datetime).to eq time_current
+            }
+          }
+        end
+
+        context "with ignore_bitemporal_datetime" do
+          it do
+            result = ActiveRecord::Bitemporal.bitemporal_at("2019/1/1") {
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_to" > /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_to" > /
+              Employee.ignore_bitemporal_datetime.first
+            }
+            expect(result.valid_datetime).to be_nil
+            expect(result.transaction_datetime).to be_nil
+          end
+        end
+      end
+
+      context "relation object" do
+        it do
+          Company.bitemporal_at("2019/1/1").tap { |m|
+            expect(m.transaction_datetime).to eq "2019/1/1"
+            result = ActiveRecord::Bitemporal.bitemporal_at("2019/2/2") {
+              expect(m.valid_datetime).to eq "2019/1/1"
+              expect(m.transaction_datetime).to eq "2019/1/1"
+              expect(Employee.all.valid_datetime).to eq "2019/2/2"
+              expect(Employee.all.transaction_datetime).to eq "2019/2/2"
+              Employee.bitemporal_at("2019/3/3").tap { |m|
+                expect(m.valid_datetime).to eq "2019/3/3"
+                expect(m.transaction_datetime).to eq "2019/3/3"
+              }
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_to" > /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_to" > /
+              Employee.ignore_bitemporal_datetime.first
+            }
+            expect(result.valid_datetime).to be_nil
+            expect(result.transaction_datetime).to be_nil
+          }
+        end
+      end
+    end
+
+    describe "ActiveRecord::Bitemporal.bitemporal_at!" do
+      context "instance object" do
+        let!(:company) { Company.create(name: "Company") }
+        before do
+          emp = company.employees.create(name: "Jane")
+          emp.create_address(name: "Address")
+        end
+        it do
+          Company.includes(:employees, employees: :address).bitemporal_at(time_current).find_by(bitemporal_id: company.id).tap { |c|
+            expect(c.valid_datetime).to eq time_current
+            expect(c.employees.first.valid_datetime).to eq time_current
+            expect(c.employees.first.address.valid_datetime).to eq time_current
+            expect(c.transaction_datetime).to eq time_current
+            expect(c.employees.first.transaction_datetime).to eq time_current
+            expect(c.employees.first.address.transaction_datetime).to eq time_current
+            ActiveRecord::Bitemporal.bitemporal_at!("2019/1/1") {
+              expect(c.valid_datetime).to eq "2019/1/1"
+              expect(c.employees.first.valid_datetime).to eq "2019/1/1"
+              expect(c.employees.first.address.valid_datetime).to eq "2019/1/1"
+              expect(c.transaction_datetime).to eq "2019/1/1"
+              expect(c.employees.first.transaction_datetime).to eq "2019/1/1"
+              expect(c.employees.first.address.transaction_datetime).to eq "2019/1/1"
+            }
+          }
+        end
+
+        context "with ignore_bitemporal_datetime" do
+          it do
+            result = ActiveRecord::Bitemporal.bitemporal_at!("2019/1/1") {
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_to" > /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_to" > /
+              expect(Employee.ignore_bitemporal_datetime.first.valid_datetime).to eq "2019/1/1"
+              expect(Employee.ignore_bitemporal_datetime.first.transaction_datetime).to eq "2019/1/1"
+              Employee.ignore_bitemporal_datetime.first
+            }
+            expect(result.valid_datetime).to be_nil
+            expect(result.transaction_datetime).to be_nil
+          end
+        end
+      end
+
+      context "relation object" do
+        # TODO: Cannot overwrite valid_datetime/transaction_datetime with bitemporal_at
+        xit do
+            Company.bitemporal_at("2019/1/1").tap { |m|
+            expect(m.transaction_datetime).to eq "2019/1/1"
+            result = ActiveRecord::Bitemporal.bitemporal_at!("2019/2/2") {
+              expect(m.valid_datetime).to eq "2019/2/2"
+              expect(m.transaction_datetime).to eq "2019/2/2"
+              expect(Employee.all.valid_datetime).to eq "2019/2/2"
+              expect(Employee.all.transaction_datetime).to eq "2019/2/2"
+              Employee.bitemporal_at("2019/3/3").tap { |m|
+                expect(m.valid_datetime).to eq "2019/2/2"
+                expect(m.transaction_datetime).to eq "2019/2/2"
+              }
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"valid_to" > /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_from" <= /
+              expect(Employee.ignore_bitemporal_datetime.to_sql).not_to match %r/"transaction_to" > /
+              Employee.ignore_bitemporal_datetime.first
+            }
+            expect(result.valid_datetime).to be_nil
+            expect(result.transaction_datetime).to be_nil
           }
         end
       end
@@ -2741,6 +2878,22 @@ RSpec.describe ActiveRecord::Bitemporal do
     it "reverts the previously_force_updated after reloading" do
       employee.force_update { |e| e.update!(name: "Tom") }
       expect { employee.reload }.to change(employee, :previously_force_updated?).from(true).to(false)
+    end
+  end
+
+  describe "#bitemporal_at" do
+    let(:employee) { Employee.create!(name: "Jone") }
+
+    before do
+      Timecop.freeze('2024/01/01') { employee }
+      Timecop.freeze('2024/01/02') { employee.update!(name: "Tom") }
+      Timecop.freeze('2024/01/03') { employee.force_update { employee.update!(name: "Kevin") } }
+    end
+
+    it 'reloads with name as of each snapshot' do
+      expect(employee.bitemporal_at('2024/01/01', &:reload)).to have_attributes(name: "Jone")
+      expect(employee.bitemporal_at('2024/01/02', &:reload)).to have_attributes(name: "Tom")
+      expect(employee.bitemporal_at('2024/01/03', &:reload)).to have_attributes(name: "Kevin")
     end
   end
 end
