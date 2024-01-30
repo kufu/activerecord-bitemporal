@@ -116,8 +116,8 @@ class Employee < ActiveRecord::Base
 
   belongs_to :company, foreign_key: :company_id
 
-  has_one  :address,   foreign_key: :employee_id
-  has_one  :address_without_bitemporal,  foreign_key: :employee_id
+  has_one  :address,   foreign_key: :employee_id, dependent: :destroy
+  has_one  :address_without_bitemporal,  foreign_key: :employee_id, dependent: :destroy
 
   class <<self
     attr_accessor :call_after_save_count
@@ -147,8 +147,8 @@ end
 class EmployeeWithoutBitemporal < ActiveRecord::Base
   belongs_to :company, foreign_key: :company_id
 
-  has_one  :address,   foreign_key: :employee_id
-  has_one  :address_without_bitemporal,  foreign_key: :employee_id
+  has_one  :address,   foreign_key: :employee_id, dependent: :destroy
+  has_one  :address_without_bitemporal,  foreign_key: :employee_id, dependent: :destroy
 end
 
 

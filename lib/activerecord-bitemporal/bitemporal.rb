@@ -344,16 +344,17 @@ module ActiveRecord
         end || false
       end
 
-      def destroy(force_delete: false, operated_at: Time.current)
+      def destroy(force_delete: false, operated_at: nil)
         return super() if force_delete
-
-        target_datetime = valid_datetime || operated_at
-
-        duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
 
         ActiveRecord::Base.transaction(requires_new: true, joinable: false) do
           @destroyed = false
           _run_destroy_callbacks {
+            operated_at ||= Time.current
+            target_datetime = valid_datetime || operated_at
+
+            duplicated_instance = self.class.find_at_time(target_datetime, self.id).dup
+
             @destroyed = update_transaction_to(operated_at)
             @previously_force_updated = force_update?
 

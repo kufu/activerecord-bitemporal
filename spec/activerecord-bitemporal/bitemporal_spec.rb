@@ -1065,26 +1065,53 @@ RSpec.describe ActiveRecord::Bitemporal do
       )
     end
 
-    it "create state-destroy record before _run_destroy_callbacks" do
+    it "create state-destroy record around _run_destroy_callbacks" do
       before_count = Employee.ignore_valid_datetime.count
       before_count_within_deleted = Employee.ignore_valid_datetime.within_deleted.count
 
       self_ = self
+
+      before_destroy_called = false
       employee.define_singleton_method(:on_before_destroy) do
+        before_destroy_called = true
+        # Should not be deleted in before_destroy callbacks
         self_.instance_exec { expect(Employee.ignore_valid_datetime.count).to eq before_count }
         self_.instance_exec { expect(Employee.ignore_valid_datetime.within_deleted.count).to eq before_count_within_deleted }
-      rescue => e
-        self_.instance_exec { expect(e).to eq true }
       end
 
+      after_destroy_called = false
       employee.define_singleton_method(:on_after_destroy) do
+        after_destroy_called = true
+        # Should be deleted in after_destroy callbacks
         self_.instance_exec { expect(Employee.ignore_valid_datetime.count).to eq before_count }
         self_.instance_exec { expect(Employee.ignore_valid_datetime.within_deleted.count).to eq before_count_within_deleted + 1 }
-      rescue => e
-        self_.instance_exec { expect(e).to eq true }
       end
 
       subject
+
+      expect(before_destroy_called).to be true
+      expect(after_destroy_called).to be true
+    end
+
+    context "with associations" do
+      let!(:employee) { Timecop.freeze(created_time) { Employee.create!(name: "Jone", address: Address.new(city: "Tokyo")) } }
+
+      # NOTE: Do not freeze time to record each deleted time
+      subject { employee.destroy }
+
+      it 'deletes address earlier than employee' do
+        expect {
+          subject
+        }.to change(Employee, :count).by(-1)
+        .and change(employee, :valid_to)
+        .and change(employee, :transaction_from)
+        .and change(Address, :count).by(-1)
+        .and change(employee.address, :valid_to)
+        .and change(employee.address, :transaction_from)
+
+        expect(employee.address.valid_to).to be < employee.valid_to
+        expect(employee.address.transaction_from).to be < employee.transaction_from
+      end
     end
 
     context "when raise exception" do
