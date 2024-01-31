@@ -1,5 +1,32 @@
 # Changelog
 
+## 5.0.0
+
+### Breaking Changed
+
+- [CI against Ruby 3.2, 3.3, Drop Ruby 2.7 and Rails 6.0 #150](https://github.com/kufu/activerecord-bitemporal/pull/150)
+
+### Added
+
+- [Support date type of valid time #149](https://github.com/kufu/activerecord-bitemporal/pull/149)
+- [Add support Rails 7.1 #151](https://github.com/kufu/activerecord-bitemporal/pull/151)
+- [Add Persistence#bitemporal_at and ActiveRecord::Bitemporal.bitemporal_at #152](https://github.com/kufu/activerecord-bitemporal/pull/152)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Fix deleted time order between associations #154](https://github.com/kufu/activerecord-bitemporal/pull/154)
+
+### Chores
+
+- [Don't use appraisal in CI #145](https://github.com/kufu/activerecord-bitemporal/pull/145)
+- [Remove code for Active Record 6.0 #153](https://github.com/kufu/activerecord-bitemporal/pull/153)
+
 ## 4.3.0
 
 ### Added
