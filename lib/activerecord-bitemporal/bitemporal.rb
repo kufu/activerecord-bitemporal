@@ -435,7 +435,7 @@ module ActiveRecord
             @previously_force_updated = false
             self
           end
-        elsif Gem::Version.new("6.1.0") <= ActiveRecord.version
+        else
           def reload(options = nil)
             return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
 
@@ -453,29 +453,6 @@ module ActiveRecord
             @attributes = fresh_object.instance_variable_get(:@attributes)
             @new_record = false
             @previously_new_record = false
-            # NOTE: Hook to copying swapped_id
-            @_swapped_id_previously_was = nil
-            @_swapped_id = fresh_object.swapped_id
-            @previously_force_updated = false
-            self
-          end
-        else
-          def reload(options = nil)
-            return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
-
-            self.class.connection.clear_query_cache
-
-            fresh_object =
-              ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
-                if options && options[:lock]
-                  self.class.unscoped { self.class.lock(options[:lock]).bitemporal_default_scope.find(id) }
-                else
-                  self.class.unscoped { self.class.bitemporal_default_scope.find(id) }
-                end
-              }
-
-            @attributes = fresh_object.instance_variable_get("@attributes")
-            @new_record = false
             # NOTE: Hook to copying swapped_id
             @_swapped_id_previously_was = nil
             @_swapped_id = fresh_object.swapped_id
