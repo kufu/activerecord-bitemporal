@@ -92,6 +92,14 @@ module ActiveRecord
           with_bitemporal_option(ignore_transaction_datetime: true, transaction_datetime: nil, &block)
         end
 
+        def bitemporal_at(datetime, &block)
+          transaction_at(datetime) { valid_at(datetime, &block) }
+        end
+
+        def bitemporal_at!(datetime, &block)
+          transaction_at!(datetime) { valid_at!(datetime, &block) }
+        end
+
         def merge_by(option)
           option_ = option.dup
           if bitemporal_option_storage[:force_valid_datetime]
@@ -226,6 +234,10 @@ module ActiveRecord
 
         def transaction_at(datetime, &block)
           with_bitemporal_option(transaction_datetime: datetime, &block)
+        end
+
+        def bitemporal_at(datetime, &block)
+          transaction_at(datetime) { valid_at(datetime, &block) }
         end
 
         def bitemporal_option_merge_with_association!(other)
