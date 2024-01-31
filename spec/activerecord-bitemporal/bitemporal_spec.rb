@@ -2402,7 +2402,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       context "relation object" do
         # TODO: Cannot overwrite valid_datetime/transaction_datetime with bitemporal_at
         xit do
-            Company.bitemporal_at("2019/1/1").tap { |m|
+          Company.bitemporal_at("2019/1/1").tap { |m|
             expect(m.transaction_datetime).to eq "2019/1/1"
             result = ActiveRecord::Bitemporal.bitemporal_at!("2019/2/2") {
               expect(m.valid_datetime).to eq "2019/2/2"
