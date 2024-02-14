@@ -577,7 +577,7 @@ module ActiveRecord
             target_datetime
           # NOTE: 新規作成時以外では target_datetime の値を基準としてバリデーションする
           # 更新時にバリデーションする場合、valid_from の時間ではなくて target_datetime の時間を基準としているため
-          # valdi_from を基準としてしまうと整合性が取れなくなってしまう
+          # valid_from を基準としてしまうと整合性が取れなくなってしまう
           elsif !record.new_record?
             target_datetime
           else
