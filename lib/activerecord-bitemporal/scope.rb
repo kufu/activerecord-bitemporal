@@ -355,11 +355,6 @@ module ActiveRecord::Bitemporal
             relation.bitemporal_value[:with_transaction_datetime] = :default_scope
           end
 
-          # Calling scope was slow, so don't call scope
-          relation.unscope_values += [
-            { where: "#{table.name}.transaction_from" },
-            { where: "#{table.name}.transaction_to" }
-          ]
           relation = relation
             ._transaction_from_lteq(transaction_datetime || datetime, without_ignore: true)
             ._transaction_to_gt(transaction_datetime || datetime, without_ignore: true)
@@ -375,10 +370,6 @@ module ActiveRecord::Bitemporal
             relation.bitemporal_value[:with_valid_datetime] = :default_scope
           end
 
-          relation.unscope_values += [
-            { where: "#{table.name}.valid_from" },
-            { where: "#{table.name}.valid_to" }
-          ]
           relation = relation
             ._valid_from_lteq(valid_datetime || datetime, without_ignore: true)
             ._valid_to_gt(valid_datetime || datetime, without_ignore: true)
