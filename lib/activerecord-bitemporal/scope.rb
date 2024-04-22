@@ -259,7 +259,7 @@ module ActiveRecord::Bitemporal
               :gteq   # column >= datetime
             ].each { |op|
               module_eval <<-STR, __FILE__, __LINE__ + 1
-                def _#{column}_#{op}(datetime,**)
+                def _#{column}_#{op}(datetime)
                   target_datetime = datetime&.in_time_zone || Time.current
                   bitemporal_rewhere_bind("#{column}", :#{op}, target_datetime)
                     .tap { |relation| break relation.bitemporal_rewhere_bind("#{column}", :#{op}, target_datetime, bitemporal_value[:through].arel_table) if bitemporal_value[:through] }
@@ -361,8 +361,8 @@ module ActiveRecord::Bitemporal
             { where: "#{table.name}.transaction_to" }
           ]
           relation = relation
-            ._transaction_from_lteq(transaction_datetime || datetime, without_ignore: true)
-            ._transaction_to_gt(transaction_datetime || datetime, without_ignore: true)
+            ._transaction_from_lteq(transaction_datetime || datetime)
+            ._transaction_to_gt(transaction_datetime || datetime)
         else
           relation.tap { |relation| relation.without_transaction_datetime unless ActiveRecord::Bitemporal.transaction_datetime }
         end
@@ -380,8 +380,8 @@ module ActiveRecord::Bitemporal
             { where: "#{table.name}.valid_to" }
           ]
           relation = relation
-            ._valid_from_lteq(valid_datetime || datetime, without_ignore: true)
-            ._valid_to_gt(valid_datetime || datetime, without_ignore: true)
+            ._valid_from_lteq(valid_datetime || datetime)
+            ._valid_to_gt(valid_datetime || datetime)
         else
           relation.tap { |relation| relation.without_valid_datetime unless ActiveRecord::Bitemporal.valid_datetime }
         end
