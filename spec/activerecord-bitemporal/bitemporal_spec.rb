@@ -1325,7 +1325,7 @@ RSpec.describe ActiveRecord::Bitemporal do
     end
   end
 
-  describe "transaction" do
+  describe "transaction", use_truncation: true do
     context "with raise" do
       let!(:employee) { Employee.create(name: "Jane") }
       subject {
