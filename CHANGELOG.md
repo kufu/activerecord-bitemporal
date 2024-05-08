@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.0.1
+
+- [Fix a typo #157](https://github.com/kufu/activerecord-bitemporal/pull/157)
+- [Remove unneeded unscope values #159](https://github.com/kufu/activerecord-bitemporal/pull/159)
+- [Remove unused `without_ignore` option #160](https://github.com/kufu/activerecord-bitemporal/pull/160)
+- [update auto assign #161](https://github.com/kufu/activerecord-bitemporal/pull/161)
+
 ## 5.0.0
 
 ### Breaking Changed
