@@ -28,23 +28,17 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.before(:suite) do
-    DatabaseCleaner.clean_with(:truncation)
-  end
-
-  config.before(:each) do
-    DatabaseCleaner.strategy = :transaction
-  end
-  config.before(:each, use_truncation: true) do
-    DatabaseCleaner.strategy = :truncation
-  end
-
-  config.before(:each) do
-    DatabaseCleaner.start
-  end
-
-  config.append_after(:each) do
-    DatabaseCleaner.clean
+  config.around(:each) do |example|
+    conn = ActiveRecord::Base.connection
+    if example.metadata[:use_truncation]
+      example.run
+      conn.truncate_tables(*conn.tables)
+    else
+      conn.transaction do
+        example.run
+        raise ActiveRecord::Rollback
+      end
+    end
   end
 end
 
