@@ -359,7 +359,7 @@ module ActiveRecord
       def destroy(force_delete: false, operated_at: nil)
         return super() if force_delete
 
-        ActiveRecord::Base.transaction(requires_new: true, joinable: false) do
+        ActiveRecord::Base.transaction(requires_new: true) do
           @destroyed = false
           _run_destroy_callbacks {
             operated_at ||= Time.current
