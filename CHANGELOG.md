@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.1.0
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Remove `joinable: false` #156](https://github.com/kufu/activerecord-bitemporal/pull/156)
+
+### Chores
+
+- [Remove database_cleaner #162](https://github.com/kufu/activerecord-bitemporal/pull/162)
+
 ## 5.0.1
 
 - [Fix a typo #157](https://github.com/kufu/activerecord-bitemporal/pull/157)
