@@ -39,7 +39,7 @@ module ActiveRecord::Bitemporal
 
       def assign_nested_attributes_for_collection_association(association_name, _attributes_collection)
         # Preloading records
-        send(association_name).load if association(association_name).klass&.bi_temporal_model?
+        send(association_name).load_target if association(association_name).klass&.bi_temporal_model?
         super
         send(association_name)&.each do |target|
           next unless target.changed?

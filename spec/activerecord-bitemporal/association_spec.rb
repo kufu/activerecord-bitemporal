@@ -182,13 +182,13 @@ RSpec.describe "Association" do
       end
 
       describe ".find" do
-        it { expect(company.employees.find(mado.id)).to have_attributes(name: "Mado") }
+        it { expect(company.employees.find(mado.id)).to have_attributes(name: "Mado", valid_datetime: nil) }
         it { expect(company.employees.find(mado.id, tom.id).pluck(:name)).to contain_exactly("Mado", "Tom") }
       end
 
       describe ".find_by" do
         it { expect(company.employees.find_by(name: "Mami")).to be_nil }
-        it { expect(company.employees.find_by(name: "Mado")).to have_attributes(name: "Mado") }
+        it { expect(company.employees.find_by(name: "Mado")).to have_attributes(name: "Mado", valid_datetime: nil) }
         it { expect(company.employees.find_by(name: "Tom")).to have_attributes(name: "Tom") }
         it { expect(company.employees.find_by(name: "Jane")).to have_attributes(name: "Jane") }
       end
@@ -215,6 +215,7 @@ RSpec.describe "Association" do
         it { expect(company.employees.valid_at(@time).where(name: "Jane").count).to eq 1 }
         it { expect(company.employees.valid_at(@time).where(name: "Tom").count).to eq 1 }
         it { expect(company.employees.valid_at(@time).where(name: "Homu").count).to eq 0 }
+        it { expect(company.employees.valid_at(@time).find_by(name: "Jane")).to have_attributes(valid_datetime: @time) }
       end
 
       describe "preload" do
@@ -250,6 +251,35 @@ RSpec.describe "Association" do
         it { expect { subject }.to change { Employee.ignore_valid_datetime.count }.by(2) }
         it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
         it { expect { subject }.to change { employee2.reload.name }.from("Mami").to("Mado") }
+
+        context "associatoins valid_datetime without vaild_at" do
+          subject {
+            company.reload # clear cache
+            company.employees_attributes = [
+              { id: employee1.id, name: "Kevin" },
+              { id: employee2.id, name: "Mado" }
+            ]
+            company.employees
+          }
+
+          it { expect(subject.map(&:valid_datetime)).to eq [nil, nil] }
+        end
+
+        context "associatoins valid_datetime with vaild_at" do
+          subject {
+            ActiveRecord::Bitemporal.valid_at(time_current) do
+              company.reload # clear cache
+              company.employees_attributes = [
+                { id: employee1.id, name: "Kevin" },
+                { id: employee2.id, name: "Mado" }
+              ]
+              company.employees
+            end
+          }
+          let(:time_current) { Time.current }
+
+          it { expect(subject.map(&:valid_datetime)).to eq [time_current, time_current] }
+        end
       end
     end
 
@@ -313,6 +343,51 @@ RSpec.describe "Association" do
         it { expect { subject }.to change { Employee.ignore_valid_datetime.count }.by(2) }
         it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
         it { expect { subject }.to change { employee2.reload.name }.from("Mami").to("Mado") }
+
+        context "associations valid_datetime without valid_at" do
+          subject {
+            company.reload # clear cache
+            company.employees_attributes = [
+              { id: employee1.id, name: "Kevin" },
+              { id: employee2.id, name: "Mado" }
+            ]
+            company.employees
+          }
+
+          it { expect(subject.map(&:valid_datetime)).to eq [nil, nil] }
+        end
+
+        context "associations valid_datetime with valid_at" do
+          subject {
+            ActiveRecord::Bitemporal.valid_at(time_current) do
+              company.reload # clear cache
+              company.employees_attributes = [
+                { id: employee1.id, name: "Kevin" },
+                { id: employee2.id, name: "Mado" }
+              ]
+              company.employees
+            end
+          }
+          let(:time_current) { Time.current }
+
+          it { expect(subject.map(&:valid_datetime)).to eq [time_current, time_current] }
+        end
+
+        context "associations valid_datetime when owner has valid_datetime" do
+          subject {
+            company_with_valid_datetime = ActiveRecord::Bitemporal.valid_at(time_current) do
+              company.class.find(company.id)
+            end
+            company_with_valid_datetime.employees_attributes = [
+              { id: employee1.id, name: "Kevin" },
+              { id: employee2.id, name: "Mado" }
+            ]
+            company_with_valid_datetime.employees
+          }
+          let(:time_current) { Time.current }
+
+          it { expect(subject.map(&:valid_datetime)).to eq [time_current, time_current] }
+        end
       end
     end
 
@@ -441,6 +516,54 @@ RSpec.describe "Association" do
 
       it { expect(employee.reload.address.employee).to be employee }
     end
+
+    describe "nested_attributes" do
+      context "with accepts_nested_attributes_for" do
+        let(:company) {
+          Class.new(CompanyWithoutBitemporal) {
+            has_one :employee, foreign_key: :company_id
+            accepts_nested_attributes_for :employee
+
+            def self.name
+              "CompanyWithoutBitemporalAcceptsNestedAttributes"
+            end
+          }.create(name: "Company")
+        }
+        let!(:employee1) { company.create_employee(name: "Jane").tap { |m| m.update(name: "Tom") } }
+
+        subject {
+          company.employee_attributes = { id: employee1.id, name: "Kevin" }
+          company.save
+        }
+
+        it { expect { subject }.not_to change { Employee.count } }
+        it { expect { subject }.to change { Employee.ignore_valid_datetime.count }.by(1) }
+        it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
+
+        context "association valid_datetime without valid_at" do
+          subject {
+            company.reload # clear cache
+            company.employee_attributes = { id: employee1.id, name: "Kevin" }
+            company.employee
+          }
+
+          it { expect(subject.valid_datetime).to be_nil }
+        end
+
+        context "association valid_datetime with valid_at" do
+          subject {
+            ActiveRecord::Bitemporal.valid_at(time_current) do
+              company.reload # clear cache
+              company.employee_attributes = { id: employee1.id, name: "Kevin" }
+              company.employee
+            end
+          }
+          let(:time_current) { Time.current }
+
+          it { expect(subject.valid_datetime).to eq time_current }
+        end
+      end
+    end
   end
 
   describe "non BTDM has many non BTDM" do
@@ -483,6 +606,67 @@ RSpec.describe "Association" do
       end
 
       it { expect(employee.reload.address.employee).to be employee }
+    end
+
+    describe "nested_attributes" do
+      context "with accepts_nested_attributes_for" do
+        let(:company) {
+          Class.new(Company) {
+            has_one :employee, foreign_key: :company_id
+            accepts_nested_attributes_for :employee
+
+            def self.name
+              "CompanyAcceptsNestedAttributes"
+            end
+          }.create(name: "Company")
+        }
+        let!(:employee1) { company.create_employee(name: "Jane").tap { |m| m.update(name: "Tom") } }
+
+        subject {
+          company.employee_attributes = { id: employee1.id, name: "Kevin" }
+          company.save
+        }
+
+        it { expect { subject }.not_to change { Employee.count } }
+        it { expect { subject }.to change { Employee.ignore_valid_datetime.count }.by(1) }
+        it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
+
+        context "association valid_datetime without valid_at" do
+          subject {
+            company.reload # clear cache
+            company.employee_attributes = { id: employee1.id, name: "Kevin" }
+            company.employee
+          }
+
+          it { expect(subject.valid_datetime).to be_nil }
+        end
+
+        context "association valid_datetime with valid_at" do
+          subject {
+            ActiveRecord::Bitemporal.valid_at(time_current) do
+              company.reload # clear cache
+              company.employee_attributes = { id: employee1.id, name: "Kevin" }
+              company.employee
+            end
+          }
+          let(:time_current) { Time.current }
+
+          it { expect(subject.valid_datetime).to eq time_current }
+        end
+
+        context "association valid_datetime when owner has valid_datetime" do
+          subject {
+            company_with_valid_datetime = ActiveRecord::Bitemporal.valid_at(time_current) do
+              company.class.find(company.id)
+            end
+            company_with_valid_datetime.employee_attributes = { id: employee1.id, name: "Kevin" }
+            company_with_valid_datetime.employee
+          }
+          let(:time_current) { Time.current }
+
+          it { expect(subject.valid_datetime).to eq time_current }
+        end
+      end
     end
   end
 end
