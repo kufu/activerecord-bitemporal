@@ -141,6 +141,12 @@ module ActiveRecord::Bitemporal
     end
   end
 
+  module CollectionProxy
+    # Delegate to ActiveRecord::Bitemporal::Relation#bitemporal_value
+    # @see https://github.com/rails/rails/blob/v7.1.3.4/activerecord/lib/active_record/associations/collection_proxy.rb#L1115-L1124
+    delegate :bitemporal_value, :bitemporal_value=, to: :scope
+  end
+
   module Scope
     extend ActiveSupport::Concern
 
