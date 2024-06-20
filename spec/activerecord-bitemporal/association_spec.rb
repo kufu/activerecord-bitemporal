@@ -226,6 +226,15 @@ RSpec.describe "Association" do
         it { expect(CompanyWithoutBitemporal.includes(:employees).where(employees: { name: "Jane" }).count).to eq 2 }
         it { expect(CompanyWithoutBitemporal.joins(:employees).where(employees: { name: "Jane" }).count).to eq 3 }
       end
+
+      describe "#bitemporal_value" do
+        it { expect(company.employees.bitemporal_value).to eq({ with_valid_datetime: :default_scope, with_transaction_datetime: :default_scope }) }
+        it do
+          relation = company.employees
+          relation.bitemporal_value = { foo: :bar }
+          expect(relation.bitemporal_value).to eq({ foo: :bar })
+        end
+      end
     end
 
     describe "nested_attributes" do

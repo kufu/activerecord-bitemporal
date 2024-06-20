@@ -58,6 +58,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     def inherited(klass)
       super
       klass.prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
+      klass.relation_delegate_class(ActiveRecord::Associations::CollectionProxy).prepend ActiveRecord::Bitemporal::CollectionProxy
       if relation_delegate_class(ActiveRecord::Relation).ancestors.include? ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
         klass.relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
       end
@@ -169,6 +170,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     validates bitemporal_id_key, uniqueness: true, allow_nil: true, strict: enable_strict_by_validates_bitemporal_id
 
     prepend_relation_delegate_class ActiveRecord::Bitemporal::Relation
+    relation_delegate_class(ActiveRecord::Associations::CollectionProxy).prepend ActiveRecord::Bitemporal::CollectionProxy
   end
 end
 
