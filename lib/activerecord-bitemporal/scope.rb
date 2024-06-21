@@ -142,9 +142,19 @@ module ActiveRecord::Bitemporal
   end
 
   module CollectionProxy
-    # Delegate to ActiveRecord::Bitemporal::Relation#bitemporal_value
+    # Delegate to ActiveRecord::Bitemporal::Relation
     # @see https://github.com/rails/rails/blob/v7.1.3.4/activerecord/lib/active_record/associations/collection_proxy.rb#L1115-L1124
-    delegate :bitemporal_value, :bitemporal_value=, to: :scope
+    #
+    # In order to update the CollectionProxy state, `load` needs to be excluded.
+    # The reason for using `@association` instead of delegating this method is to preserve state such as `loaded`.
+    # @see https://github.com/rails/rails/blob/v7.1.3.4/activerecord/lib/active_record/associations/collection_proxy.rb#L44
+    #
+    # There is no need to delegate to `scope` as `ActiveRecord::Bitemporal::Relation::Finder`'s methods are delegated
+    # by `ActiveRecord::Delegation`. This is not a problem because `scoping` used in this is delegated to `scope`.
+    # @see https://github.com/rails/rails/blob/v7.1.3.4/activerecord/lib/active_record/relation/delegation.rb#L117
+    delegate :bitemporal_value, :bitemporal_value=, :valid_datetime, :valid_date,
+             :transaction_datetime, :bitemporal_option, :bitemporal_option_merge!,
+             :build_arel, :primary_key, to: :scope
   end
 
   module Scope
