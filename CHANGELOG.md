@@ -1,5 +1,24 @@
 # Changelog
 
+## 5.2.0
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Delegate CollectionProxy#bitemporal_value to Relation #168](https://github.com/kufu/activerecord-bitemporal/pull/168)
+- [Fix unintended valid_datetime set when `CollectionProxy#load` #169](https://github.com/kufu/activerecord-bitemporal/pull/169)
+
+### Chores
+
+- [Do not run CI against rails_main #166](https://github.com/kufu/activerecord-bitemporal/pull/166)
+
 ## 5.1.0
 
 ### Added
