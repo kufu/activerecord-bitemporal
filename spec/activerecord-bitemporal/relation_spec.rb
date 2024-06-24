@@ -15,7 +15,6 @@ RSpec.describe "Relation" do
       context "`ActiveRecord_Associations_CollectionProxy`" do
         let(:klass) { Employee.const_get(:ActiveRecord_Associations_CollectionProxy) }
 
-        it { is_expected.to include ActiveRecord::Bitemporal::Relation }
         it { is_expected.to include ActiveRecord::Bitemporal::CollectionProxy }
       end
     end

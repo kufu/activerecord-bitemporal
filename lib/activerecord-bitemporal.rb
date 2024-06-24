@@ -29,7 +29,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
         def prepend_relation_delegate_class(mod)
           relation_delegate_class(ActiveRecord::Relation).prepend mod
           relation_delegate_class(ActiveRecord::AssociationRelation).prepend mod
-          relation_delegate_class(ActiveRecord::Associations::CollectionProxy).prepend mod
         end
       end
     end
