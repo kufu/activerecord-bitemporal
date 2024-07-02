@@ -1039,12 +1039,67 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
 
           context "without Article.unscoped" do
             let(:relation) { Blog.joins(:articles).merge(Article.valid_at("2019/01/01")) }
-
+            # SQL:
+            #
+            # SELECT "blogs".* FROM "blogs"
+            #   INNER JOIN "articles"
+            #     ON "articles"."transaction_from" <= '...'
+            #     AND "articles"."transaction_to" > '...'
+            #     AND "articles"."valid_from" <= '...'
+            #     AND "articles"."valid_to" > '...'
+            #     AND "articles"."blog_id" = "blogs"."bitemporal_id"
+            #   WHERE "blogs"."transaction_from" <= '...'
+            #   AND "blogs"."transaction_to" > '...'
+            #   AND "blogs"."valid_from" <= '...'
+            #   AND "blogs"."valid_to" > '...'
+            #   AND "articles"."transaction_from" <= '...'
+            #   AND "articles"."transaction_to" > '...'
+            #   AND "articles"."valid_from" <= '2019-01-01 00:00:00'
+            #   AND "articles"."valid_to" > '2019-01-01 00:00:00'
             it { is_expected.to have_bitemporal_at(time_current, table: "blogs") }
-            # Not suppoted merge
-            # Duplecated Article default_scope
-            xit { is_expected.to have_valid_at("2019/01/01".in_time_zone, table: "articles") }
-            xit { is_expected.to have_transaction_at(time_current, table: "articles") }
+            # XXX: Should we merge valid_at to the ON clause as well?
+            it {
+              is_expected.to satisfy { |sql| sql.scan(%{"articles"."valid_from"}).size == 2 }
+                         .and satisfy { |sql| sql.scan(%{"articles"."valid_to"}).size == 2 }
+                         .and include(%{"articles"."valid_from" <= '#{time_current.to_formatted_s(:db)}'})
+                         .and include(%{"articles"."valid_to" > '#{time_current.to_formatted_s(:db)}'})
+                         .and include(%{"articles"."valid_from" <= '#{"2019/01/01".in_time_zone.to_formatted_s(:db)}'})
+                         .and include(%{"articles"."valid_to" > '#{"2019/01/01".in_time_zone.to_formatted_s(:db)}'})
+            }
+            it {
+              is_expected.to satisfy { |sql| sql.scan(%{"articles"."transaction_from"}).size == 2 }
+                         .and satisfy { |sql| sql.scan(%{"articles"."transaction_to"}).size == 2 }
+                         .and satisfy { |sql| sql.scan(%{"articles"."transaction_from" <= '#{time_current.to_formatted_s(:db)}'}).size == 2 }
+                         .and satisfy { |sql| sql.scan(%{"articles"."transaction_to" > '#{time_current.to_formatted_s(:db)}'}).size == 2 }
+            }
+
+            context "with ignore_valid_datetime" do
+              let(:relation) { Blog.joins(:articles).merge(Article.ignore_valid_datetime) }
+              # SQL:
+              #
+              # SELECT "blogs".* FROM "blogs"
+              #   INNER JOIN "articles"
+              #     ON "articles"."transaction_from" <= '...'
+              #     AND "articles"."transaction_to" > '...'
+              #     AND "articles"."valid_from" <= '...'
+              #     AND "articles"."valid_to" > '...'
+              #     AND "articles"."blog_id" = "blogs"."bitemporal_id"
+              #   WHERE "blogs"."transaction_from" <= '...'
+              #   AND "blogs"."transaction_to" > '..'
+              #   AND "blogs"."valid_from" <= '...'
+              #   AND "blogs"."valid_to" > '...'
+              #   AND "articles"."transaction_from" <= '...'
+              #   AND "articles"."transaction_to" > '...'
+              it { is_expected.to have_bitemporal_at(time_current, table: "blogs") }
+              # XXX: Should we ignore valid_at from the ON clause as well?
+              it { is_expected.to have_valid_at(time_current, table: "articles") }
+              it {
+                is_expected.to satisfy { |sql| sql.scan(%{"articles"."transaction_from"}).size == 2 }
+                           .and satisfy { |sql| sql.scan(%{"articles"."transaction_to"}).size == 2 }
+                           .and satisfy { |sql| sql.scan(%{"articles"."transaction_from" <= '#{time_current.to_formatted_s(:db)}'}).size == 2 }
+                           .and satisfy { |sql| sql.scan(%{"articles"."transaction_to" > '#{time_current.to_formatted_s(:db)}'}).size == 2 }
+              }
+            end
           end
         end
 
@@ -2069,8 +2124,9 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
   end
 
   describe ".bitemporal_option" do
+    let(:time_current) { Time.current }
     let(:bitemporal_option) { relation.bitemporal_option }
-    subject { bitemporal_option }
+    subject { Timecop.freeze(time_current) { bitemporal_option } }
 
     context "default_scope" do
       let(:relation) { Blog.all }
@@ -2195,12 +2251,21 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         let(:relation) { Blog.transaction_at(datetime1).where(name: "Homu").or(Blog.transaction_at(datetime2).where(name: "Mami")) }
       end
 
+      # XXX: Is it okay for the behavior to change depending on whether a WHERE clause is present?
       context ".ignore_valid_datetime.or(...)" do
+        let(:relation) { Blog.ignore_valid_datetime.or(Blog.where(name: "Mami")) }
+        it { is_expected.to include(valid_datetime: nil, ignore_valid_datetime: true) }
+      end
+      context ".ignore_valid_datetime.where.or(...)" do
         let(:relation) { Blog.ignore_valid_datetime.where(name: "Homu").or(Blog.where(name: "Mami")) }
         it { is_expected.to include(valid_datetime: be_kind_of(Time), ignore_valid_datetime: false) }
       end
 
       context ".or(ignore_valid_datetime)" do
+        let(:relation) { Blog.where(name: "Homu").or(Blog.ignore_valid_datetime) }
+        it { is_expected.to include(valid_datetime: nil, ignore_valid_datetime: true) }
+      end
+      context ".or(ignore_valid_datetime.where)" do
         let(:relation) { Blog.where(name: "Homu").or(Blog.ignore_valid_datetime.where(name: "Mami")) }
         it { is_expected.to include(valid_datetime: be_kind_of(Time), ignore_valid_datetime: false) }
       end
@@ -2218,6 +2283,17 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
       context "with joins" do
         let(:relation) { Blog.joins(:articles).or(Blog.joins(:articles).all) }
         it { is_expected.to include(valid_datetime: be_kind_of(Time), ignore_valid_datetime: false) }
+
+        context "with valid_at" do
+          let(:datetime) { "2019/01/1".in_time_zone }
+          let(:relation) { Blog.joins(:articles).or(Article.valid_at(datetime)) }
+          it { is_expected.to include(valid_datetime: time_current, ignore_valid_datetime: false) }
+        end
+
+        context "with ignore_valid_datetime" do
+          let(:relation) { Blog.joins(:articles).or(Article.ignore_valid_datetime) }
+          it { is_expected.to include(valid_datetime: time_current, ignore_valid_datetime: false) }
+        end
       end
     end
   end
