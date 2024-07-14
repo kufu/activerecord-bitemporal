@@ -37,13 +37,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
   module ClassMethods
     include ActiveRecord::Bitemporal::Relation::Finder
 
-    DEFAULT_ATTRIBUTES = {
-      valid_from:       ActiveRecord::Bitemporal::DEFAULT_VALID_FROM,
-      valid_to:         ActiveRecord::Bitemporal::DEFAULT_VALID_TO,
-      transaction_from: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM,
-      transaction_to:   ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
-    }.freeze
-
     def bitemporal_id_key
       'bitemporal_id'
     end
@@ -60,16 +53,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
       klass.relation_delegate_class(ActiveRecord::Associations::CollectionProxy).prepend ActiveRecord::Bitemporal::CollectionProxy
       if relation_delegate_class(ActiveRecord::Relation).ancestors.include? ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
         klass.relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
-      end
-    end
-
-  private
-    def load_schema!
-      super
-
-      DEFAULT_ATTRIBUTES.each do |name, default_value|
-        type = type_for_attribute(name)
-        define_attribute(name.to_s, type, default: default_value)
       end
     end
   end
@@ -152,6 +135,11 @@ module ActiveRecord::Bitemporal::Bitemporalize
       self.swap_id! if self.send(bitemporal_id_key).present?
       @previously_force_updated = false
     end
+
+    attribute :valid_from, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+    attribute :valid_to, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+    attribute :transaction_from, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
+    attribute :transaction_to, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
 
     # Callback hook to `validates :xxx, uniqueness: true`
     const_set(:UniquenessValidator, Class.new(ActiveRecord::Validations::UniquenessValidator) {
