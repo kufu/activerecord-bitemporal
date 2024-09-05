@@ -30,7 +30,7 @@ jobs:
             gemfile: rails_6.1
     services:
       postgres:
-        image: postgres:11.16
+        image: postgres:14
         env:
           POSTGRES_PASSWORD: postgres
         # Set health checks to wait until postgres has started
