@@ -415,7 +415,7 @@ BTDM では DB からレコードを参照する場合、暗黙的に
 Timecop.freeze("2019/1/20") {
   # 現在の時間の履歴を返すために暗黙的に時間指定や論理削除されたレコードが除かれる
   puts Employee.all.to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."transaction_to" = '9999-12-31 00:00:00'
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."transaction_from" <= '2019-01-20 00:00:00' AND "employees"."transaction_to" > '2019-01-20 00:00:00'
 }
 ```
 
@@ -454,7 +454,7 @@ Timecop.freeze("2019/1/20") {
 
   # なぜなら暗黙的に時間指定のクエリが追加されている為
   puts Employee.where(name: "Jane").to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."transaction_to" = '9999-12-31 00:00:00' AND "employees"."name" = 'Jane'
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00' AND "employees"."transaction_from" <= '2019-01-20 00:00:00' AND "employees"."transaction_to" > '2019-01-20 00:00:00' AND "employees"."name" = 'Jane'
 }
 ```
 
@@ -464,7 +464,7 @@ Timecop.freeze("2019/1/20") {
 ```ruby
 # default_scope であれば unscoped で無効化することが出来るが、BTDM のデフォルトクエリはそのまま
 puts Employee.unscoped { Employee.all.to_sql }
-# => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-10-25 07:56:06.731259' AND "employees"."valid_to" > '2019-10-25 07:56:06.731259' AND "employees"."transaction_to" = '9999-12-31 00:00:00'
+# => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-10-25 07:56:06.731259' AND "employees"."valid_to" > '2019-10-25 07:56:06.731259' AND "employees"."transaction_from" <= '2019-10-25 07:56:06.731259' AND "employees"."transaction_to" > '2019-10-25 07:56:06.731259'
 ```
 
 
@@ -475,21 +475,21 @@ puts Employee.unscoped { Employee.all.to_sql }
 | スコープ | 動作 |
 | --- | --- |
 | `.ignore_valid_datetime` | 時間指定を無視する |
-| `.within_deleted` | 論理削除されているレコードを含める |
-| `.without_deleted` | 論理削除されているレコードを含めない |
+| `.ignore_transaction_datetime` | 論理削除されているレコードを含める |
+| `.ignore_bitemporal_datetime` | 全てのレコードを対象とする |
 
 ```ruby
 Timecop.freeze("2019/1/20") {
   # 時間指定をしているクエリを取り除く
   puts Employee.ignore_valid_datetime.to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."transaction_to" = '9999-12-31 00:00:00'
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."transaction_from" <= '2019-01-20 00:00:00' AND "employees"."transaction_to" > '2019-01-20 00:00:00'
 
   # 論理削除しているレコードも含める
-  puts Employee.within_deleted.to_sql
+  puts Employee.ignore_transaction_datetime.to_sql
   # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-20 00:00:00' AND "employees"."valid_to" > '2019-01-20 00:00:00'
 
   # 全てのレコードを対象とする
-  puts Employee.ignore_valid_datetime.within_deleted.to_sql
+  puts Employee.ignore_bitemporal_datetime.to_sql
   # => SELECT "employees".* FROM "employees"
 }
 ```
@@ -534,7 +534,7 @@ Timecop.freeze("2019/1/15") {
 Timecop.freeze("2019/1/20") {
   # valid_at で任意の時間を参照して検索する事が出来る
   puts Employee.valid_at("2019/1/10").to_sql
-  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-10 00:00:00' AND "employees"."valid_to" > '2019-01-10 00:00:00' AND "employees"."transaction_to" = '9999-12-31 00:00:00'
+  # => SELECT "employees".* FROM "employees" WHERE "employees"."valid_from" <= '2019-01-10 00:00:00' AND "employees"."valid_to" > '2019-01-10 00:00:00' AND "employees"."transaction_from" <= '2019-01-20 00:00:00' AND "employees"."transaction_to" > '2019-01-20 00:00:00'
 
   pp Employee.valid_at("2019/1/10").map(&:name)
   # => ["Jane"]
@@ -696,7 +696,7 @@ BTDM では `find_by(id: xxx)` や `where(id: xxx)` を行う場合 `id` では�
 Employee.find_by(id: employee.id)
 
 # OK : bitemporal_id で検索を行う
-# MEMO: id = bitemporal_id なの
+# MEMO: id = bitemporal_id なので
 #       find_by(bitemporal_id: employee.id)
 #       でも動作するが employee.bitemporal_id と書いたほうが意図が伝わりやすい
 Employee.find_by(bitemporal_id: employee.bitemporal_id)
