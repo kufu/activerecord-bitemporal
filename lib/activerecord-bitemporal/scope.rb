@@ -27,6 +27,10 @@ module ActiveRecord::Bitemporal
   end
 
   module Relation
+    # see: https://github.com/rails/rails/pull/51492
+    NARY_NODE = ActiveRecord.gem_version >= Gem::Version.new("7.2.0") ? Arel::Nodes::Nary : Arel::Nodes::And
+    private_constant :NARY_NODE
+
     using Module.new {
       refine ActiveRecord::Relation::WhereClause do
         using Module.new {
@@ -56,7 +60,7 @@ module ActiveRecord::Bitemporal
                 case node
                 when Arel::Nodes::LessThan, Arel::Nodes::LessThanOrEqual, Arel::Nodes::GreaterThan, Arel::Nodes::GreaterThanOrEqual
                   y << node if node && node.left.respond_to?(:relation)
-                when Arel::Nodes::And
+                when NARY_NODE
                   each_operatable_node(node.children) { |node| y << node }
                 when Arel::Nodes::Binary
                   each_operatable_node(node.left) { |node| y << node }
