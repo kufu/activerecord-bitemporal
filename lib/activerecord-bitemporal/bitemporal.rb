@@ -333,7 +333,7 @@ module ActiveRecord
       end
 
       def _update_row(attribute_names, attempted_action = 'update')
-        current_valid_record, before_instance, after_instance = bitemporal_build_update_records(valid_datetime: self.valid_datetime, force_update: self.force_update?)
+        current_valid_record, before_instance, after_instance, force_updated = bitemporal_build_update_records(valid_datetime: self.valid_datetime, force_update: self.force_update?)
 
         # MEMO: このメソッドに来るまでに validation が発動しているので、以後 validate は考慮しなくて大丈夫
         ActiveRecord::Base.transaction(requires_new: true) do
@@ -341,7 +341,7 @@ module ActiveRecord
           before_instance&.save_without_bitemporal_callbacks!(validate: false)
           # NOTE: after_instance always exists
           after_instance.save_without_bitemporal_callbacks!(validate: false)
-          @previously_force_updated = self.force_update?
+          @previously_force_updated = force_updated
 
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id_previously_was = swapped_id
@@ -495,6 +495,8 @@ module ActiveRecord
           record.clear_changes_information
         }
 
+        force_update = force_update || current_valid_record.type_for_attribute(:valid_from).cast(target_datetime) == current_valid_record.valid_from
+
         # 履歴データとして保存する新しいインスタンス
         # NOTE: 以前の履歴データ(現時点で有効なレコードを元にする)
         before_instance = current_valid_record.dup
@@ -551,7 +553,7 @@ module ActiveRecord
           after_instance.transaction_from = current_time
         end
 
-        [current_valid_record, before_instance, after_instance]
+        [current_valid_record, before_instance, after_instance, force_update]
       end
     end
 
