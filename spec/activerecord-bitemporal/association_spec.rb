@@ -446,7 +446,7 @@ RSpec.describe "Association" do
           it { expect(employee1.valid_from).to eq employee2.valid_from }
         end
 
-        context "nested associastion" do
+        context "nested association" do
           let(:valid_from) { "2019/1/1" }
           let!(:company) { Company.new(valid_from: valid_from) }
           let!(:employee) { company.employees.new }
