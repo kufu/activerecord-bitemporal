@@ -273,7 +273,7 @@ RSpec.describe "Association" do
         it { expect { subject }.to change { employee1.reload.name }.from("Tom").to("Kevin") }
         it { expect { subject }.to change { employee2.reload.name }.from("Mami").to("Mado") }
 
-        context "associatoins valid_datetime without vaild_at" do
+        context "associations valid_datetime without vaild_at" do
           subject {
             company.reload # clear cache
             company.employees_attributes = [
@@ -286,7 +286,7 @@ RSpec.describe "Association" do
           it { expect(subject.map(&:valid_datetime)).to eq [nil, nil] }
         end
 
-        context "associatoins valid_datetime with vaild_at" do
+        context "associations valid_datetime with vaild_at" do
           subject {
             ActiveRecord::Bitemporal.valid_at(time_current) do
               company.reload # clear cache
