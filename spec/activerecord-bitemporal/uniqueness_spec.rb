@@ -216,7 +216,7 @@ RSpec.describe ActiveRecord::Bitemporal::Uniqueness do
       context "update to name" do
         subject { employee.update!(name: "Tom") }
 
-        context "exitst other records" do
+        context "exist other records" do
           context "same name" do
             let!(:other) { EmployeeWithUniquness.create!(name: "Jane").tap { |m| m.update!(name: "Tom") } }
             it { expect { subject }.to raise_error ActiveRecord::RecordInvalid }
