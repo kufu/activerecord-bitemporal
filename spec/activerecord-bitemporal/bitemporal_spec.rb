@@ -2839,7 +2839,7 @@ RSpec.describe ActiveRecord::Bitemporal do
       end
     end
 
-    context "wiht lock! by application side" do
+    context "with lock! by application side" do
       let!(:company) { Company.create!(name: "Company") }
       let!(:company2) { Company.create!(name: "Company") }
       subject do
