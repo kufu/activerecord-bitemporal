@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe ActiveRecord::Bitemporal::Visualizer do
-  describe 'visuablize' do
+  describe 'visualize' do
     let(:time) { '2022-05-23 18:06:06.712' }
     around { |e| Timecop.freeze(time) { e.run } }
     subject(:figure) { described_class.visualize(employee) }
@@ -350,7 +350,7 @@ EOS
     end
   end
 
-  describe 'visuablize date type' do
+  describe 'visualize date type' do
     let(:time) { '2022-05-23 18:06:06.712' }
     around { |e| Timecop.freeze(time) { e.run } }
     subject(:figure) { described_class.visualize(department) }
