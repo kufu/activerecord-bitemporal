@@ -92,8 +92,6 @@ module ActiveRecord::Bitemporal
           transaction_from = node_hash.dig(table_name, "transaction_from", 1)
           transaction_to   = node_hash.dig(table_name, "transaction_to", 1)
           {
-            valid_from: valid_from,
-            valid_to: valid_to,
             valid_datetime: valid_from == valid_to ? valid_from : nil,
             transaction_from: transaction_from,
             transaction_to: transaction_to,
