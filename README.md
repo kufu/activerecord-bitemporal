@@ -317,7 +317,7 @@ Timecop.freeze("2019/1/10") {
 }
 
 Timecop.freeze("2019/1/20") {
-  # #force_update のでは自身を受け取る
+  # #force_update のブロック内で自身を受け取る
   # このブロック内であれば履歴を生成せずにレコードの変更が行われる
   employee.force_update { |employee|
     employee.update(name: "Tom")
