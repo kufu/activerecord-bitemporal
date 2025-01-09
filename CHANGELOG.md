@@ -1,5 +1,32 @@
 # Changelog
 
+## 5.3.0
+
+### Added
+
+### Changed
+
+- [Replace `default` overrides from `load_schema!` to `attribute` #172](https://github.com/kufu/activerecord-bitemporal/pull/172)
+- [`Or` node changed to `Nary` in Rails 7.2 #173](https://github.com/kufu/activerecord-bitemporal/pull/173)
+- [Exclude record valid range end in uniqueness validation #184](https://github.com/kufu/activerecord-bitemporal/pull/184)
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Chores
+
+- [Add specs under specific conditions #171](https://github.com/kufu/activerecord-bitemporal/pull/171)
+- [Add Dependabot for GitHub Actions #174](https://github.com/kufu/activerecord-bitemporal/pull/174)
+- [Bump actions/checkout from 3 to 4 #175](https://github.com/kufu/activerecord-bitemporal/pull/175)
+- [Replace CircleCI with GitHub Actions #177](https://github.com/kufu/activerecord-bitemporal/pull/177)
+- [Update README as `within_deleted` and `without_deleted` are deprecated #178](https://github.com/kufu/activerecord-bitemporal/pull/178)
+- [Fix typo #181](https://github.com/kufu/activerecord-bitemporal/pull/181)
+- [Fix #force_update block comment #183](https://github.com/kufu/activerecord-bitemporal/pull/183)
+- [Support Docker Compose V2 #186](https://github.com/kufu/activerecord-bitemporal/pull/186)
+
 ## 5.2.0
 
 ### Added
