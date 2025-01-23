@@ -9,6 +9,7 @@ require "activerecord-bitemporal/patches"
 require "activerecord-bitemporal/version"
 require "activerecord-bitemporal/visualizer"
 require "activerecord-bitemporal/callbacks"
+require "activerecord-bitemporal/global_id"
 
 module ActiveRecord::Bitemporal
   DEFAULT_VALID_FROM = Time.utc(1900, 12, 31).in_time_zone.freeze
@@ -113,6 +114,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     include InstanceMethods
     include ActiveRecord::Bitemporal::Scope
     include ActiveRecord::Bitemporal::Callbacks
+    prepend ActiveRecord::Bitemporal::GlobalID if defined?(GlobalID)
 
     if enable_merge_with_except_bitemporal_default_scope
       relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
