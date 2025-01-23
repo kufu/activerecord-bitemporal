@@ -4,10 +4,6 @@ source "https://rubygems.org"
 
 gem "appraisal"
 gem "rails", "~> 6.1.0"
-
-# NOTE: concurrent-ruby gem no longer loads the logger gem since v1.3.5.
-#       https://github.com/ruby-concurrency/concurrent-ruby/pull/1062
-#       https://github.com/rails/rails/pull/54264
 gem "concurrent-ruby", "< 1.3.5"
 
 gemspec path: "../"
