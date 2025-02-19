@@ -872,9 +872,9 @@ RSpec.describe ActiveRecord::Bitemporal do
 
       context "update for deleted record" do
         let(:datetime) { "2020/01/01".in_time_zone }
-        let(:company) { Company.create!(valid_from: "2019/02/01", valid_to: "2019/04/01") }
+        let(:company) { Company.create!(valid_from: "2019/02/01", transaction_from: "2019/02/01") }
         subject { Timecop.freeze(datetime) { company.update!(name: "Company2") } }
-        before { company.destroy }
+        before { Timecop.freeze(datetime - 1.day) { Company.find(company.id).destroy! } }
         it { expect { subject }.to raise_error(ActiveRecord::RecordNotFound) }
         it { expect { subject }.to raise_error { |e|
           expect(e.message).to eq "Update failed: Couldn't find Company with 'bitemporal_id'=#{company.bitemporal_id} and 'valid_from' < #{datetime}"
