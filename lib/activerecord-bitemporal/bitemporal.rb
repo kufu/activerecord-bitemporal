@@ -393,6 +393,7 @@ module ActiveRecord
       rescue => e
         @destroyed = false
         @_association_destroy_exception = ActiveRecord::RecordNotDestroyed.new("Failed to destroy the record: class=#{e.class}, message=#{e.message}", self)
+        @_association_destroy_exception.set_backtrace(e.backtrace)
         false
       end
 
