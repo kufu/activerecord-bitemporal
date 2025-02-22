@@ -411,55 +411,29 @@ module ActiveRecord
       module ::ActiveRecord::Persistence
         # MEMO: Must be override ActiveRecord::Persistence#reload
         alias_method :active_record_bitemporal_original_reload, :reload unless method_defined? :active_record_bitemporal_original_reload
-        if Gem::Version.new("7.0.0.alpha") <= ActiveRecord.version
-          def reload(options = nil)
-            return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
+        def reload(options = nil)
+          return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
 
-            self.class.connection.clear_query_cache
+          self.class.connection.clear_query_cache
 
-            fresh_object =
-              ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
-                if apply_scoping?(options)
-                  _find_record(options)
-                else
-                  self.class.unscoped { self.class.bitemporal_default_scope.scoping { _find_record(options) } }
-                end
-              }
+          fresh_object =
+            ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
+              if apply_scoping?(options)
+                _find_record(options)
+              else
+                self.class.unscoped { self.class.bitemporal_default_scope.scoping { _find_record(options) } }
+              end
+            }
 
-            @association_cache = fresh_object.instance_variable_get(:@association_cache)
-            @attributes = fresh_object.instance_variable_get(:@attributes)
-            @new_record = false
-            @previously_new_record = false
-            # NOTE: Hook to copying swapped_id
-            @_swapped_id_previously_was = nil
-            @_swapped_id = fresh_object.swapped_id
-            @previously_force_updated = false
-            self
-          end
-        else
-          def reload(options = nil)
-            return active_record_bitemporal_original_reload(options) unless self.class.bi_temporal_model?
-
-            self.class.connection.clear_query_cache
-
-            fresh_object =
-              ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
-                if options && options[:lock]
-                  self.class.unscoped { self.class.lock(options[:lock]).bitemporal_default_scope.find(id) }
-                else
-                  self.class.unscoped { self.class.bitemporal_default_scope.find(id) }
-                end
-              }
-
-            @attributes = fresh_object.instance_variable_get(:@attributes)
-            @new_record = false
-            @previously_new_record = false
-            # NOTE: Hook to copying swapped_id
-            @_swapped_id_previously_was = nil
-            @_swapped_id = fresh_object.swapped_id
-            @previously_force_updated = false
-            self
-          end
+          @association_cache = fresh_object.instance_variable_get(:@association_cache)
+          @attributes = fresh_object.instance_variable_get(:@attributes)
+          @new_record = false
+          @previously_new_record = false
+          # NOTE: Hook to copying swapped_id
+          @_swapped_id_previously_was = nil
+          @_swapped_id = fresh_object.swapped_id
+          @previously_force_updated = false
+          self
         end
       end
 
