@@ -1135,34 +1135,6 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
           end
         end
 
-        # The behavior of `.josins.left_joins` has changed in Rails 6.0
-        # Only supports Rails 5.x
-        # see: https://github.com/rails/rails/commit/8f05035b7e595e2086759ee10ec9df9431e5e351
-        if ActiveRecord::VERSION::MAJOR <= 5
-          describe ".left_joins with rails 5.x" do
-            let(:relation) { Blog.joins(:articles).left_joins(:articles) }
-
-            it { is_expected.to have_valid_at(time_current, table: "articles_blogs") }
-            it { is_expected.to have_transaction_at(time_current, table: "articles_blogs") }
-
-            context "with call to_sql in `ActiveRecord::Bitemporal.valid_at`" do
-              let(:valid_datetime) { "2019/01/01".in_time_zone }
-              let(:sql) { ActiveRecord::Bitemporal.valid_at(valid_datetime) { relation.to_sql } }
-
-              it { is_expected.to have_valid_at(valid_datetime, table: "articles_blogs") }
-              it { is_expected.to have_transaction_at(time_current, table: "articles_blogs") }
-            end
-
-            context "with call to_sql in `ActiveRecord::Bitemporal.transaction_at`" do
-              let(:transaction_datetime) { "2019/01/01".in_time_zone }
-              let(:sql) { ActiveRecord::Bitemporal.transaction_at(transaction_datetime) { relation.to_sql } }
-
-              it { is_expected.to have_valid_at(time_current, table: "articles_blogs") }
-              it { is_expected.to have_transaction_at(transaction_datetime, table: "articles_blogs") }
-            end
-          end
-        end
-
         context "with .or and without Time freeze" do
           let(:time_current) { nil }
           let(:sql) { relation.arel.to_sql }
