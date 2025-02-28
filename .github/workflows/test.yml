@@ -20,17 +20,9 @@ jobs:
           - '3.3'
           - '3.4'
         gemfile:
-          - rails_6.1
           - rails_7.0
           - rails_7.1
           - rails_7.2
-        exclude:
-          - ruby-version: '3.2'
-            gemfile: rails_6.1
-          - ruby-version: '3.3'
-            gemfile: rails_6.1
-          - ruby-version: '3.4'
-            gemfile: rails_6.1
     services:
       postgres:
         image: postgres:14
