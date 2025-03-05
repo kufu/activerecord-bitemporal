@@ -10,7 +10,6 @@ reviewers:
   - lighty
   - mkmn
   - osyo-manga
-  - wata727
   - yono
 
 # A list of keywords to be skipped the process that add reviewers if pull requests include it
