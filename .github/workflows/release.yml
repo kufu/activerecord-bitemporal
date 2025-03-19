@@ -19,11 +19,11 @@ jobs:
       GEM_HOST_API_KEY: ${{ secrets.GEM_HOST_API_KEY }}
       GEM_HOST_OTP_CODE: ${{ github.event.inputs.rubygems-otp-code }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
           fetch-depth: 0
 
-    - uses: ruby/setup-ruby@v1
+    - uses: ruby/setup-ruby@1a615958ad9d422dd932dc1d5823942ee002799f # v1.227.0
       with:
         ruby-version: '3.1'
         bundler-cache: true
