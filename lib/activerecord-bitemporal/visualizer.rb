@@ -22,7 +22,7 @@ module ActiveRecord::Bitemporal
     module_function
 
     def visualize(record, height: 10, width: 40, highlight: true)
-      histories = record.class.ignore_bitemporal_datetime.bitemporal_for(record).order(:transaction_from, :valid_from)
+      histories = record.class.ignore_bitemporal_datetime.bitemporal_for(record).order(:transaction_from, ActiveRecord::Bitemporal.config.valid_from_key)
 
       if highlight
         visualize_records(histories, [record], height: height, width: width)
@@ -36,7 +36,7 @@ module ActiveRecord::Bitemporal
       raise 'More than 3 relations are not supported' if relations.size >= 3
       records = relations.flatten
 
-      valid_times = (records.map(&:valid_from) + records.map(&:valid_to)).sort.uniq
+      valid_times = (records.map(&:_valid_from) + records.map(&:_valid_to)).sort.uniq
       transaction_times = (records.map(&:transaction_from) + records.map(&:transaction_to)).sort.uniq
   
       time_length = Time.zone.now.strftime('%F %T.%3N').length
@@ -60,9 +60,9 @@ module ActiveRecord::Bitemporal
 
         relation.each do |record|
           line = lines[record.transaction_from]
-          column = columns[record.valid_from]
+          column = columns[record._valid_from]
     
-          width = columns[record.valid_to] - columns[record.valid_from] - 1
+          width = columns[record._valid_to] - columns[record._valid_from] - 1
           height = lines[record.transaction_to] - lines[record.transaction_from] - 1
     
           body.print("#{record.transaction_from.strftime('%F %T.%3N')} ", line: line)

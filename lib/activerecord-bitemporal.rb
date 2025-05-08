@@ -20,6 +20,25 @@ module ActiveRecord::Bitemporal
   included do
     bitemporalize
   end
+
+  class << self
+    def configure
+      yield config
+    end
+
+    def config
+      @_config ||= Config.new
+    end
+  end
+
+  class Config
+    attr_accessor :valid_from_key, :valid_to_key
+
+    def initialize
+      @valid_from_key = :valid_from
+      @valid_to_key = :valid_to
+    end
+  end
 end
 
 module ActiveRecord::Bitemporal::Bitemporalize
@@ -92,8 +111,8 @@ module ActiveRecord::Bitemporal::Bitemporalize
     end
 
     def valid_from_cannot_be_greater_equal_than_valid_to
-      if valid_from && valid_to && valid_from >= valid_to
-        errors.add(:valid_from, "can't be greater equal than valid_to")
+      if _valid_from && _valid_to && _valid_from >= _valid_to
+        errors.add(ActiveRecord::Bitemporal.config.valid_from_key, "can't be greater equal than #{ActiveRecord::Bitemporal.config.valid_to_key}")
       end
     end
 
@@ -101,6 +120,30 @@ module ActiveRecord::Bitemporal::Bitemporalize
       if transaction_from && transaction_to && transaction_from >= transaction_to
         errors.add(:transaction_from, "can't be greater equal than transaction_to")
       end
+    end
+
+    def _valid_from
+      read_attribute(ActiveRecord::Bitemporal.config.valid_from_key)
+    end
+
+    def _valid_to
+      read_attribute(ActiveRecord::Bitemporal.config.valid_to_key)
+    end
+
+    def _valid_from=(val)
+      write_attribute(ActiveRecord::Bitemporal.config.valid_from_key, val)
+    end
+
+    def _valid_to=(val)
+      write_attribute(ActiveRecord::Bitemporal.config.valid_to_key, val)
+    end
+
+    def _valid_from_changed?
+      public_send("#{ActiveRecord::Bitemporal.config.valid_from_key}_changed?")
+    end
+
+    def _valid_from_was
+      public_send("#{ActiveRecord::Bitemporal.config.valid_from_key}_was")
     end
   end
 
@@ -136,8 +179,8 @@ module ActiveRecord::Bitemporal::Bitemporalize
       @previously_force_updated = false
     end
 
-    attribute :valid_from, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
-    attribute :valid_to, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+    attribute ActiveRecord::Bitemporal.config.valid_from_key, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+    attribute ActiveRecord::Bitemporal.config.valid_to_key, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
     attribute :transaction_from, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
     attribute :transaction_to, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
 
@@ -147,8 +190,8 @@ module ActiveRecord::Bitemporal::Bitemporalize
     })
 
     # validations
-    validates :valid_from, presence: true
-    validates :valid_to, presence: true
+    validates ActiveRecord::Bitemporal.config.valid_from_key, presence: true
+    validates ActiveRecord::Bitemporal.config.valid_to_key, presence: true
     validates :transaction_from, presence: true
     validates :transaction_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
