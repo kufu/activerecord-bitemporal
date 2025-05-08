@@ -86,14 +86,9 @@ module ActiveRecord::Bitemporal
 
       refine Relation do
         def bitemporal_clause(table_name = klass.table_name)
-          node_hash = where_clause.bitemporal_query_hash(
-            ActiveRecord::Bitemporal.config.valid_from_key.to_s,
-            ActiveRecord::Bitemporal.config.valid_to_key.to_s,
-            "transaction_from",
-            "transaction_to"
-          )
-          valid_from = node_hash.dig(table_name, ActiveRecord::Bitemporal.config.valid_from_key.to_s, 1)
-          valid_to   = node_hash.dig(table_name, ActiveRecord::Bitemporal.config.valid_to_key.to_s, 1)
+          node_hash = where_clause.bitemporal_query_hash(valid_from_key, valid_to_key, "transaction_from", "transaction_to")
+          valid_from = node_hash.dig(table_name, valid_from_key, 1)
+          valid_to   = node_hash.dig(table_name, valid_to_key, 1)
           transaction_from = node_hash.dig(table_name, "transaction_from", 1)
           transaction_to   = node_hash.dig(table_name, "transaction_to", 1)
           {
@@ -261,8 +256,10 @@ module ActiveRecord::Bitemporal
           end
 
           %i(valid_from valid_to transaction_from transaction_to).each { |column|
-            column_name = if column == :valid_from || column == :valid_to
-                            column == :valid_from ? ActiveRecord::Bitemporal.config.valid_from_key : ActiveRecord::Bitemporal.config.valid_to_key
+            column_name = if column == :valid_from
+                            ActiveRecord::Bitemporal.config.valid_from_key
+                          elsif column == :valid_to
+                            ActiveRecord::Bitemporal.config.valid_to_key
                           else
                             column
                           end
@@ -439,17 +436,17 @@ module ActiveRecord::Bitemporal
         # beginless range
         if begin_
           # from < valid_to
-          relation = relation.bitemporal_where_bind(ActiveRecord::Bitemporal.config.valid_to_key.to_s, :gt, begin_.in_time_zone.to_datetime)
+          relation = relation.bitemporal_where_bind(valid_to_key, :gt, begin_.in_time_zone.to_datetime)
         end
 
         # endless range
         if end_
           if range.exclude_end?
             # valid_from < to
-            relation = relation.bitemporal_where_bind(ActiveRecord::Bitemporal.config.valid_from_key.to_s, :lt, end_.in_time_zone.to_datetime)
+            relation = relation.bitemporal_where_bind(valid_from_key, :lt, end_.in_time_zone.to_datetime)
           else
             # valid_from <= to
-            relation = relation.bitemporal_where_bind(ActiveRecord::Bitemporal.config.valid_from_key.to_s, :lteq, end_.in_time_zone.to_datetime)
+            relation = relation.bitemporal_where_bind(valid_from_key, :lteq, end_.in_time_zone.to_datetime)
           end
         end
 
@@ -464,14 +461,14 @@ module ActiveRecord::Bitemporal
         begin_, end_ = range.begin, range.end
 
         if begin_
-          relation = relation.bitemporal_where_bind(ActiveRecord::Bitemporal.config.valid_from_key.to_s, :gteq, begin_.in_time_zone.to_datetime)
+          relation = relation.bitemporal_where_bind(valid_from_key, :gteq, begin_.in_time_zone.to_datetime)
         end
 
         if end_
           if range.exclude_end?
             raise 'Range with excluding end is not supported'
           else
-            relation = relation.bitemporal_where_bind(ActiveRecord::Bitemporal.config.valid_to_key.to_s, :lteq, end_.in_time_zone.to_datetime)
+            relation = relation.bitemporal_where_bind(valid_to_key, :lteq, end_.in_time_zone.to_datetime)
           end
         end
 
@@ -487,10 +484,10 @@ module ActiveRecord::Bitemporal
           ignore_valid_datetime.bitemporal_for(*ids)
         }
         def self.bitemporal_most_future(id)
-          bitemporal_histories(id).order(ActiveRecord::Bitemporal.config.valid_from_key => :asc).last
+          bitemporal_histories(id).order(valid_from_key => :asc).last
         end
         def self.bitemporal_most_past(id)
-          bitemporal_histories(id).order(ActiveRecord::Bitemporal.config.valid_from_key => :asc).first
+          bitemporal_histories(id).order(valid_from_key => :asc).first
         end
       end
     end

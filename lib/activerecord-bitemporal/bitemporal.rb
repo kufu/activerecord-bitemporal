@@ -460,7 +460,7 @@ module ActiveRecord
       def bitemporal_build_update_records(valid_datetime:, current_time: Time.current, force_update: false)
         target_datetime = valid_datetime || current_time
         # NOTE: force_update の場合は自身のレコードを取得するような時間を指定しておく
-        target_datetime = _valid_from_changed? ? _valid_from_was : _valid_from if force_update
+        target_datetime = attribute_changed?(valid_from_key) ? attribute_was(valid_from_key) : _valid_from if force_update
 
         # 対象基準日において有効なレコード
         # NOTE: 論理削除対象
@@ -493,9 +493,7 @@ module ActiveRecord
           # 以前の履歴データは valid_to を詰めて保存
           before_instance.valid_to = target_datetime
           if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            raise ValidDatetimeRangeError.new(
-              "#{ActiveRecord::Bitemporal.config.valid_from_key} #{before_instance.valid_from} can't be greater equal than #{ActiveRecord::Bitemporal.config.valid_to_key} #{before_instance.valid_to}"
-            )
+            raise ValidDatetimeRangeError.new("#{valid_from_key} #{before_instance.valid_from} can't be greater equal than #{valid_to_key} #{before_instance.valid_to}")
           end
           before_instance.transaction_from = current_time
 
@@ -503,18 +501,16 @@ module ActiveRecord
           after_instance._valid_from = target_datetime
           after_instance._valid_to = current_valid_record._valid_to
           if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            raise ValidDatetimeRangeError.new(
-              "#{ActiveRecord::Bitemporal.config.valid_from_key} #{after_instance.valid_from} can't be greater equal than #{ActiveRecord::Bitemporal.config.valid_to_key} #{after_instance.valid_to}"
-            )
+            raise ValidDatetimeRangeError.new("#{valid_from_key} #{after_instance.valid_from} can't be greater equal than #{valid_to_key} #{after_instance.valid_to}")
           end
           after_instance.transaction_from = current_time
 
         # 有効なレコードがない場合
         else
           # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
-          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).ignore_valid_datetime.valid_from_gt(target_datetime).order(ActiveRecord::Bitemporal.config.valid_from_key => :asc).first
+          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).ignore_valid_datetime.valid_from_gt(target_datetime).order(valid_from_key => :asc).first
           if nearest_instance.nil?
-            message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and '#{ActiveRecord::Bitemporal.config.valid_from_key}' < #{target_datetime}"
+            message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and '#{valid_from_key}' < #{target_datetime}"
             raise ActiveRecord::RecordNotFound.new(message, self.class, "bitemporal_id", self.bitemporal_id)
           end
 
@@ -570,12 +566,12 @@ module ActiveRecord
         valid_to = record._valid_to.yield_self { |valid_to|
           # NOTE: `cover?` may give incorrect results, when the time zone is not UTC and `valid_from` is date type
           #   Therefore, cast to type of `valid_from`
-          record_valid_time = finder_class.type_for_attribute(ActiveRecord::Bitemporal.config.valid_from_key).cast(record.valid_datetime)
+          record_valid_time = finder_class.type_for_attribute(record.valid_from_key).cast(record.valid_datetime)
           # レコードを更新する時に valid_datetime が valid_from ~ valid_to の範囲外だった場合、
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
           if (record_valid_time && (record._valid_from...record._valid_to).cover?(record_valid_time)) == false && (record.persisted?)
-            finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gteq(target_datetime).order(ActiveRecord::Bitemporal.config.valid_from_key => :asc).first._valid_from
+            finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gteq(target_datetime).order(record.valid_from_key => :asc).first._valid_from
           else
             valid_to
           end

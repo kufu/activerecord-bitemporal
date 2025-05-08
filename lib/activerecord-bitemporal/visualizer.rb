@@ -22,7 +22,7 @@ module ActiveRecord::Bitemporal
     module_function
 
     def visualize(record, height: 10, width: 40, highlight: true)
-      histories = record.class.ignore_bitemporal_datetime.bitemporal_for(record).order(:transaction_from, ActiveRecord::Bitemporal.config.valid_from_key)
+      histories = record.class.ignore_bitemporal_datetime.bitemporal_for(record).order(:transaction_from, record.valid_from_key)
 
       if highlight
         visualize_records(histories, [record], height: height, width: width)
