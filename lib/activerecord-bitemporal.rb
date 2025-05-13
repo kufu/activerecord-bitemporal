@@ -141,7 +141,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     end
 
     def valid_from_cannot_be_greater_equal_than_valid_to
-      if _valid_from && _valid_to && _valid_from >= _valid_to
+      if self[valid_from_key] && self[valid_to_key] && self[valid_from_key] >= self[valid_to_key]
         errors.add(valid_from_key, "can't be greater equal than #{valid_to_key}")
       end
     end
@@ -150,22 +150,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
       if transaction_from && transaction_to && transaction_from >= transaction_to
         errors.add(:transaction_from, "can't be greater equal than transaction_to")
       end
-    end
-
-    def _valid_from
-      read_attribute(valid_from_key)
-    end
-
-    def _valid_to
-      read_attribute(valid_to_key)
-    end
-
-    def _valid_from=(value)
-      write_attribute(valid_from_key, value)
-    end
-
-    def _valid_to=(value)
-      write_attribute(valid_to_key, value)
     end
   end
 
