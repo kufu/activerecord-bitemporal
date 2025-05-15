@@ -256,8 +256,8 @@ module ActiveRecord::Bitemporal
           end
 
           [
-            [:valid_from,  ActiveRecord::Bitemporal.config.valid_from_key],
-            [:valid_to,  ActiveRecord::Bitemporal.config.valid_to_key],
+            [:valid_from, '#{ActiveRecord::Bitemporal.config.valid_from_key}'],
+            [:valid_to,  '#{ActiveRecord::Bitemporal.config.valid_to_key}'],
             [:transaction_from, 'transaction_from'],
             [:transaction_to,  'transaction_to']
           ].each { |column, column_name|
