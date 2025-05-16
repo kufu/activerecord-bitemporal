@@ -20,39 +20,6 @@ module ActiveRecord::Bitemporal
   included do
     bitemporalize
   end
-
-  class << self
-    def configure
-      yield config
-    end
-
-    def config
-      @_config ||= Config.new
-    end
-  end
-
-  class Config
-    def initialize
-      @valid_from_key = "valid_from"
-      @valid_to_key = "valid_to"
-    end
-
-    def valid_from_key
-      @valid_from_key
-    end
-
-    def valid_from_key=(value)
-      @valid_from_key = value.to_s
-    end
-
-    def valid_to_key
-      @valid_to_key
-    end
-
-    def valid_to_key=(value)
-      @valid_to_key = value.to_s
-    end
-  end
 end
 
 module ActiveRecord::Bitemporal::Bitemporalize
@@ -72,14 +39,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
 
     def bitemporal_id_key
       'bitemporal_id'
-    end
-
-    def valid_from_key
-      ActiveRecord::Bitemporal.config.valid_from_key
-    end
-
-    def valid_to_key
-      ActiveRecord::Bitemporal.config.valid_to_key
     end
 
     # Override ActiveRecord::Core::ClassMethods#cached_find_by_statement
@@ -120,14 +79,6 @@ module ActiveRecord::Bitemporal::Bitemporalize
       self.class.bitemporal_id_key
     end
 
-    def valid_from_key
-      self.class.valid_from_key
-    end
-
-    def valid_to_key
-      self.class.valid_to_key
-    end
-
     def bitemporal_ignore_update_columns
       []
     end
@@ -156,7 +107,9 @@ module ActiveRecord::Bitemporal::Bitemporalize
   def bitemporalize(
     enable_strict_by_validates_bitemporal_id: false,
     enable_default_scope: true,
-    enable_merge_with_except_bitemporal_default_scope: false
+    enable_merge_with_except_bitemporal_default_scope: false,
+    valid_from_column_name: "valid_from",
+    valid_to_column_name: "valid_to"
   )
     extend ClassMethods
     include InstanceMethods
@@ -185,8 +138,11 @@ module ActiveRecord::Bitemporal::Bitemporalize
       @previously_force_updated = false
     end
 
-    attribute valid_from_key, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
-    attribute valid_to_key, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+    self.class_attribute :valid_from_key, :valid_to_key
+    self.valid_from_key = valid_from_column_name.to_s
+    self.valid_to_key = valid_to_column_name.to_s
+    attribute valid_from_column_name, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+    attribute valid_to_column_name, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
     attribute :transaction_from, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
     attribute :transaction_to, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
 
