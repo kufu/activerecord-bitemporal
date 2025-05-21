@@ -86,9 +86,9 @@ module ActiveRecord::Bitemporal
 
       refine Relation do
         def bitemporal_clause(table_name = klass.table_name)
-          node_hash = where_clause.bitemporal_query_hash("valid_from", "valid_to", "transaction_from", "transaction_to")
-          valid_from = node_hash.dig(table_name, "valid_from", 1)
-          valid_to   = node_hash.dig(table_name, "valid_to", 1)
+          node_hash = where_clause.bitemporal_query_hash(valid_from_key, valid_to_key, "transaction_from", "transaction_to")
+          valid_from = node_hash.dig(table_name, valid_from_key, 1)
+          valid_to   = node_hash.dig(table_name, valid_to_key, 1)
           transaction_from = node_hash.dig(table_name, "transaction_from", 1)
           transaction_to   = node_hash.dig(table_name, "transaction_to", 1)
           {
@@ -255,19 +255,24 @@ module ActiveRecord::Bitemporal
             rewhere(table[attr_name].public_send(operator, predicate_builder.build_bind_attribute(attr_name, value)))
           end
 
-          %i(valid_from valid_to transaction_from transaction_to).each { |column|
+          [
+            [:valid_from, "\#{valid_from_key}"], # Evaluate `valid_from/to_key` at runtime using `\#`
+            [:valid_to, "\#{valid_to_key}"],
+            [:transaction_from, "transaction_from"],
+            [:transaction_to, "transaction_to"]
+          ].each { |column, column_name|
             module_eval <<-STR, __FILE__, __LINE__ + 1
               def _ignore_#{column}
-                unscope(where: :"\#{table.name}.#{column}")
+                unscope(where: :"\#{table.name}.#{column_name}")
                   .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table["#{column}"]) if bitemporal_value[:through] }
               end
 
               def _except_#{column}
                 return self unless where_clause.send(:predicates).find { |node|
-                  node.bitemporal_include?("\#{table.name}.#{column}")
+                  node.bitemporal_include?("\#{table.name}.#{column_name}")
                 }
                 _ignore_#{column}.tap { |relation|
-                  relation.unscope_values.reject! { |query| query.equal_attribute_name("\#{table.name}.#{column}") }
+                  relation.unscope_values.reject! { |query| query.equal_attribute_name("\#{table.name}.#{column_name}") }
                 }
               end
             STR
@@ -281,8 +286,8 @@ module ActiveRecord::Bitemporal
               module_eval <<-STR, __FILE__, __LINE__ + 1
                 def _#{column}_#{op}(datetime)
                   target_datetime = datetime&.in_time_zone || Time.current
-                  bitemporal_rewhere_bind("#{column}", :#{op}, target_datetime)
-                    .tap { |relation| break relation.bitemporal_rewhere_bind("#{column}", :#{op}, target_datetime, bitemporal_value[:through].arel_table) if bitemporal_value[:through] }
+                  bitemporal_rewhere_bind("#{column_name}", :#{op}, target_datetime)
+                    .tap { |relation| break relation.bitemporal_rewhere_bind("#{column_name}", :#{op}, target_datetime, bitemporal_value[:through].arel_table) if bitemporal_value[:through] }
                 end
               STR
             }
@@ -428,17 +433,17 @@ module ActiveRecord::Bitemporal
         # beginless range
         if begin_
           # from < valid_to
-          relation = relation.bitemporal_where_bind("valid_to", :gt, begin_.in_time_zone.to_datetime)
+          relation = relation.bitemporal_where_bind(valid_to_key, :gt, begin_.in_time_zone.to_datetime)
         end
 
         # endless range
         if end_
           if range.exclude_end?
             # valid_from < to
-            relation = relation.bitemporal_where_bind("valid_from", :lt, end_.in_time_zone.to_datetime)
+            relation = relation.bitemporal_where_bind(valid_from_key, :lt, end_.in_time_zone.to_datetime)
           else
             # valid_from <= to
-            relation = relation.bitemporal_where_bind("valid_from", :lteq, end_.in_time_zone.to_datetime)
+            relation = relation.bitemporal_where_bind(valid_from_key, :lteq, end_.in_time_zone.to_datetime)
           end
         end
 
@@ -453,14 +458,14 @@ module ActiveRecord::Bitemporal
         begin_, end_ = range.begin, range.end
 
         if begin_
-          relation = relation.bitemporal_where_bind("valid_from", :gteq, begin_.in_time_zone.to_datetime)
+          relation = relation.bitemporal_where_bind(valid_from_key, :gteq, begin_.in_time_zone.to_datetime)
         end
 
         if end_
           if range.exclude_end?
             raise 'Range with excluding end is not supported'
           else
-            relation = relation.bitemporal_where_bind("valid_to", :lteq, end_.in_time_zone.to_datetime)
+            relation = relation.bitemporal_where_bind(valid_to_key, :lteq, end_.in_time_zone.to_datetime)
           end
         end
 
@@ -476,10 +481,10 @@ module ActiveRecord::Bitemporal
           ignore_valid_datetime.bitemporal_for(*ids)
         }
         def self.bitemporal_most_future(id)
-          bitemporal_histories(id).order(valid_from: :asc).last
+          bitemporal_histories(id).order(valid_from_key => :asc).last
         end
         def self.bitemporal_most_past(id)
-          bitemporal_histories(id).order(valid_from: :asc).first
+          bitemporal_histories(id).order(valid_from_key => :asc).first
         end
       end
     end

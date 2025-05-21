@@ -313,7 +313,7 @@ module ActiveRecord
       def _create_record(attribute_names = self.attribute_names)
         bitemporal_assign_initialize_value(valid_datetime: self.valid_datetime)
 
-        ActiveRecord::Bitemporal.valid_at!(self.valid_from) {
+        ActiveRecord::Bitemporal.valid_at!(self[valid_from_key]) {
           super()
         }
       end
@@ -346,8 +346,8 @@ module ActiveRecord
           # update 後に新しく生成したインスタンスのデータを移行する
           @_swapped_id_previously_was = swapped_id
           @_swapped_id = after_instance.swapped_id
-          self.valid_from = after_instance.valid_from
-          self.valid_to = after_instance.valid_to
+          self[valid_from_key] = after_instance[valid_from_key]
+          self[valid_to_key] = after_instance[valid_to_key]
           self.transaction_from = after_instance.transaction_from
           self.transaction_to = after_instance.transaction_to
 
@@ -373,14 +373,14 @@ module ActiveRecord
             # force_update の場合は削除時の状態の履歴を残さない
             unless force_update?
               # 削除時の状態を履歴レコードとして保存する
-              duplicated_instance.valid_to = target_datetime
+              duplicated_instance[valid_to_key] = target_datetime
               duplicated_instance.transaction_from = operated_at
               duplicated_instance.save_without_bitemporal_callbacks!(validate: false)
               if @destroyed
                 @_swapped_id_previously_was = swapped_id
                 @_swapped_id = duplicated_instance.swapped_id
-                self.valid_from = duplicated_instance.valid_from
-                self.valid_to = duplicated_instance.valid_to
+                self[valid_from_key] = duplicated_instance[valid_from_key]
+                self[valid_to_key] = duplicated_instance[valid_to_key]
                 self.transaction_from = duplicated_instance.transaction_from
                 self.transaction_to = duplicated_instance.transaction_to
               end
@@ -442,7 +442,7 @@ module ActiveRecord
 
       def bitemporal_assign_initialize_value(valid_datetime:, current_time: Time.current)
         # 自身の `valid_from` を設定
-        self.valid_from = valid_datetime || current_time if self.valid_from == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+        self[valid_from_key] = valid_datetime || current_time if self[valid_from_key] == ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
 
         self.transaction_from = current_time if self.transaction_from == ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
 
@@ -460,7 +460,7 @@ module ActiveRecord
       def bitemporal_build_update_records(valid_datetime:, current_time: Time.current, force_update: false)
         target_datetime = valid_datetime || current_time
         # NOTE: force_update の場合は自身のレコードを取得するような時間を指定しておく
-        target_datetime = valid_from_changed? ? valid_from_was : valid_from if force_update
+        target_datetime = attribute_changed?(valid_from_key) ? attribute_was(valid_from_key) : self[valid_from_key] if force_update
 
         # 対象基準日において有効なレコード
         # NOTE: 論理削除対象
@@ -491,26 +491,26 @@ module ActiveRecord
           current_valid_record.assign_transaction_to(current_time)
 
           # 以前の履歴データは valid_to を詰めて保存
-          before_instance.valid_to = target_datetime
+          before_instance[valid_to_key] = target_datetime
           if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            raise ValidDatetimeRangeError.new("valid_from #{before_instance.valid_from} can't be greater equal than valid_to #{before_instance.valid_to}")
+            raise ValidDatetimeRangeError.new("#{valid_from_key} #{before_instance[valid_from_key]} can't be greater equal than #{valid_to_key} #{before_instance[valid_to_key]}")
           end
           before_instance.transaction_from = current_time
 
           # 以降の履歴データは valid_from と valid_to を調整して保存する
-          after_instance.valid_from = target_datetime
-          after_instance.valid_to = current_valid_record.valid_to
+          after_instance[valid_from_key] = target_datetime
+          after_instance[valid_to_key] = current_valid_record[valid_to_key]
           if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            raise ValidDatetimeRangeError.new("valid_from #{after_instance.valid_from} can't be greater equal than valid_to #{after_instance.valid_to}")
+            raise ValidDatetimeRangeError.new("#{valid_from_key} #{after_instance[valid_from_key]} can't be greater equal than #{valid_to_key} #{after_instance[valid_to_key]}")
           end
           after_instance.transaction_from = current_time
 
         # 有効なレコードがない場合
         else
           # 一番近い未来にある Instance を取ってきて、その valid_from を valid_to に入れる
-          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).ignore_valid_datetime.valid_from_gt(target_datetime).order(valid_from: :asc).first
+          nearest_instance = self.class.where(bitemporal_id: bitemporal_id).ignore_valid_datetime.valid_from_gt(target_datetime).order(valid_from_key => :asc).first
           if nearest_instance.nil?
-            message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and 'valid_from' < #{target_datetime}"
+            message = "Update failed: Couldn't find #{self.class} with 'bitemporal_id'=#{self.bitemporal_id} and '#{valid_from_key}' < #{target_datetime}"
             raise ActiveRecord::RecordNotFound.new(message, self.class, "bitemporal_id", self.bitemporal_id)
           end
 
@@ -521,8 +521,8 @@ module ActiveRecord
           before_instance = nil
 
           # 以降の履歴データは valid_from と valid_to を調整して保存する
-          after_instance.valid_from = target_datetime
-          after_instance.valid_to = nearest_instance.valid_from
+          after_instance[valid_from_key] = target_datetime
+          after_instance[valid_to_key] = nearest_instance[valid_from_key]
           after_instance.transaction_from = current_time
         end
 
@@ -544,7 +544,7 @@ module ActiveRecord
 
         target_datetime = record.valid_datetime || Time.current
 
-        valid_from = record.valid_from.yield_self { |valid_from|
+        valid_from = record[record.valid_from_key].yield_self { |valid_from|
           # NOTE: valid_from が初期値の場合は現在の時間を基準としてバリデーションする
           # valid_from が初期値の場合は Persistence#_create_record に Time.current が割り当てられる為
           # バリデーション時と生成時で若干時間がずれてしまうことには考慮する
@@ -561,17 +561,17 @@ module ActiveRecord
         }
 
         # MEMO: `force_update` does not refer to `valid_datetime`
-        valid_from = record.valid_from if record.force_update?
+        valid_from = record[record.valid_from_key] if record.force_update?
 
-        valid_to = record.valid_to.yield_self { |valid_to|
+        valid_to = record[record.valid_to_key].yield_self { |valid_to|
           # NOTE: `cover?` may give incorrect results, when the time zone is not UTC and `valid_from` is date type
           #   Therefore, cast to type of `valid_from`
-          record_valid_time = finder_class.type_for_attribute(:valid_from).cast(record.valid_datetime)
+          record_valid_time = finder_class.type_for_attribute(record.valid_from_key).cast(record.valid_datetime)
           # レコードを更新する時に valid_datetime が valid_from ~ valid_to の範囲外だった場合、
           #   一番近い未来の履歴レコードを参照して更新する
           # という仕様があるため、それを考慮して valid_to を設定する
-          if (record_valid_time && (record.valid_from...record.valid_to).cover?(record_valid_time)) == false && (record.persisted?)
-            finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gteq(target_datetime).order(valid_from: :asc).first.valid_from
+          if (record_valid_time && (record[record.valid_from_key]...record[record.valid_to_key]).cover?(record_valid_time)) == false && (record.persisted?)
+            finder_class.ignore_valid_datetime.where(bitemporal_id: record.bitemporal_id).valid_from_gteq(target_datetime).order(record.valid_from_key => :asc).first[record.valid_from_key]
           else
             valid_to
           end

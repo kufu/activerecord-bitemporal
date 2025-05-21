@@ -621,4 +621,52 @@ EOS
       end
     end
   end
+
+  describe 'valid_from/to_key applied' do
+    let(:time) { '2022-05-23 18:06:06.712' }
+    around { |e| Timecop.freeze(time) { e.run } }
+    subject(:figure) { described_class.visualize(employee) }
+
+    let(:employee) { CustomColumnNameEmployee.create! }
+
+    before(:all) do
+      ActiveRecord::Schema.define(version: 1) do
+        create_table :custom_column_name_employees, force: true do |t|
+          t.string :name
+
+          t.integer :bitemporal_id
+          t.datetime :test_valid_from, precision: 6
+          t.datetime :test_valid_to, precision: 6
+          t.datetime :deleted_at, precision: 6
+          t.datetime :transaction_from, precision: 6
+          t.datetime :transaction_to, precision: 6
+
+          t.timestamps
+        end
+      end
+
+      class CustomColumnNameEmployee < ActiveRecord::Base
+        bitemporalize valid_from_key: :test_valid_from, valid_to_key: :test_valid_to
+      end
+    end
+
+    it 'behaves correctly' do
+      expect(figure).to eq <<~EOS.chomp
+        transaction_datetime    | valid_datetime
+                                | 2022-05-23 18:06:06.712
+                                |                                       | 9999-12-31 00:00:00.000
+        2022-05-23 18:06:06.712 +---------------------------------------+
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+                                |***************************************|
+        9999-12-31 00:00:00.000 +---------------------------------------+
+      EOS
+    end
+  end
 end

@@ -92,8 +92,8 @@ module ActiveRecord::Bitemporal::Bitemporalize
     end
 
     def valid_from_cannot_be_greater_equal_than_valid_to
-      if valid_from && valid_to && valid_from >= valid_to
-        errors.add(:valid_from, "can't be greater equal than valid_to")
+      if self[valid_from_key] && self[valid_to_key] && self[valid_from_key] >= self[valid_to_key]
+        errors.add(valid_from_key, "can't be greater equal than #{valid_to_key}")
       end
     end
 
@@ -107,10 +107,16 @@ module ActiveRecord::Bitemporal::Bitemporalize
   def bitemporalize(
     enable_strict_by_validates_bitemporal_id: false,
     enable_default_scope: true,
-    enable_merge_with_except_bitemporal_default_scope: false
+    enable_merge_with_except_bitemporal_default_scope: false,
+    valid_from_key: :valid_from,
+    valid_to_key: :valid_to
   )
+    return if @bitemporalized
+    @bitemporalized = true
+
     extend ClassMethods
     include InstanceMethods
+    include ActiveRecord::Bitemporal
     include ActiveRecord::Bitemporal::Scope
     include ActiveRecord::Bitemporal::Callbacks
 
@@ -136,8 +142,11 @@ module ActiveRecord::Bitemporal::Bitemporalize
       @previously_force_updated = false
     end
 
-    attribute :valid_from, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
-    attribute :valid_to, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
+    self.class_attribute :valid_from_key, :valid_to_key, instance_writer: false
+    self.valid_from_key = valid_from_key.to_s
+    self.valid_to_key = valid_to_key.to_s
+    attribute valid_from_key, default: ActiveRecord::Bitemporal::DEFAULT_VALID_FROM
+    attribute valid_to_key, default: ActiveRecord::Bitemporal::DEFAULT_VALID_TO
     attribute :transaction_from, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
     attribute :transaction_to, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
 
@@ -147,8 +156,8 @@ module ActiveRecord::Bitemporal::Bitemporalize
     })
 
     # validations
-    validates :valid_from, presence: true
-    validates :valid_to, presence: true
+    validates valid_from_key, presence: true
+    validates valid_to_key, presence: true
     validates :transaction_from, presence: true
     validates :transaction_to, presence: true
     validate :valid_from_cannot_be_greater_equal_than_valid_to
