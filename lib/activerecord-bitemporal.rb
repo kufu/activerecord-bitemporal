@@ -111,8 +111,7 @@ module ActiveRecord::Bitemporal::Bitemporalize
     valid_from_key: :valid_from,
     valid_to_key: :valid_to
   )
-    return if @bitemporalized
-    @bitemporalized = true
+    return if ancestors.include? InstanceMethods
 
     extend ClassMethods
     include InstanceMethods
