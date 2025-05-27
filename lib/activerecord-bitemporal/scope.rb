@@ -264,7 +264,7 @@ module ActiveRecord::Bitemporal
             module_eval <<-STR, __FILE__, __LINE__ + 1
               def _ignore_#{column}
                 unscope(where: :"\#{table.name}.#{column_name}")
-                  .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table["#{column}"]) if bitemporal_value[:through] }
+                  .tap { |relation| relation.unscope!(where: bitemporal_value[:through].arel_table["#{column_name}"]) if bitemporal_value[:through] }
               end
 
               def _except_#{column}
