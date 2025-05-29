@@ -531,7 +531,7 @@ RSpec.describe ActiveRecord::Bitemporal, 'date type valid time' do
         it { expect { subject }.to raise_error(ActiveRecord::RecordNotFound) }
         it {
           expect { subject }.to raise_error do |e|
-            expect(e.message).to eq "Update failed: Couldn't find Department with 'bitemporal_id'=#{department.bitemporal_id} and 'valid_from' < #{datetime}"
+            expect(e.message).to eq "Update failed: Couldn't find Department with 'bitemporal_id'=#{department.bitemporal_id} and 'valid_from' > #{datetime}"
           end
         }
       end
