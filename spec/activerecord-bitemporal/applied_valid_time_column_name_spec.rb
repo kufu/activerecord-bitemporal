@@ -160,7 +160,7 @@ RSpec.describe ActiveRecord::Bitemporal, "applied valid time column name" do
         it { expect { subject }.to raise_error(ActiveRecord::RecordNotFound) }
         it {
           expect { subject }.to raise_error do |e|
-            expect(e.message).to eq "Update failed: Couldn't find ColumnNameAppliedCompany with 'bitemporal_id'=#{company.bitemporal_id} and 'valid_date_from' < #{now}"
+            expect(e.message).to eq "Update failed: Couldn't find ColumnNameAppliedCompany with 'bitemporal_id'=#{company.bitemporal_id} and 'valid_date_from' > #{now}"
           end
         }
       end

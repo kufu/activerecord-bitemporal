@@ -877,7 +877,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         before { Timecop.freeze(datetime - 1.day) { Company.find(company.id).destroy! } }
         it { expect { subject }.to raise_error(ActiveRecord::RecordNotFound) }
         it { expect { subject }.to raise_error { |e|
-          expect(e.message).to eq "Update failed: Couldn't find Company with 'bitemporal_id'=#{company.bitemporal_id} and 'valid_from' < #{datetime}"
+          expect(e.message).to eq "Update failed: Couldn't find Company with 'bitemporal_id'=#{company.bitemporal_id} and 'valid_from' > #{datetime}"
         } }
       end
     end
