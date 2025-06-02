@@ -1,5 +1,42 @@
 # Changelog
 
+## 6.0.0
+
+### Breaking Changed
+
+- [Add Ruby 3.4 and remove Ruby 3.0 in CI #185](https://github.com/kufu/activerecord-bitemporal/pull/185)
+- [Drop support Rails 6.1 #192](https://github.com/kufu/activerecord-bitemporal/pull/192)
+
+### Added
+
+- [CI against Rails 7.2 #164](https://github.com/kufu/activerecord-bitemporal/pull/164)
+- [Support custom column names for valid time in .bitemporalize #200](https://github.com/kufu/activerecord-bitemporal/pull/200)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Prevent where clauses from ignored by `ignore_valid_datetime` #190](https://github.com/kufu/activerecord-bitemporal/pull/190)
+
+### Chores
+
+- [Add a note to the README that PostgreSQL is required to run the tests. #188](https://github.com/kufu/activerecord-bitemporal/pull/188)
+- [Remove specs for Rails 5.x #191](https://github.com/kufu/activerecord-bitemporal/pull/191)
+- [Update auto assgin member #193](https://github.com/kufu/activerecord-bitemporal/pull/193)
+- [Pin GitHub Actions dependencies to specific commit hashes #194](https://github.com/kufu/activerecord-bitemporal/pull/194)
+- [Bump ruby/setup-ruby from 1.227.0 to 1.229.0 #195](https://github.com/kufu/activerecord-bitemporal/pull/195)
+- [Bump ruby/setup-ruby from 1.229.0 to 1.233.0 #197](https://github.com/kufu/activerecord-bitemporal/pull/197)
+- [Bump ruby/setup-ruby from 1.233.0 to 1.235.0 #198](https://github.com/kufu/activerecord-bitemporal/pull/198)
+- [Bump ruby/setup-ruby from 1.235.0 to 1.237.0 #199](https://github.com/kufu/activerecord-bitemporal/pull/199)
+- [Bump ruby/setup-ruby from 1.237.0 to 1.238.0 #201](https://github.com/kufu/activerecord-bitemporal/pull/201)
+- [Bump ruby/setup-ruby from 1.238.0 to 1.242.0 #202](https://github.com/kufu/activerecord-bitemporal/pull/202)
+- [Bump ruby/setup-ruby from 1.242.0 to 1.244.0 #203](https://github.com/kufu/activerecord-bitemporal/pull/203)
+- [Update auto assgin member #204](https://github.com/kufu/activerecord-bitemporal/pull/204)
+
 ## 5.3.0
 
 ### Added
