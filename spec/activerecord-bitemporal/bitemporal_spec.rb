@@ -865,7 +865,8 @@ RSpec.describe ActiveRecord::Bitemporal do
           subject { company.valid_at(valid_datetime) { |c| c.update!(name: "Company") } }
           it { expect { subject }.to raise_error(ActiveRecord::Bitemporal::ValidDatetimeRangeError) }
           it { expect { subject }.to raise_error { |e|
-            expect(e.message).to eq "valid_from #{company.valid_from} can't be greater equal than valid_to #{valid_datetime}"
+            expect(e.message).to eq "valid_from #{company.valid_from} can't be greater than or equal to valid_to #{valid_datetime} " \
+                                    "for Company with bitemporal_id=#{company.bitemporal_id}"
           } }
         end
       end
