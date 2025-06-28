@@ -517,7 +517,8 @@ RSpec.describe ActiveRecord::Bitemporal, 'date type valid time' do
           it { expect { subject }.to raise_error(ActiveRecord::Bitemporal::ValidDatetimeRangeError) }
           it {
             expect { subject }.to raise_error do |e|
-              expect(e.message).to eq "valid_from #{department.valid_from} can't be greater equal than valid_to #{valid_datetime}"
+              expect(e.message).to eq "valid_from #{department.valid_from} can't be greater than or equal to valid_to #{valid_datetime} " \
+                                      "for Department with bitemporal_id=#{department.bitemporal_id}"
             end
           }
         end
