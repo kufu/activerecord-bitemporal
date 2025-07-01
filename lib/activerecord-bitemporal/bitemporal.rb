@@ -493,7 +493,10 @@ module ActiveRecord
           # 以前の履歴データは valid_to を詰めて保存
           before_instance[valid_to_key] = target_datetime
           if before_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            raise ValidDatetimeRangeError.new("#{valid_from_key} #{before_instance[valid_from_key]} can't be greater equal than #{valid_to_key} #{before_instance[valid_to_key]}")
+            message = "#{valid_from_key} #{before_instance[valid_from_key]} can't be " \
+                      "greater than or equal to #{valid_to_key} #{before_instance[valid_to_key]} " \
+                      "for #{self.class} with bitemporal_id=#{bitemporal_id}"
+            raise ValidDatetimeRangeError.new(message)
           end
           before_instance.transaction_from = current_time
 
@@ -501,7 +504,10 @@ module ActiveRecord
           after_instance[valid_from_key] = target_datetime
           after_instance[valid_to_key] = current_valid_record[valid_to_key]
           if after_instance.valid_from_cannot_be_greater_equal_than_valid_to
-            raise ValidDatetimeRangeError.new("#{valid_from_key} #{after_instance[valid_from_key]} can't be greater equal than #{valid_to_key} #{after_instance[valid_to_key]}")
+            message = "#{valid_from_key} #{after_instance[valid_from_key]} can't be " \
+                      "greater than or equal to #{valid_to_key} #{after_instance[valid_to_key]} " \
+                      "for #{self.class} with bitemporal_id=#{bitemporal_id}"
+            raise ValidDatetimeRangeError.new(message)
           end
           after_instance.transaction_from = current_time
 
