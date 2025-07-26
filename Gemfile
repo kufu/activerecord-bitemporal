@@ -7,3 +7,4 @@ git_source(:github) {|repo_name| "https://github.com/kufu/activerecord-bitempora
 gemspec
 
 gem 'appraisal'
+gem "rubocop"
