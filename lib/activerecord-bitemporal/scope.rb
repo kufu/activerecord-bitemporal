@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "activerecord-bitemporal/bitemporal_checker"
 
 module ActiveRecord::Bitemporal
