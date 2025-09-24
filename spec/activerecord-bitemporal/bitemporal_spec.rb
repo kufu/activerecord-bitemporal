@@ -1181,7 +1181,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         it_behaves_like "return false and #destroyed? to be false"
       end
 
-      context "with `destory!`" do
+      context "with `destroy!`" do
         subject { Timecop.freeze(destroyed_time) { employee.destroy! } }
 
         before { allow_any_instance_of(Employee).to receive('save!').and_raise(ActiveRecord::RecordNotSaved.new("failed")) }
@@ -2353,7 +2353,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         }
       end
 
-      context "nexted call `.valid_at`" do
+      context "nested call `.valid_at`" do
         before { Employee.create(valid_from: "2019/1/1") }
         it do
           ActiveRecord::Bitemporal.ignore_valid_datetime {
@@ -2368,7 +2368,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
       end
 
-      context "nexted call `.valid_at!`" do
+      context "nested call `.valid_at!`" do
         before { Employee.create(valid_from: "2019/1/1") }
         it do
           ActiveRecord::Bitemporal.ignore_valid_datetime {
@@ -2513,7 +2513,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         }
       end
 
-      context "nexted call `.transaction_at`" do
+      context "nested call `.transaction_at`" do
         before { Employee.create(transaction_from: "2019/1/1") }
         it do
           ActiveRecord::Bitemporal.ignore_transaction_datetime {
@@ -2528,7 +2528,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         end
       end
 
-      context "nexted call `.transaction_at!`" do
+      context "nested call `.transaction_at!`" do
         before { Employee.create(transaction_from: "2019/1/1") }
         it do
           ActiveRecord::Bitemporal.ignore_transaction_datetime {
@@ -2720,7 +2720,7 @@ RSpec.describe ActiveRecord::Bitemporal do
         company.employees.third.address = Address.create(city: "Saitama")
       end
 
-      # MEMO: `belongs_to :comany` is alos included.
+      # MEMO: `belongs_to :company` is also included.
       it { expect(company.each_association(deep: true).count).to eq 7 }
       it { expect(company.employees.includes(:address).first.each_association(deep: true).count).to eq 7 }
       it { expect(Company.find(company.id).employees.first.each_association(deep: true).count).to eq 7 }

@@ -974,7 +974,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
         it { is_expected.to have_bitemporal_at(time_current, table: "blogs") }
         it { is_expected.to have_bitemporal_at(time_current, table: "articles") }
 
-        # Not suppoted call to_sql outside unscoped
+        # Not supported call to_sql outside unscoped
         xcontext "with call to_sql outside `Article.unscoped`" do
           let(:sql) { Article.unscoped { Blog.joins(:articles) }.to_sql }
           it { is_expected.to have_bitemporal_at(time_current, table: "blogs") }
@@ -1024,7 +1024,7 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
             let(:sql) { Article.unscoped { Blog.joins(:articles).merge(Article.valid_at("2019/01/01")).to_sql } }
             it { is_expected.to have_bitemporal_at(time_current, table: "blogs") }
             it { is_expected.to have_valid_at("2019/01/01".in_time_zone, table: "articles") }
-            # Not suppoted merge
+            # Not supported merge
             # `Article.valid_at("2019/01/01")` without `default_scope` in `Article.unscoped`
             xit { is_expected.to have_transaction_at(time_current, table: "articles") }
 
