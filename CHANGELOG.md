@@ -26,7 +26,7 @@
 
 - [Add a note to the README that PostgreSQL is required to run the tests. #188](https://github.com/kufu/activerecord-bitemporal/pull/188)
 - [Remove specs for Rails 5.x #191](https://github.com/kufu/activerecord-bitemporal/pull/191)
-- [Update auto assgin member #193](https://github.com/kufu/activerecord-bitemporal/pull/193)
+- [Update auto assign member #193](https://github.com/kufu/activerecord-bitemporal/pull/193)
 - [Pin GitHub Actions dependencies to specific commit hashes #194](https://github.com/kufu/activerecord-bitemporal/pull/194)
 - [Bump ruby/setup-ruby from 1.227.0 to 1.229.0 #195](https://github.com/kufu/activerecord-bitemporal/pull/195)
 - [Bump ruby/setup-ruby from 1.229.0 to 1.233.0 #197](https://github.com/kufu/activerecord-bitemporal/pull/197)
@@ -35,7 +35,7 @@
 - [Bump ruby/setup-ruby from 1.237.0 to 1.238.0 #201](https://github.com/kufu/activerecord-bitemporal/pull/201)
 - [Bump ruby/setup-ruby from 1.238.0 to 1.242.0 #202](https://github.com/kufu/activerecord-bitemporal/pull/202)
 - [Bump ruby/setup-ruby from 1.242.0 to 1.244.0 #203](https://github.com/kufu/activerecord-bitemporal/pull/203)
-- [Update auto assgin member #204](https://github.com/kufu/activerecord-bitemporal/pull/204)
+- [Update auto assign member #204](https://github.com/kufu/activerecord-bitemporal/pull/204)
 
 ## 5.3.0
 

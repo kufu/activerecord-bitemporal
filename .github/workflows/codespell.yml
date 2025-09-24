@@ -1,0 +1,16 @@
+name: CodeSpell
+on:
+  - pull_request
+jobs:
+  codespell:
+    name: CodeSpell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: CodeSpell
+        uses: codespell-project/actions-codespell@master
+        with:
+          check_filenames: true
+          check_hidden: true
+          ignore_words_file: .codespellignore
+          exclude_file: lib/lrama/parser.rb

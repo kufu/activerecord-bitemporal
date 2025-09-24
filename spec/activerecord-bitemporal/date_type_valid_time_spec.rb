@@ -821,7 +821,7 @@ RSpec.describe ActiveRecord::Bitemporal, 'date type valid time' do
   end
 
   describe "Association" do
-    describe "Date type valid time has many Date type vaild time" do
+    describe "Date type valid time has many Date type valid time" do
       describe "sync valid_from in create" do
         let!(:cop1) { department.cops.new(name: "Jane") }
         let!(:cop2) { department.cops.new(name: "Homu") }
@@ -897,7 +897,7 @@ RSpec.describe ActiveRecord::Bitemporal, 'date type valid time' do
       end
     end
 
-    describe "Date type valid time has many Datetime(timestamp) type vaild time" do
+    describe "Date type valid time has many Datetime(timestamp) type valid time" do
       describe "sync valid_from in create" do
         let!(:manager1) { department.managers.new(name: "Jane") }
         let!(:manager2) { department.managers.new(name: "Homu") }
