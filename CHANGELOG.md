@@ -1,5 +1,42 @@
 # Changelog
 
+## 6.1.0
+
+### Breaking Changed
+
+### Added
+
+- [Support GlobalID integration #176](https://github.com/kufu/activerecord-bitemporal/pull/176)
+
+### Changed
+
+- [Add explicit activesupport dependency #208](https://github.com/kufu/activerecord-bitemporal/pull/208)
+- [Improve ValidDatetimeRangeError message with better grammar and context #207](https://github.com/kufu/activerecord-bitemporal/pull/207)
+- [Delay execution of ActiveRecord::Base-related processing #189](https://github.com/kufu/activerecord-bitemporal/pull/189)
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Chores
+
+- [Bump ruby/setup-ruby from 1.263.0 to 1.265.0 #223](https://github.com/kufu/activerecord-bitemporal/pull/223)
+- [Update gemspec files to avoid using git #222](https://github.com/kufu/activerecord-bitemporal/pull/222)
+- [Bump ruby/setup-ruby from 1.257.0 to 1.263.0 #221](https://github.com/kufu/activerecord-bitemporal/pull/221)
+- [Add CodeSpell workflow for spell checking in pull requests #220](https://github.com/kufu/activerecord-bitemporal/pull/220)
+- [Configure dependabot cooldown period to 3 days #219](https://github.com/kufu/activerecord-bitemporal/pull/219)
+- [Bump ruby/setup-ruby from 1.255.0 to 1.257.0 #218](https://github.com/kufu/activerecord-bitemporal/pull/218)
+- [Bump actions/checkout from 4.2.2 to 5.0.0 #215](https://github.com/kufu/activerecord-bitemporal/pull/215)
+- [Bump ruby/setup-ruby from 1.254.0 to 1.255.0 #214](https://github.com/kufu/activerecord-bitemporal/pull/214)
+- [Bump ruby/setup-ruby from 1.247.0 to 1.254.0 #213](https://github.com/kufu/activerecord-bitemporal/pull/213)
+- [Bump ruby/setup-ruby from 1.247.0 to 1.253.0 #212](https://github.com/kufu/activerecord-bitemporal/pull/212)
+- [Setup RuboCop #211](https://github.com/kufu/activerecord-bitemporal/pull/211)
+- [Bump ruby/setup-ruby from 1.245.0 to 1.247.0 #210](https://github.com/kufu/activerecord-bitemporal/pull/210)
+- [Using Trusted Publishing for RubyGems.org. #209](https://github.com/kufu/activerecord-bitemporal/pull/209)
+- [Bump ruby/setup-ruby from 1.244.0 to 1.245.0 #206](https://github.com/kufu/activerecord-bitemporal/pull/206)
+
 ## 6.0.0
 
 ### Breaking Changed
