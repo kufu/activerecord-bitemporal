@@ -4,6 +4,6 @@ source "https://rubygems.org"
 
 gem "appraisal"
 gem "rubocop"
-gem "rails", "~> 7.1.0"
+gem "rails", "~> 8.0.0"
 
 gemspec path: "../"

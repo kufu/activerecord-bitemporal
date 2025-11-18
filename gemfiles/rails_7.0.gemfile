@@ -3,6 +3,7 @@
 source "https://rubygems.org"
 
 gem "appraisal"
+gem "rubocop"
 gem "rails", "~> 7.0.1"
 gem "base64"
 gem "bigdecimal"
