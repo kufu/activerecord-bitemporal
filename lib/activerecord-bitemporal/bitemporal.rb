@@ -168,8 +168,10 @@ module ActiveRecord
         end
       end
 
-      def primary_key
-        bitemporal_id_key
+      if ActiveRecord.version < Gem::Version.new("8.0.0")
+        def primary_key
+          bitemporal_id_key
+        end
       end
     end
 
