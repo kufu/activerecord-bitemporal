@@ -98,6 +98,10 @@ module ActiveRecord::Bitemporal::Bitemporalize
     include ActiveRecord::Bitemporal::Callbacks
     prepend ActiveRecord::Bitemporal::GlobalID if defined?(::GlobalID)
 
+    if ActiveRecord.version >= Gem::Version.new("8.0.0")
+      self.implicit_order_column = "bitemporal_id"
+    end
+
     if enable_merge_with_except_bitemporal_default_scope
       relation_delegate_class(ActiveRecord::Relation).prepend ActiveRecord::Bitemporal::Relation::MergeWithExceptBitemporalDefaultScope
     end

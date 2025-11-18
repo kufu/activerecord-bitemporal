@@ -14,6 +14,42 @@ module ActiveRecord::Bitemporal
     }
     using BitemporalChecker
 
+    if ActiveRecord.version >= Gem::Version.new("8.0.0") 
+      module Calculations
+        def ids
+          return super unless bi_temporal_model?
+
+          if loaded?
+            result = records.map do |record|
+              record._read_attribute(bitemporal_id_key)
+            end
+            return @async ? Promise::Complete.new(result) : result
+          end
+
+          if has_include?(bitemporal_id_key)
+            relation = apply_join_dependency.group(bitemporal_id_key)
+            return relation.ids
+          end
+
+          columns = arel_columns([bitemporal_id_key])
+          relation = spawn
+          relation.select_values = columns
+
+          result = if relation.where_clause.contradiction?
+            ActiveRecord::Result.empty
+          else
+            skip_query_cache_if_necessary do
+              model.with_connection do |c|
+                c.select_all(relation, "#{model.name} Ids", async: @async)
+              end
+            end
+          end
+
+          result.then { |result| type_cast_pluck_values(result, columns) }
+        end
+      end
+    end
+    
     # nested_attributes 用の拡張
     module Persistence
       using Module.new {
