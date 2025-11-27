@@ -709,6 +709,118 @@ Employee.where(bitemporal_id: employee.bitemporal_id)
 ```
 
 
+## 履歴の可視化
+
+activerecord-bitemporal では、レコードの履歴を2次元の図表として可視化する機能を提供しています。
+
+### `visualize` メソッド
+
+特定のレコードの履歴を可視化するには `ActiveRecord::Bitemporal::Visualizer.visualize` メソッドを使用します。
+
+```ruby
+employee = nil
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(name: "Jane")
+}
+
+Timecop.freeze("2019/1/15") {
+  employee.update(name: "Tom")
+}
+
+Timecop.freeze("2019/1/20") {
+  employee.update(name: "Kevin")
+}
+
+# 履歴を可視化する
+puts ActiveRecord::Bitemporal::Visualizer.visualize(employee)
+```
+
+出力例：
+
+```
+transaction_datetime    | valid_datetime
+                        | 2019-01-10 00:00:00.000
+                        |    | 2019-01-15 00:00:00.000
+                        |    |              | 2019-01-20 00:00:00.000
+                        |    |              |                   | 9999-12-31 00:00:00.000
+2019-01-10 00:00:00.000 +---------------------------------------+
+                        |                                       |
+2019-01-15 00:00:00.000 +----+----------------------------------+
+                        |    |                                  |
+                        |    |                                  |
+2019-01-20 00:00:00.000 |    +--------------+-------------------+
+                        |    |              |*******************|
+                        |    |              |*******************|
+                        |    |              |*******************|
+                        |    |              |*******************|
+9999-12-31 00:00:00.000 +----+--------------+-------------------+
+```
+
+この図表では：
+
+- 横軸が有効時間（valid time）を表します
+- 縦軸がシステム時間（transaction time）を表します
+- `*` で表示されている部分が現在のレコードです
+- 各矩形が1つの履歴レコードを表します
+
+### オプション
+
+`visualize` メソッドには以下のオプションを指定できます：
+
+```ruby
+# サイズを調整する
+ActiveRecord::Bitemporal::Visualizer.visualize(employee, height: 20, width: 60)
+
+# ハイライトを有効にする
+ActiveRecord::Bitemporal::Visualizer.visualize(employee, highlight: true)
+```
+
+### `visualize_records` メソッド
+
+複数のレコードを同時に可視化する場合は `visualize_records` メソッドを使用します。
+
+```ruby
+employee = nil
+
+Timecop.freeze("2019/1/10") {
+  employee = Employee.create(name: "Jane")
+}
+
+Timecop.freeze("2019/1/15") {
+  employee.update(name: "Jane Smith")
+}
+
+Timecop.freeze("2019/1/20") {
+  employee.update(name: "Jane Doe")
+}
+
+# 全ての履歴レコードを取得
+all_records = Employee.ignore_bitemporal_datetime.bitemporal_for(employee)
+
+puts ActiveRecord::Bitemporal::Visualizer.visualize_records(all_records)
+```
+
+出力例：
+
+```
+transaction_datetime    | valid_datetime
+                        | 2019-01-10 00:00:00.000
+                        |         | 2019-01-15 00:00:00.000
+                        |         |         | 2019-01-20 00:00:00.000
+                        |         |         |                   | 9999-12-31 09:00:00.000
+2019-01-10 00:00:00.000 +---------------------------------------+
+                        |                                       |
+2019-01-15 00:00:00.000 +---------+-----------------------------+
+                        |         |                             |
+                        |         |                             |
+2019-01-20 00:00:00.000 |         +---------+-------------------+
+                        |         |         |                   |
+                        |         |         |                   |
+                        |         |         |                   |
+                        |         |         |                   |
+9999-12-31 09:00:00.000 +---------+---------+-------------------+
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. And start PostgreSQL on port 5432. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
