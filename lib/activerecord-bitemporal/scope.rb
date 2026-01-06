@@ -177,7 +177,7 @@ module ActiveRecord::Bitemporal
         end
 
         def with_valid_datetime
-          tap { |relation| relation.bitemporal_value[:with_valid_datetime] = true }
+          tap { |relation| relation.bitemporal_value[:with_valid_datetime] = :with_valid_datetime }
         end
 
         def without_valid_datetime
@@ -185,7 +185,7 @@ module ActiveRecord::Bitemporal
         end
 
         def with_transaction_datetime
-          tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = true }
+          tap { |relation| relation.bitemporal_value[:with_transaction_datetime] = :with_transaction_datetime }
         end
 
         def without_transaction_datetime
