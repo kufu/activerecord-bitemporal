@@ -8,10 +8,6 @@ RSpec.describe "implicit_order_column for Rails 8+" do
       it "sets implicit_order_column to [bitemporal_id, nil]" do
         expect(Employee.implicit_order_column).to eq(["bitemporal_id", nil])
       end
-
-      it "prevents automatic primary_key appending with nil-terminated array" do
-        expect(Employee.implicit_order_column.last).to be_nil
-      end
     end
 
     context "when Rails 7.x", if: ActiveRecord.gem_version < Gem::Version.new("8.0.0") do
@@ -27,7 +23,6 @@ RSpec.describe "implicit_order_column for Rails 8+" do
       klass = Class.new(ActiveRecord::Base) do
         self.table_name = "employees"
         self.implicit_order_column = ["name", nil]
-        include ActiveRecord::Bitemporal
         bitemporalize
       end
 
@@ -61,7 +56,6 @@ RSpec.describe "implicit_order_column for Rails 8+" do
       klass = Class.new(ActiveRecord::Base) do
         self.table_name = "employees"
         self.implicit_order_column = "created_at"
-        include ActiveRecord::Bitemporal
         bitemporalize
       end
 
@@ -76,7 +70,6 @@ RSpec.describe "implicit_order_column for Rails 8+" do
           "original_id"
         end
 
-        include ActiveRecord::Bitemporal
         bitemporalize
       end
 
@@ -89,6 +82,44 @@ RSpec.describe "implicit_order_column for Rails 8+" do
       second_id = Employee.second.bitemporal_id
 
       expect(second_id).to be > first_id
+    end
+
+    it ".first returns nil for empty table" do
+      Employee.delete_all
+      expect(Employee.first).to be_nil
+    end
+
+    it ".last returns nil for empty table" do
+      Employee.delete_all
+      expect(Employee.last).to be_nil
+    end
+  end
+
+  describe "STI inheritance", if: ActiveRecord.gem_version >= Gem::Version.new("8.0.0") do
+    # Create STI child class that inherits from Employee
+    let(:sti_child_class) do
+      Class.new(Employee) do
+        def self.name
+          "Manager"
+        end
+      end
+    end
+
+    it "inherits implicit_order_column to child classes" do
+      expect(sti_child_class.implicit_order_column).to eq(["bitemporal_id", nil])
+    end
+
+    it "child class .first uses bitemporal_id ordering" do
+      3.times { |i| Employee.create!(name: "Employee#{i + 1}") }
+
+      # Child class should also use bitemporal_id ordering
+      expect(sti_child_class.first.bitemporal_id).to eq(Employee.minimum(:bitemporal_id))
+    end
+
+    it "child class .last uses bitemporal_id ordering" do
+      3.times { |i| Employee.create!(name: "Employee#{i + 1}") }
+
+      expect(sti_child_class.last.bitemporal_id).to eq(Employee.maximum(:bitemporal_id))
     end
   end
 end
