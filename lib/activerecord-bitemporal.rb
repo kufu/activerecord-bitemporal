@@ -38,6 +38,11 @@ ActiveSupport.on_load(:active_record) do
   ActiveRecord::Associations::Association
     .prepend ActiveRecord::Bitemporal::Patches::Association
 
+  if ActiveRecord.version >= Gem::Version.new("8.0.0")
+    ActiveRecord::Calculations
+      .prepend ActiveRecord::Bitemporal::Patches::Calculations
+  end
+
   ActiveRecord::Associations::ThroughAssociation
     .prepend ActiveRecord::Bitemporal::Patches::ThroughAssociation
 

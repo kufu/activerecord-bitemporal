@@ -168,8 +168,12 @@ module ActiveRecord
         end
       end
 
-      def primary_key
-        bitemporal_id_key
+      # Use original primary_key for Active Record 8.0+ to avoid issues with
+      # patching only primary_key of AR::Relation
+      if ActiveRecord.version < Gem::Version.new("8.0.0")
+        def primary_key
+          bitemporal_id_key
+        end
       end
     end
 
