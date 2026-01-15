@@ -6,6 +6,12 @@ ActiveRecord::Bitemporal
 [![gem-download](https://img.shields.io/gem/dt/activerecord-bitemporal.svg)](https://rubygems.org/gems/activerecord-bitemporal)
 [![CircleCI](https://circleci.com/gh/kufu/activerecord-bitemporal.svg?style=svg)](https://circleci.com/gh/kufu/activerecord-bitemporal)
 
+## Requirements
+
+- Ruby 3.1+
+- Rails 7.1, 7.2, 8.0, or 8.1
+- PostgreSQL
+
 ## Installation
 
 Add this line to your application's Gemfile:

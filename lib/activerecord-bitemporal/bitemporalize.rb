@@ -128,6 +128,15 @@ module ActiveRecord::Bitemporal::Bitemporalize
     attribute :transaction_from, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_FROM
     attribute :transaction_to, default: ActiveRecord::Bitemporal::DEFAULT_TRANSACTION_TO
 
+    # Rails 8 support: ensure finder methods (.first, .last, etc.) use bitemporal_id ordering.
+    # Rails 8.0 changed _order_columns to use model.primary_key instead of Relation's primary_key.
+    # The nil-terminated format (Rails 8.1 feature, PR #54679) prevents automatic primary_key
+    # appending to the ORDER BY clause.
+    # See: https://github.com/rails/rails/pull/54679
+    if ActiveRecord.gem_version >= Gem::Version.new("8.0.0")
+      self.implicit_order_column ||= [bitemporal_id_key, nil]
+    end
+
     # Callback hook to `validates :xxx, uniqueness: true`
     const_set(:UniquenessValidator, Class.new(ActiveRecord::Validations::UniquenessValidator) {
       prepend ActiveRecord::Bitemporal::Uniqueness
