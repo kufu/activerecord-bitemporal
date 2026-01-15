@@ -1,5 +1,25 @@
 # Changelog
 
+## 6.2.0
+
+### Breaking Changed
+
+### Added
+
+- Add Rails 8.0 and 8.1 support
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Fix finder methods (`.first`, `.last`, etc.) ordering by `id` instead of `bitemporal_id` on Rails 8.0+
+
+### Chores
+
 ## 6.1.0
 
 ### Breaking Changed
