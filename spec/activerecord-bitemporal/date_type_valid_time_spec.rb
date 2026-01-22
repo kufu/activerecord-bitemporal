@@ -1054,7 +1054,7 @@ RSpec.describe ActiveRecord::Bitemporal, 'date type valid time' do
       context "update `name` to other name" do
         before { Department.create!(name: "Dev") }
         let(:count) { -> { Department.where(name: "Dev").count } }
-        subject { Department.find_by(name: "Dev").update(name: "Dev2") }
+        subject { Department.order(:valid_from).find_by(name: "Dev").update(name: "Dev2") }
         it { expect { subject }.to change(&count).by(-1) }
       end
 

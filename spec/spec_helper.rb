@@ -10,6 +10,8 @@ dbconfig = YAML::load(IO.read(File.join(File.dirname(__FILE__), "database.yml"))
 ActiveRecord::Base.establish_connection(dbconfig.merge(database: 'postgres'))
 
 RSpec.configure do |config|
+  config.order = :random
+
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
 
