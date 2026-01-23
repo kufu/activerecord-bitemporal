@@ -22,12 +22,4 @@ Gem::Specification.new do |spec|
   rails_requirements = ">= 7.1"
   spec.add_dependency "activerecord", rails_requirements
   spec.add_dependency "activesupport", rails_requirements
-
-  spec.add_development_dependency "bundler"
-  spec.add_development_dependency "globalid"
-  spec.add_development_dependency "rake", "~> 13.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "pg"
-  spec.add_development_dependency "irb"
-  spec.add_development_dependency "timecop"
 end
