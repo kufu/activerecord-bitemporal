@@ -136,6 +136,42 @@ module ActiveRecord
       end
       include Finder
 
+      if ActiveRecord.version >= Gem::Version.new("8.0.0")
+        # Returns the base model's bitemporal IDs without patching primary_key,
+        # ensuring AR::Calculations#ids compatibility with Rails 8.0+.
+        # Based on <https://github.com/rails/rails/blob/v8.0.4/activerecord/lib/active_record/relation/calculations.rb#L366-L404>
+        def ids
+          if loaded?
+            result = records.map do |record|
+              # Always read only bitemporal_id_key
+              record._read_attribute(bitemporal_id_key)
+            end
+            return @async ? Promise::Complete.new(result) : result
+          end
+
+          if has_include?(bitemporal_id_key)
+            relation = apply_join_dependency.group(bitemporal_id_key)
+            return relation.ids
+          end
+
+          columns = arel_columns([bitemporal_id_key])
+          relation = spawn
+          relation.select_values = columns
+
+          result = if relation.where_clause.contradiction?
+            ActiveRecord::Result.empty
+          else
+            skip_query_cache_if_necessary do
+              model.with_connection do |c|
+                c.select_all(relation, "#{model.name} Ids", async: @async)
+              end
+            end
+          end
+
+          result.then { |result| type_cast_pluck_values(result, columns) }
+        end
+      end
+
       def build_arel(*)
         ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
           super
