@@ -2,9 +2,13 @@
 
 source "https://rubygems.org"
 
-git_source(:github) {|repo_name| "https://github.com/kufu/activerecord-bitemporal" }
-
 gemspec
 
-gem 'appraisal'
-gem "rubocop"
+gem 'appraisal', require: false
+gem "globalid"
+gem "irb"
+gem "pg"
+gem "rake", "~> 13.0"
+gem "rspec", "~> 3.0"
+gem "rubocop", require: false
+gem "timecop"
