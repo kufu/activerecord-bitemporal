@@ -160,7 +160,7 @@ module ActiveRecord::Bitemporal
     # @see https://github.com/rails/rails/blob/v7.1.3.4/activerecord/lib/active_record/relation/delegation.rb#L117
     delegate :bitemporal_value, :bitemporal_value=, :valid_datetime, :valid_date,
              :transaction_datetime, :bitemporal_option, :bitemporal_option_merge!,
-             :build_arel, :primary_key, to: :scope
+             :build_arel, :primary_key, :ids, to: :scope
   end
 
   module Scope
