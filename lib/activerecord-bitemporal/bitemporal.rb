@@ -112,15 +112,36 @@ module ActiveRecord
     end
 
     module Relation
-      module Finder
-        def find(*ids)
-          return super if block_given?
-          all.spawn.yield_self { |obj|
-            def obj.primary_key
-              "bitemporal_id"
+      module BitemporalIdAsPrimaryKey # :nodoc:
+        private
+
+        # Generate a method that temporarily changes the primary key to
+        # bitemporal_id for localizing the effect of the change to only the
+        # method specified by `name`.
+        #
+        # DO NOT use this method outside of this module.
+        def use_bitemporal_id_as_primary_key(name) # :nodoc:
+          module_eval <<~RUBY, __FILE__, __LINE__ + 1
+            def #{name}(...)
+              all.spawn.yield_self { |relation|
+                def relation.primary_key
+                  bitemporal_id_key
+                end
+                relation.method(:#{name}).super_method.call(...)
+              }
             end
-            obj.method(:find).super_method.call(*ids)
-          }
+          RUBY
+        end
+      end
+      extend BitemporalIdAsPrimaryKey
+
+      module Finder
+        extend BitemporalIdAsPrimaryKey
+
+        use_bitemporal_id_as_primary_key :find
+
+        if ActiveRecord.version >= Gem::Version.new("8.0.0")
+          use_bitemporal_id_as_primary_key :exists?
         end
 
         def find_at_time!(datetime, *ids)
@@ -135,6 +156,10 @@ module ActiveRecord
         end
       end
       include Finder
+
+      if ActiveRecord.version >= Gem::Version.new("8.0.0")
+        use_bitemporal_id_as_primary_key :ids
+      end
 
       def build_arel(*)
         ActiveRecord::Bitemporal.with_bitemporal_option(**bitemporal_option) {
@@ -168,8 +193,12 @@ module ActiveRecord
         end
       end
 
-      def primary_key
-        bitemporal_id_key
+      # Use original primary_key for Active Record 8.0+ as much as possible
+      # to avoid issues with patching primary_key of AR::Relation globally.
+      if ActiveRecord.version < Gem::Version.new("8.0.0")
+        def primary_key
+          bitemporal_id_key
+        end
       end
     end
 
