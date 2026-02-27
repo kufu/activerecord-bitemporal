@@ -16,6 +16,45 @@
 
 ### Chores
 
+## 7.0.0
+
+### Breaking Changes
+
+- [Drop support Rails 7.0 #230](https://github.com/kufu/activerecord-bitemporal/pull/230)
+
+### Added
+
+- [Add Ruby 4.0 in CI #236](https://github.com/kufu/activerecord-bitemporal/pull/236)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Localize patch for AR::Relation#primary_key in Rails 8.0+ #243](https://github.com/kufu/activerecord-bitemporal/pull/243)
+  - In Rails 8.0+, the global override of `ActiveRecord::Relation#primary_key` with `bitemporal_id_key` has been removed. As a result, the following methods now use `primary_key` (i.e., `id`) instead of `bitemporal_id_key`:
+    - `find_each`, `find_in_batches`, and `in_batches`: the default cursor column for ordering and keyset pagination changes (records are not missed or duplicated, but iteration order differs)
+- [Fix finder methods ordering on Rails 8.0+ #237](https://github.com/kufu/activerecord-bitemporal/pull/237)
+
+### Chores
+
+- [Manage development dependencies in gemfiles #240](https://github.com/kufu/activerecord-bitemporal/pull/240)
+- [Randomize test execution order #239](https://github.com/kufu/activerecord-bitemporal/pull/239)
+- [Update release GitHub Action #232](https://github.com/kufu/activerecord-bitemporal/pull/232)
+- [Bump ruby/setup-ruby from 1.286.0 to 1.288.0 #244](https://github.com/kufu/activerecord-bitemporal/pull/244)
+- [Bump actions/checkout from 6.0.1 to 6.0.2 #242](https://github.com/kufu/activerecord-bitemporal/pull/242)
+- [Bump ruby/setup-ruby from 1.278.0 to 1.286.0 #241](https://github.com/kufu/activerecord-bitemporal/pull/241)
+- [Bump ruby/setup-ruby from 1.268.0 to 1.278.0 #234](https://github.com/kufu/activerecord-bitemporal/pull/234)
+- [Update reviewers #231](https://github.com/kufu/activerecord-bitemporal/pull/231)
+- [Bump actions/checkout from 6.0.0 to 6.0.1 #229](https://github.com/kufu/activerecord-bitemporal/pull/229)
+- [Bump ruby/setup-ruby from 1.267.0 to 1.268.0 #228](https://github.com/kufu/activerecord-bitemporal/pull/228)
+- [Bump actions/checkout from 5.0.0 to 6.0.0 #227](https://github.com/kufu/activerecord-bitemporal/pull/227)
+- [Bump codespell-project/actions-codespell from 2.1 to 2.2 #226](https://github.com/kufu/activerecord-bitemporal/pull/226)
+- [Bump ruby/setup-ruby from 1.265.0 to 1.267.0 #225](https://github.com/kufu/activerecord-bitemporal/pull/225)
+
 ## 6.1.0
 
 ### Breaking Changes
