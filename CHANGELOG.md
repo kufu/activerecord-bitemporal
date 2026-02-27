@@ -16,6 +16,36 @@
 
 ### Chores
 
+## 7.0.0
+
+### Breaking Changes
+
+- [Drop support Rails 7.0 #230](https://github.com/kufu/activerecord-bitemporal/pull/230)
+
+### Added
+
+- [Add Ruby 4.0 in CI #236](https://github.com/kufu/activerecord-bitemporal/pull/236)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Localize patch for AR::Relation#primary_key in Rails 8.0+ #243](https://github.com/kufu/activerecord-bitemporal/pull/243)
+  - In Rails 8.0+, the global override of `ActiveRecord::Relation#primary_key` with `bitemporal_id_key` has been removed. As a result, the following methods now use `primary_key` (i.e., `id`) instead of `bitemporal_id_key`:
+    - `update_all` and `delete_all`: the key column used in SQL queries changes
+    - `find_each`, `find_in_batches`, and `in_batches`: the default cursor column for ordering and keyset pagination changes (records are not missed or duplicated, but iteration order differs)
+- [Fix finder methods ordering on Rails 8.0+ #237](https://github.com/kufu/activerecord-bitemporal/pull/237)
+
+### Chores
+
+- [Manage development dependencies in gemfiles #240](https://github.com/kufu/activerecord-bitemporal/pull/240)
+- [Randomize test execution order #239](https://github.com/kufu/activerecord-bitemporal/pull/239)
+- [Update release GitHub Action #232](https://github.com/kufu/activerecord-bitemporal/pull/232)
+
 ## 6.1.0
 
 ### Breaking Changes
