@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 
@@ -18,7 +18,7 @@
 
 ## 6.1.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 
@@ -55,7 +55,7 @@
 
 ## 6.0.0
 
-### Breaking Changed
+### Breaking Changes
 
 - [Add Ruby 3.4 and remove Ruby 3.0 in CI #185](https://github.com/kufu/activerecord-bitemporal/pull/185)
 - [Drop support Rails 6.1 #192](https://github.com/kufu/activerecord-bitemporal/pull/192)
@@ -163,7 +163,7 @@
 
 ## 5.0.0
 
-### Breaking Changed
+### Breaking Changes
 
 - [CI against Ruby 3.2, 3.3, Drop Ruby 2.7 and Rails 6.0 #150](https://github.com/kufu/activerecord-bitemporal/pull/150)
 
@@ -244,7 +244,7 @@
 
 ## 4.0.0
 
-### Breaking Changed
+### Breaking Changes
 
 - [[proposal]When bitemporal_at exists inside the nest, the specified date was not prioritized, so the date of the inner bitemporal_at is now prioritized. #121](https://github.com/kufu/activerecord-bitemporal/pull/121)
 - [Drop support Rails 5.2 #122](https://github.com/kufu/activerecord-bitemporal/pull/122)
@@ -299,7 +299,7 @@
 
 ## 3.0.0
 
-### Breaking Changed
+### Breaking Changes
 - [Assign updated bitemporal times to the receiver after update/destroy](https://github.com/kufu/activerecord-bitemporal/pull/118)
 
 ### Added
@@ -314,7 +314,7 @@
 
 ## 2.3.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 - [Add `InstanceMethods#swapped_id_previously_was`](https://github.com/kufu/activerecord-bitemporal/pull/114)
@@ -329,7 +329,7 @@
 
 ## 2.2.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 - [replace postgres docker image](https://github.com/kufu/activerecord-bitemporal/pull/103)
@@ -346,7 +346,7 @@
 
 ## 2.1.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 - [Update valid_to after #update](https://github.com/kufu/activerecord-bitemporal/pull/105)
@@ -363,7 +363,7 @@
 
 ## 2.0.0
 
-### Breaking Changed
+### Breaking Changes
 - [[Proposal] Changed valid_in to exclude valid_from = to and valid_to = from. by osyo-manga · Pull Request #95](https://github.com/kufu/activerecord-bitemporal/pull/95)
 
 ### Added
