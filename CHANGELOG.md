@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 
@@ -16,9 +16,39 @@
 
 ### Chores
 
+## 7.0.0
+
+### Breaking Changes
+
+- [Drop support Rails 7.0 #230](https://github.com/kufu/activerecord-bitemporal/pull/230)
+
+### Added
+
+- [Add Ruby 4.0 in CI #236](https://github.com/kufu/activerecord-bitemporal/pull/236)
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Localize patch for AR::Relation#primary_key in Rails 8.0+ #243](https://github.com/kufu/activerecord-bitemporal/pull/243)
+  - In Rails 8.0+, the global override of `ActiveRecord::Relation#primary_key` with `bitemporal_id_key` has been removed. As a result, the following methods now use `primary_key` (i.e., `id`) instead of `bitemporal_id_key`:
+    - `update_all` and `delete_all`: the key column used in SQL queries changes
+    - `find_each`, `find_in_batches`, and `in_batches`: the default cursor column for ordering and keyset pagination changes (records are not missed or duplicated, but iteration order differs)
+- [Fix finder methods ordering on Rails 8.0+ #237](https://github.com/kufu/activerecord-bitemporal/pull/237)
+
+### Chores
+
+- [Manage development dependencies in gemfiles #240](https://github.com/kufu/activerecord-bitemporal/pull/240)
+- [Randomize test execution order #239](https://github.com/kufu/activerecord-bitemporal/pull/239)
+- [Update release GitHub Action #232](https://github.com/kufu/activerecord-bitemporal/pull/232)
+
 ## 6.1.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 
@@ -55,7 +85,7 @@
 
 ## 6.0.0
 
-### Breaking Changed
+### Breaking Changes
 
 - [Add Ruby 3.4 and remove Ruby 3.0 in CI #185](https://github.com/kufu/activerecord-bitemporal/pull/185)
 - [Drop support Rails 6.1 #192](https://github.com/kufu/activerecord-bitemporal/pull/192)
@@ -163,7 +193,7 @@
 
 ## 5.0.0
 
-### Breaking Changed
+### Breaking Changes
 
 - [CI against Ruby 3.2, 3.3, Drop Ruby 2.7 and Rails 6.0 #150](https://github.com/kufu/activerecord-bitemporal/pull/150)
 
@@ -244,7 +274,7 @@
 
 ## 4.0.0
 
-### Breaking Changed
+### Breaking Changes
 
 - [[proposal]When bitemporal_at exists inside the nest, the specified date was not prioritized, so the date of the inner bitemporal_at is now prioritized. #121](https://github.com/kufu/activerecord-bitemporal/pull/121)
 - [Drop support Rails 5.2 #122](https://github.com/kufu/activerecord-bitemporal/pull/122)
@@ -299,7 +329,7 @@
 
 ## 3.0.0
 
-### Breaking Changed
+### Breaking Changes
 - [Assign updated bitemporal times to the receiver after update/destroy](https://github.com/kufu/activerecord-bitemporal/pull/118)
 
 ### Added
@@ -314,7 +344,7 @@
 
 ## 2.3.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 - [Add `InstanceMethods#swapped_id_previously_was`](https://github.com/kufu/activerecord-bitemporal/pull/114)
@@ -329,7 +359,7 @@
 
 ## 2.2.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 - [replace postgres docker image](https://github.com/kufu/activerecord-bitemporal/pull/103)
@@ -346,7 +376,7 @@
 
 ## 2.1.0
 
-### Breaking Changed
+### Breaking Changes
 
 ### Added
 - [Update valid_to after #update](https://github.com/kufu/activerecord-bitemporal/pull/105)
@@ -363,7 +393,7 @@
 
 ## 2.0.0
 
-### Breaking Changed
+### Breaking Changes
 - [[Proposal] Changed valid_in to exclude valid_from = to and valid_to = from. by osyo-manga · Pull Request #95](https://github.com/kufu/activerecord-bitemporal/pull/95)
 
 ### Added
