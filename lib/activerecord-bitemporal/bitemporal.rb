@@ -159,6 +159,12 @@ module ActiveRecord
 
       if ActiveRecord.version >= Gem::Version.new("8.0.0")
         use_bitemporal_id_as_primary_key :ids
+
+        # Ensure that AR::Batches (https://github.com/rails/rails/blob/v8.0.4/activerecord/lib/active_record/relation/batches.rb)
+        # works with `bitemporal_id` as the primary key in Rails 8+.
+        use_bitemporal_id_as_primary_key :find_each
+        use_bitemporal_id_as_primary_key :find_in_batches
+        use_bitemporal_id_as_primary_key :in_batches
       end
 
       def build_arel(*)
