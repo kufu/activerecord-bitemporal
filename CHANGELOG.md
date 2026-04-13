@@ -16,6 +16,30 @@
 
 ### Chores
 
+## 7.0.1
+
+### Breaking Changes
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Use bitemporal_id as primary key for Rails 8+ excluding/without #252](https://github.com/kufu/activerecord-bitemporal/pull/252)
+- [Use bitemporal_id as primary key for Rails 8+ AR::Batches #251](https://github.com/kufu/activerecord-bitemporal/pull/251)
+
+### Chores
+
+- [Bump ruby/setup-ruby from 1.299.0 to 1.300.0 #253](https://github.com/kufu/activerecord-bitemporal/pull/253)
+- [Bump rubygems/release-gem from 1.1.2 to 1.2.0 #250](https://github.com/kufu/activerecord-bitemporal/pull/250)
+- [Bump ruby/setup-ruby from 1.295.0 to 1.299.0 #249](https://github.com/kufu/activerecord-bitemporal/pull/249)
+- [Bump ruby/setup-ruby from 1.288.0 to 1.295.0 #248](https://github.com/kufu/activerecord-bitemporal/pull/248)
+
 ## 7.0.0
 
 ### Breaking Changes
