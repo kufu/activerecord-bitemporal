@@ -204,6 +204,8 @@ module ActiveRecord
           record.send(:bitemporal_option_storage)[:valid_datetime] = valid_datetime_ if valid_datetime_
           record.send(:bitemporal_option_storage)[:transaction_datetime] = transaction_datetime_ if transaction_datetime_
         end
+
+        records
       end
 
       # Use original primary_key for Active Record 8.0+ as much as possible
