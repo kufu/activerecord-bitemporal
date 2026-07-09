@@ -16,6 +16,37 @@
 
 ### Chores
 
+## 7.0.2
+
+### Breaking Changes
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- [Fix Relation#load to return self instead of an Array #267](https://github.com/kufu/activerecord-bitemporal/pull/267)
+
+### Chores
+
+- [Bump actions/checkout from 6.0.3 to 7.0.0 #266](https://github.com/kufu/activerecord-bitemporal/pull/266)
+- [Bump ruby/setup-ruby from 1.313.0 to 1.314.0 #265](https://github.com/kufu/activerecord-bitemporal/pull/265)
+- [Bump rubygems/release-gem from 1.3.0 to 1.4.0 #264](https://github.com/kufu/activerecord-bitemporal/pull/264)
+- [Bump ruby/setup-ruby from 1.310.0 to 1.313.0 #263](https://github.com/kufu/activerecord-bitemporal/pull/263)
+- [Bump rubygems/release-gem from 1.2.0 to 1.3.0 #262](https://github.com/kufu/activerecord-bitemporal/pull/262)
+- [Bump actions/checkout from 6.0.2 to 6.0.3 #261](https://github.com/kufu/activerecord-bitemporal/pull/261)
+- [Bump ruby/setup-ruby from 1.308.0 to 1.310.0 #260](https://github.com/kufu/activerecord-bitemporal/pull/260)
+- [Bump ruby/setup-ruby from 1.306.0 to 1.308.0 #259](https://github.com/kufu/activerecord-bitemporal/pull/259)
+- [Increase Dependabot cooldown to 7 days #258](https://github.com/kufu/activerecord-bitemporal/pull/258)
+- [Bump ruby/setup-ruby from 1.305.0 to 1.306.0 #257](https://github.com/kufu/activerecord-bitemporal/pull/257)
+- [Bump ruby/setup-ruby from 1.302.0 to 1.305.0 #256](https://github.com/kufu/activerecord-bitemporal/pull/256)
+- [Bump ruby/setup-ruby from 1.301.0 to 1.302.0 #255](https://github.com/kufu/activerecord-bitemporal/pull/255)
+
 ## 7.0.1
 
 ### Breaking Changes
@@ -294,9 +325,11 @@
 ## 4.1.0
 
 ### Added
+
 - [add label option #127](https://github.com/kufu/activerecord-bitemporal/pull/127)
 
 ### Changed
+
 - [Support for inverse_of of Rails 6.1 or higher #130](https://github.com/kufu/activerecord-bitemporal/pull/130)
 
 ### Deprecated
@@ -320,13 +353,13 @@
   ```rb
   class Employee < ActiveRecord::Base
     include ActiveRecord::Bitemporal
-  
+
     after_bitemporal_create :log_create
     after_bitemporal_update :log_update
     after_bitemporal_destroy :log_destroy
-  
+
     private
-    
+
     def log_create
       puts "employee created"
     end
@@ -339,7 +372,7 @@
       puts "employee destroyed"
     end
   end
-  
+
   employee = Employee.create!(...) # => "employee created"
   employee.update!(...) # => "employee updated"
   employee.destroy! # => "employee destroyed"
@@ -359,10 +392,10 @@
 
 ### Fixed
 
-
 ## 3.0.0
 
 ### Breaking Changes
+
 - [Assign updated bitemporal times to the receiver after update/destroy](https://github.com/kufu/activerecord-bitemporal/pull/118)
 
 ### Added
@@ -380,6 +413,7 @@
 ### Breaking Changes
 
 ### Added
+
 - [Add `InstanceMethods#swapped_id_previously_was`](https://github.com/kufu/activerecord-bitemporal/pull/114)
 
 ### Changed
@@ -395,6 +429,7 @@
 ### Breaking Changes
 
 ### Added
+
 - [replace postgres docker image](https://github.com/kufu/activerecord-bitemporal/pull/103)
 - [use Matrix Jobs in CircleCI](https://github.com/kufu/activerecord-bitemporal/pull/107)
 - [Add support changing swapped_id, when called #destroy](https://github.com/kufu/activerecord-bitemporal/pull/110)
@@ -412,6 +447,7 @@
 ### Breaking Changes
 
 ### Added
+
 - [Update valid_to after #update](https://github.com/kufu/activerecord-bitemporal/pull/105)
 - [Add GitHub Actions workflow to release to RubyGems.org](https://github.com/kufu/activerecord-bitemporal/pull/104)
 - [migrate Scheduled workflows in CircleCI](https://github.com/kufu/activerecord-bitemporal/pull/106)
@@ -427,11 +463,13 @@
 ## 2.0.0
 
 ### Breaking Changes
+
 - [[Proposal] Changed valid_in to exclude valid_from = to and valid_to = from. by osyo-manga · Pull Request #95](https://github.com/kufu/activerecord-bitemporal/pull/95)
 
 ### Added
 
 ### Changed
+
 - [[Proposal] Add range argument to .valid_allin. by Dooor · Pull Request #98](https://github.com/kufu/activerecord-bitemporal/pull/98)
 
 ### Deprecated
@@ -439,6 +477,7 @@
 ### Removed
 
 ### Fixed
+
 - [Fix JOIN query does not have valid_from / valid_to when using .or. by osyo-manga · Pull Request #99](https://github.com/kufu/activerecord-bitemporal/pull/99)
 - [Fix typo in README.md by Naoya9922 · Pull Request #101](https://github.com/kufu/activerecord-bitemporal/pull/101)
 
