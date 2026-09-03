@@ -8,6 +8,11 @@ on:
       - master
   pull_request:
 
+env:
+  NPM_CONFIG_IGNORE_SCRIPTS: 'true'
+  NPM_CONFIG_BEFORE: ''
+  PNPM_CONFIG_MINIMUM_RELEASE_AGE: '1440' # 1 day
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -47,6 +52,9 @@ jobs:
     env:
       BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
     steps:
+      - name: Set NPM_CONFIG_BEFORE
+        run: |
+          echo "NPM_CONFIG_BEFORE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Ruby
