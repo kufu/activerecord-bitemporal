@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description   = %q{Enable ActiveRecord models to be handled as BiTemporal Data Model.}
   spec.homepage      = "https://github.com/kufu/activerecord-bitemporal"
   spec.license       = "Apache 2.0"
-  spec.required_ruby_version = ">= 3.1"
+  spec.required_ruby_version = ">= 3.2"
 
   spec.files         = Dir["lib/**/*", "CHANGELOG.md", "LICENSE", "README.md"]
   spec.bindir        = "exe"
