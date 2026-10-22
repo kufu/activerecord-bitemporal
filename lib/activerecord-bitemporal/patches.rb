@@ -53,7 +53,7 @@ module ActiveRecord::Bitemporal
         super || bi_temporal_model?
       end
 
-      def scope
+      def scope(*)
         scope = super
         return scope unless scope.bi_temporal_model?
 
