@@ -9,7 +9,7 @@ ActiveRecord::Bitemporal
 ## Requirements
 
 - Ruby 3.2+
-- Rails 7.1, 7.2, 8.0, or 8.1
+- Rails 7.2, 8.0, or 8.1
 - PostgreSQL
 
 ## Installation
