@@ -129,6 +129,28 @@ module ActiveRecord::Bitemporal
       end
     end
 
+    module CollectionAssociation
+      # Rails 8.2 looks up the record by `ActiveRecord::Key#where_hash`, which
+      # refers to `id`, so override `include?` to look up by bitemporal_id as
+      # before.
+      # cf. https://github.com/rails/rails/blob/ad04193d6778f8b88311133e3a21846353da41fc/activerecord/lib/active_record/associations/collection_association.rb
+      if ActiveRecord.version >= Gem::Version.new("8.2.0.a")
+        def include?(record)
+          klass = reflection.klass
+          return super unless klass&.bi_temporal_model?
+          return false unless record.is_a?(klass)
+
+          if loaded?
+            target.include?(record)
+          elsif record.new_record?
+            include_in_memory?(record)
+          else
+            scope.exists?(record.id)
+          end
+        end
+      end
+    end
+
     module SingularAssociation
       # MEMO: Except for primary_key in ActiveRecord
       #       https://github.com/rails/rails/blob/6-0-stable/activerecord/lib/active_record/associations/singular_association.rb#L34-L36
