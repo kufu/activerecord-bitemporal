@@ -1486,8 +1486,10 @@ RSpec.describe ActiveRecord::Bitemporal::Scope do
     describe "preloading" do
       def sql_log(&block)
         old_logger = ActiveRecord::Base.logger
-        old_colorize_logging = ActiveSupport::LogSubscriber.colorize_logging
-        ActiveSupport::LogSubscriber.colorize_logging = false
+        # Rails 8.2+ moved colorize_logging from ActiveSupport::LogSubscriber to ActiveSupport
+        colorize_logging_owner = ActiveSupport.respond_to?(:colorize_logging) ? ActiveSupport : ActiveSupport::LogSubscriber
+        old_colorize_logging = colorize_logging_owner.colorize_logging
+        colorize_logging_owner.colorize_logging = false
         output = StringIO.new
         ActiveRecord::Base.logger = Logger.new(output, formatter: -> (severity, time, progname, msg) {
           "#{msg&.[](/(SELECT.*)$/)}\n"
