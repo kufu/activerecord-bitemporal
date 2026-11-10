@@ -113,6 +113,67 @@ module ActiveRecord
 
     module Relation
       module BitemporalIdAsPrimaryKey # :nodoc:
+        module PrimaryKeyOverrides # :nodoc:
+          def primary_key
+            bitemporal_id_key
+          end
+
+          # Rails 8.2 refers to `model.primary_key_definition` instead of
+          # `primary_key` in the finder methods overridden below, so `model`
+          # returns a proxy whose `primary_key_definition` is bitemporal_id
+          # only while they run.
+          # cf. https://github.com/rails/rails/blob/ad04193d6778f8b88311133e3a21846353da41fc/activerecord/lib/active_record/relation/finder_methods.rb
+          if ActiveRecord.version >= Gem::Version.new("8.2.0.a")
+            class ModelWithBitemporalIdAsPrimaryKey # :nodoc:
+              attr_reader :primary_key_definition
+
+              delegate_missing_to :@model
+
+              def initialize(model)
+                @model = model
+                @primary_key_definition = ActiveRecord::Key.for(model.bitemporal_id_key)
+              end
+            end
+
+            def model
+              @bitemporal_model_proxy || super
+            end
+
+            private
+
+            # Don't carry the proxy over to relations spawned from this one, so
+            # that records are loaded with the original model.
+            def initialize_copy(other)
+              @bitemporal_model_proxy = nil
+              super
+            end
+
+            def with_bitemporal_id_as_primary_key
+              tmp = @bitemporal_model_proxy
+              @bitemporal_model_proxy = ModelWithBitemporalIdAsPrimaryKey.new(model)
+              yield
+            ensure
+              @bitemporal_model_proxy = tmp
+            end
+
+            def find_one(id)
+              with_bitemporal_id_as_primary_key { super }
+            end
+
+            def find_some(ids)
+              with_bitemporal_id_as_primary_key { super }
+            end
+
+            def find_some_ordered(ids)
+              with_bitemporal_id_as_primary_key { super }
+            end
+
+            def cast_primary_key(id)
+              with_bitemporal_id_as_primary_key { super }
+            end
+          end
+        end
+
         private
 
         # Generate a method that temporarily changes the primary key to
@@ -124,9 +185,11 @@ module ActiveRecord
           module_eval <<~RUBY, __FILE__, __LINE__ + 1
             def #{name}(...)
               all.spawn.yield_self { |relation|
-                def relation.primary_key
-                  bitemporal_id_key
-                end
+                relation.extend(
+                  ::ActiveRecord::Bitemporal::Relation::
+                    BitemporalIdAsPrimaryKey::PrimaryKeyOverrides
+                )
+
                 relation.method(:#{name}).super_method.call(...)
               }
             end
@@ -172,6 +235,21 @@ module ActiveRecord
         # work with `bitemporal_id` as the primary key in Rails 8+.
         use_bitemporal_id_as_primary_key :excluding
         use_bitemporal_id_as_primary_key :without
+      end
+
+      # Rails 8.2 looks up the record by `ActiveRecord::Key#where_hash`, which
+      # refers to `id`, so override `include?` to look up by bitemporal_id as
+      # before.
+      if ActiveRecord.version >= Gem::Version.new("8.2.0.a")
+        def include?(record)
+          return false unless record.is_a?(model)
+
+          if loaded? || offset_value || limit_value || having_clause.any?
+            records.include?(record)
+          else
+            exists?(record.id)
+          end
+        end
       end
 
       def build_arel(*)

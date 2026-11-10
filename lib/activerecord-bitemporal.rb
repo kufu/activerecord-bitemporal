@@ -41,6 +41,9 @@ ActiveSupport.on_load(:active_record) do
   ActiveRecord::Associations::ThroughAssociation
     .prepend ActiveRecord::Bitemporal::Patches::ThroughAssociation
 
+  ActiveRecord::Associations::CollectionAssociation
+    .prepend ActiveRecord::Bitemporal::Patches::CollectionAssociation
+
   ActiveRecord::Associations::SingularAssociation
     .prepend ActiveRecord::Bitemporal::Patches::SingularAssociation
 
